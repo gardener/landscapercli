@@ -15,15 +15,15 @@ install-requirements:
 
 .PHONY: format
 format:
-	@$(REPO_ROOT)/hack/format.sh $(REPO_ROOT)/pkg $(REPO_ROOT)/cmd
+	@$(REPO_ROOT)/hack/format.sh $(REPO_ROOT)/pkg $(REPO_ROOT)/cmd $(REPO_ROOT)/landscaper-cli
 
 .PHONY: check
 check:
-	@$(REPO_ROOT)/hack/check.sh --golangci-lint-config=./.golangci.yaml $(REPO_ROOT)/cmd/... $(REPO_ROOT)/pkg/...
+	@$(REPO_ROOT)/hack/check.sh --golangci-lint-config=./.golangci.yaml $(REPO_ROOT)/cmd/... $(REPO_ROOT)/pkg/... $(REPO_ROOT)/landscaper-cli
 
 .PHONY: test
 test:
-	@go test $(REPO_ROOT)/cmd/... $(REPO_ROOT)/pkg/...
+	@go test $(REPO_ROOT)/cmd/... $(REPO_ROOT)/pkg/... $(REPO_ROOT)/landscaper-cli
 
 .PHONY: verify
 verify: check
