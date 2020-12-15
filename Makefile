@@ -9,8 +9,8 @@ EFFECTIVE_VERSION                              := $(VERSION)-$(shell git rev-par
 
 .PHONY: install-requirements
 install-requirements:
-	@go install $(REPO_ROOT)/vendor/github.com/ahmetb/gen-crd-api-reference-docs
-	@go install $(REPO_ROOT)/vendor/github.com/golang/mock/mockgen
+	@go install github.com/ahmetb/gen-crd-api-reference-docs
+	@go install github.com/golang/mock/mockgen
 	@$(REPO_ROOT)/hack/install-requirements.sh
 
 .PHONY: format

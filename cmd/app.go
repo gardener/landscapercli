@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/gardener/landscaper/pkg/logger"
+
 	"github.com/gardener/landscapercli/cmd/blueprints"
 	"github.com/gardener/landscapercli/cmd/componentdescriptor"
 	"github.com/gardener/landscapercli/cmd/version"
