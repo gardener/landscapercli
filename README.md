@@ -1,8 +1,7 @@
 # Landscaper CLI
 
-**Under Construction**
-
-The landscaper uses custom resources like Installations, Executions, DeployItems, DataObjects, Targets. These 
+The Landscaper CLI tool supports users to interact with [Landscaper](https://github.com/gardener/landscaper) 
+installations and their custom resources like Installations, Executions, DeployItems, DataObjects, Targets etc. These 
 resources can simply be accessed using `kubectl`.
 
 The landscaper also interacts with resources that are not stored in a cluster.
@@ -24,3 +23,19 @@ go get github.com/gardener/landscapercli/landscaper-cli
 go get github.com/gardener/landscapercli/landscaper-cli@v0.1.0
 ```
 Make sure that the go bin path is set in your `$PATH` env var: `export PATH=$PATH:$GOPATH/bin`
+
+## Work with an OCI Registry
+
+In order for the `landscaper-cli` to work with the registry, it needs valid credentials. The easiest way to generate 
+these, would be via `docker login`. 
+
+```shell
+docker login ...
+```
+
+An example how to work with the Landscaper Cli and an [Harbor OCI registry](https://github.com/goharbor/harbor-helm) 
+could be found [here](https://github.com/gardener/landscaper/blob/master/docs/tutorials/00-local-setup.md).
+
+Other examples:
+https://github.com/gardener/landscaper/blob/master/docs/tutorials/02-simple-import.md 
+
