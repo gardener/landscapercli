@@ -24,7 +24,7 @@ import (
 	"github.com/gardener/landscaper/pkg/apis/core/validation"
 	"github.com/gardener/landscaper/pkg/kubernetes"
 	"github.com/gardener/landscaper/pkg/landscaper/blueprints/bputils"
-	"github.com/gardener/landscaper/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscaper/pkg/utils/oci"
 	"github.com/gardener/landscaper/pkg/utils/oci/cache"
 

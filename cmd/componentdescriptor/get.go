@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
-	"github.com/gardener/landscaper/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscaper/pkg/utils/oci"
 	"github.com/gardener/landscaper/pkg/utils/oci/cache"
 

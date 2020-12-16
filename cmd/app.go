@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gardener/landscaper/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/logger"
 
 	"github.com/gardener/landscapercli/cmd/blueprints"
 	"github.com/gardener/landscapercli/cmd/componentdescriptor"

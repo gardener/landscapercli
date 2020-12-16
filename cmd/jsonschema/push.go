@@ -22,7 +22,7 @@ import (
 
 	"github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
-	"github.com/gardener/landscaper/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscaper/pkg/utils/oci"
 	"github.com/gardener/landscaper/pkg/utils/oci/cache"
 
