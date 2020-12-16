@@ -1,0 +1,254 @@
+// Code generated for package jsonscheme by go-bindata DO NOT EDIT. (@generated)
+// sources:
+// ../../../../language-independent/component-descriptor-v2-schema.yaml
+package jsonscheme
+
+import (
+	"bytes"
+	"compress/gzip"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+)
+
+func bindataRead(data []byte, name string) ([]byte, error) {
+	gz, err := gzip.NewReader(bytes.NewBuffer(data))
+	if err != nil {
+		return nil, fmt.Errorf("Read %q: %v", name, err)
+	}
+
+	var buf bytes.Buffer
+	_, err = io.Copy(&buf, gz)
+	clErr := gz.Close()
+
+	if err != nil {
+		return nil, fmt.Errorf("Read %q: %v", name, err)
+	}
+	if clErr != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+type asset struct {
+	bytes []byte
+	info  os.FileInfo
+}
+
+type bindataFileInfo struct {
+	name    string
+	size    int64
+	mode    os.FileMode
+	modTime time.Time
+}
+
+// Name return file name
+func (fi bindataFileInfo) Name() string {
+	return fi.name
+}
+
+// Size return file size
+func (fi bindataFileInfo) Size() int64 {
+	return fi.size
+}
+
+// Mode return file mode
+func (fi bindataFileInfo) Mode() os.FileMode {
+	return fi.mode
+}
+
+// Mode return file modify time
+func (fi bindataFileInfo) ModTime() time.Time {
+	return fi.modTime
+}
+
+// IsDir return file whether a directory
+func (fi bindataFileInfo) IsDir() bool {
+	return fi.mode&os.ModeDir != 0
+}
+
+// Sys return file is sys mode
+func (fi bindataFileInfo) Sys() interface{} {
+	return nil
+}
+
+var _LanguageIndependentComponentDescriptorV2SchemaYaml = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\xe4\x59\xcd\x6e\xe3\x36\x10\xbe\xeb\x29\x06\x48\x00\xee\x16\xeb\xb8\xd8\x4b\x01\x5f\x8a\x74\x17\x2d\xf6\xb2\x2d\xd2\xb4\x97\x22\x07\x9a\x1a\xdb\x5c\x48\xa4\x4a\x8e\xdc\xb8\x45\xdf\xbd\x20\x29\xea\xc7\xb2\x64\x39\x76\xd2\xa0\x3d\x05\x94\x67\xbe\xf9\xe1\xf0\x9b\x21\x73\x2d\xd3\x05\xb0\x0d\x51\x61\x17\xf3\xf9\x9a\x9b\x14\x15\x9a\x1b\x91\xe9\x32\x9d\x5b\xb1\xc1\x9c\xdb\xb9\xd0\x79\xa1\x15\x2a\x9a\xa5\x68\x85\x91\x05\x69\x33\xdb\xbe\x67\xc9\x75\x90\x68\x21\x7c\xb1\x5a\xcd\xc2\xd7\x1b\x6d\xd6\xf3\xd4\xf0\x15\xcd\xbe\xfe\xa6\xc2\xba\x62\x49\x84\x90\x5a\x2d\x80\xfd\x50\x59\x84\x0f\xd1\x06\x7c\xac\x6d\xc0\xf6\x3d\x04\x3d\xa7\xb6\x92\x4a\x3a\x2d\xbb\x48\x00\x72\x24\xee\xfe\x02\xd0\xae\xc0\x05\x30\xbd\xfc\x82\x82\x98\xff\xd4\x35\x51\x7b\x0f\x8d\xf7\x5e\x3f\xe5\xc4\x83\x82\xc1\xdf\x4b\x69\x30\x0d\x88\x00\x33\x60\xc1\xee\xaf\x68\xac\xd4\x2a\x48\x15\x46\x17\x68\x48\xa2\x8d\x72\x1d\xa1\xf8\xb1\x76\xc9\x92\x91\x6a\xcd\x92\x04\x20\xe3\x4b\xcc\x06\xfd\x3d\x60\x5e\xf1\x1c\x59\xb3\xdc\xf2\xac\x44\x8f\x24\x53\x54\x24\x69\x77\x4b\x64\xe4\xb2\x24\x1c\x44\x2d\x38\x11\x1a\xf5\x53\xcf\x6b\x76\xf3\x15\x1b\x74\xd6\x7d\xe2\x69\xea\x33\xcd\xb3\x96\x32\x7c\xcf\x33\x8b\xce\x05\x83\x85\xb6\x92\xb4\xd9\x7d\xd0\x8a\xf0\x91\x4e\x09\x6c\xc9\x2d\xfe\x62\xb2\x56\x6c\x4e\x6f\x28\xc1\x95\xf4\xa8\xb7\xd5\xc7\x71\x11\x00\x54\x65\xbe\x80\xdf\x98\x16\xf2\x0e\xd7\xd2\x92\xd9\xb1\x07\x17\x0e\x17\x02\xad\x9d\x58\x4c\xce\x21\x2f\x05\x2b\x6d\x2a\x55\xb4\xf0\xc6\xad\xf0\x91\x50\xb9\x4a\xb0\x6f\x07\xc3\x0f\xc1\x26\x00\x6b\x49\x9b\x72\x79\x3b\x6e\x7b\x10\xa0\x5e\xba\xbd\xe8\xa6\xd3\xe0\x6a\x28\x9b\x27\xe5\x29\x38\xc8\x1e\xaa\x1f\x2a\x43\x47\xd4\x0d\xae\x8e\x48\x08\x9d\xe7\x92\xc6\xce\x8a\xd2\x0a\xcf\xc9\xcb\x99\x71\x7f\xd6\x0a\x43\x61\x58\x5d\x1a\x81\x1f\x6b\xe2\x39\xc1\x1d\x77\x7c\xeb\xc5\x36\xf0\x43\xbd\x76\x08\xf5\x22\x94\xd0\x80\xe3\x0e\xe6\x88\xe3\xf8\x48\x86\x7f\xaa\x48\xa1\x91\xbd\x76\x3b\x01\xec\x6a\xde\xe2\xcd\x79\x8f\x3b\x22\xc8\xf6\x08\x83\x3d\xad\x7c\xea\xda\xf1\xec\x67\x7b\xaa\xdc\x18\xbe\x6b\x34\x25\x61\xde\x12\x1a\x88\xc1\x63\x45\xa5\xf6\xd1\xf5\x6b\xb5\xfb\x71\xd5\x86\x98\x1d\x06\x09\x7a\xec\xb8\x60\xfb\x94\x4e\x10\x77\x5d\x30\x0a\xbb\x02\x32\xe2\x2e\x1e\x88\xa3\xcc\xc2\xdd\xe1\x41\x83\x4a\x20\x90\x06\x0e\x6f\x9a\xb6\x9b\x69\xc1\xb3\xb7\x55\x41\x0e\x55\x79\xdc\xdd\x9f\x31\x43\x41\xda\x3c\xb5\x18\x9e\x61\xb7\x12\x7f\xee\x43\x30\x77\x31\xca\xa7\xe6\xa5\x46\x9a\xda\x3c\x6b\x85\xcf\x7b\x4d\x75\xbc\xb9\x8f\x1d\x3e\xb8\x02\x2e\xa8\xe4\x59\xb6\x5b\x34\x0e\xcd\x7c\x63\xf8\x63\x0e\xb6\x40\x21\x79\x06\x06\x9d\xbc\xf0\xb9\x78\xc1\xf3\xda\xf1\xce\x60\xc6\x1f\x31\x05\x8b\xf9\x16\xcd\xb7\xcf\xba\xc9\x06\x43\x89\xde\xd7\x4c\x71\x62\x43\x8d\x00\x76\xf2\x60\x54\xed\x21\x5c\x79\x7d\x7f\x50\x1a\x94\x77\x40\x1b\x69\x21\x2f\x2d\x41\xce\x49\x6c\x5a\xc5\x63\x7b\xbc\xdc\xef\xad\x19\xa7\xba\x40\xfc\xa7\x36\x71\xfc\x07\xe8\x3a\x10\xd4\x85\xca\x20\x80\x35\x93\x40\x48\xde\xe4\x86\xe1\xb7\x8e\xbd\x03\xe6\xc6\x28\xa3\x78\xf6\xf2\xed\x63\xb4\x57\x24\x00\x5a\xc8\x4f\x39\x5f\x9f\x35\x9d\xf8\xa5\x74\x28\x35\x11\x5e\x64\x6c\xe9\x8e\xb5\x55\x4a\x3a\x66\xc6\x66\x2e\x2d\xe4\x77\x99\x3e\x6d\x1c\xed\x84\x35\x03\x96\xf1\x1d\x9a\x4b\xc4\x02\xac\x72\x87\xc1\xc3\xa1\xb9\xb2\x4b\x20\xb7\xce\xf9\x6e\x8f\xa0\x0d\x42\xce\x95\x5c\xa1\x25\x36\x6e\x34\xc7\x54\xf2\xfb\x8e\x73\x5d\xf8\x7b\x87\xe5\x84\x02\x49\xe9\x95\x47\x0f\x59\x09\xec\x12\x0a\x24\x78\x60\x81\xf4\x11\x8b\xa9\x5c\xa3\xa5\x31\x73\x41\x22\x9a\x22\x6e\xd6\x48\x98\x82\x70\x97\x2d\x75\x2c\x20\x2b\xff\x1c\x8d\xc5\xfd\x0e\x52\xc1\x72\x47\x68\xa3\x8d\xa5\x4b\xf6\x3e\xae\x2a\xf3\xa5\xdb\xd0\x56\xe1\xdf\x55\xc4\x7a\xce\x4d\xb6\xdd\x74\x0f\x9d\x8d\xb3\x29\xf6\x19\x86\xd9\x18\xff\x2b\xa1\xa4\x2e\x0f\xf9\x1d\x6a\x26\xcf\x33\x68\xa9\x8c\x17\xc9\x33\xb9\xc8\x39\x53\xa7\xaa\x1c\xb9\x34\xba\x7b\x30\x2a\x34\x52\xfc\x8b\x17\xbe\xca\x83\x70\xe7\xab\x16\xff\xd7\x42\x6f\x72\xf1\x1a\xea\xbc\x53\x1b\xdd\x5b\xc4\xe4\xcb\xc3\xc9\xb7\x85\xfe\xbe\xf5\xde\xbb\x6c\xeb\xc7\xc2\xe8\xad\x4c\x63\xe3\x0b\x4f\x87\xed\x11\xb6\x7b\x03\xa9\x9b\xb1\xed\xe0\x77\x34\x5e\xea\x26\x72\xfe\x25\xa2\x9f\x98\xcb\x54\x4a\x0f\x37\x02\xc4\x64\x4f\xae\x67\xa9\xaa\x59\xf2\x45\xe7\xca\x6a\x3b\x2f\x34\x56\xef\xbd\x42\xb5\x1e\xd2\xf6\x6b\xea\x32\x06\xfb\xc0\xcd\x4c\xff\xd4\xc8\x7a\x0f\x33\x83\x4f\x28\xed\x2b\x24\x9b\xa2\xb0\x3f\x9b\x4c\x52\xda\xa3\x79\xcf\x2d\x87\x53\x0a\x7f\xfd\x9d\x24\xc9\x1e\xd1\xb4\x59\x64\x06\x2c\xc7\xf0\x8f\x84\xf6\x49\x67\x49\xf7\x1c\x37\xff\xb0\x38\xe8\x50\x84\xd8\x23\xb8\xf1\x0d\x62\xc9\x3f\x01\x00\x00\xff\xff\xc2\xd4\xe6\x73\xbf\x19\x00\x00")
+
+func LanguageIndependentComponentDescriptorV2SchemaYamlBytes() ([]byte, error) {
+	return bindataRead(
+		_LanguageIndependentComponentDescriptorV2SchemaYaml,
+		"../../../../language-independent/component-descriptor-v2-schema.yaml",
+	)
+}
+
+func LanguageIndependentComponentDescriptorV2SchemaYaml() (*asset, error) {
+	bytes, err := LanguageIndependentComponentDescriptorV2SchemaYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "../../../../language-independent/component-descriptor-v2-schema.yaml", size: 6591, mode: os.FileMode(420), modTime: time.Unix(1605773687, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+// Asset loads and returns the asset for the given name.
+// It returns an error if the asset could not be found or
+// could not be loaded.
+func Asset(name string) ([]byte, error) {
+	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	if f, ok := _bindata[cannonicalName]; ok {
+		a, err := f()
+		if err != nil {
+			return nil, fmt.Errorf("Asset %s can't read by error: %v", name, err)
+		}
+		return a.bytes, nil
+	}
+	return nil, fmt.Errorf("Asset %s not found", name)
+}
+
+// MustAsset is like Asset but panics when Asset would return an error.
+// It simplifies safe initialization of global variables.
+func MustAsset(name string) []byte {
+	a, err := Asset(name)
+	if err != nil {
+		panic("asset: Asset(" + name + "): " + err.Error())
+	}
+
+	return a
+}
+
+// AssetInfo loads and returns the asset info for the given name.
+// It returns an error if the asset could not be found or
+// could not be loaded.
+func AssetInfo(name string) (os.FileInfo, error) {
+	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	if f, ok := _bindata[cannonicalName]; ok {
+		a, err := f()
+		if err != nil {
+			return nil, fmt.Errorf("AssetInfo %s can't read by error: %v", name, err)
+		}
+		return a.info, nil
+	}
+	return nil, fmt.Errorf("AssetInfo %s not found", name)
+}
+
+// AssetNames returns the names of the assets.
+func AssetNames() []string {
+	names := make([]string, 0, len(_bindata))
+	for name := range _bindata {
+		names = append(names, name)
+	}
+	return names
+}
+
+// _bindata is a table, holding each asset generator, mapped to its name.
+var _bindata = map[string]func() (*asset, error){
+	"../../../../language-independent/component-descriptor-v2-schema.yaml": LanguageIndependentComponentDescriptorV2SchemaYaml,
+}
+
+// AssetDir returns the file names below a certain
+// directory embedded in the file by go-bindata.
+// For example if you run go-bindata on data/... and data contains the
+// following hierarchy:
+//     data/
+//       foo.txt
+//       img/
+//         a.png
+//         b.png
+// then AssetDir("data") would return []string{"foo.txt", "img"}
+// AssetDir("data/img") would return []string{"a.png", "b.png"}
+// AssetDir("foo.txt") and AssetDir("notexist") would return an error
+// AssetDir("") will return []string{"data"}.
+func AssetDir(name string) ([]string, error) {
+	node := _bintree
+	if len(name) != 0 {
+		cannonicalName := strings.Replace(name, "\\", "/", -1)
+		pathList := strings.Split(cannonicalName, "/")
+		for _, p := range pathList {
+			node = node.Children[p]
+			if node == nil {
+				return nil, fmt.Errorf("Asset %s not found", name)
+			}
+		}
+	}
+	if node.Func != nil {
+		return nil, fmt.Errorf("Asset %s not found", name)
+	}
+	rv := make([]string, 0, len(node.Children))
+	for childName := range node.Children {
+		rv = append(rv, childName)
+	}
+	return rv, nil
+}
+
+type bintree struct {
+	Func     func() (*asset, error)
+	Children map[string]*bintree
+}
+
+var _bintree = &bintree{nil, map[string]*bintree{
+	"..": &bintree{nil, map[string]*bintree{
+		"..": &bintree{nil, map[string]*bintree{
+			"..": &bintree{nil, map[string]*bintree{
+				"..": &bintree{nil, map[string]*bintree{
+					"language-independent": &bintree{nil, map[string]*bintree{
+						"component-descriptor-v2-schema.yaml": &bintree{LanguageIndependentComponentDescriptorV2SchemaYaml, map[string]*bintree{}},
+					}},
+				}},
+			}},
+		}},
+	}},
+}}
+
+// RestoreAsset restores an asset under the given directory
+func RestoreAsset(dir, name string) error {
+	data, err := Asset(name)
+	if err != nil {
+		return err
+	}
+	info, err := AssetInfo(name)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(_filePath(dir, filepath.Dir(name)), os.FileMode(0755))
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(_filePath(dir, name), data, info.Mode())
+	if err != nil {
+		return err
+	}
+	err = os.Chtimes(_filePath(dir, name), info.ModTime(), info.ModTime())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// RestoreAssets restores an asset under the given directory recursively
+func RestoreAssets(dir, name string) error {
+	children, err := AssetDir(name)
+	// File
+	if err != nil {
+		return RestoreAsset(dir, name)
+	}
+	// Dir
+	for _, child := range children {
+		err = RestoreAssets(dir, filepath.Join(name, child))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func _filePath(dir, name string) string {
+	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
+}

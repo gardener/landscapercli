@@ -9,9 +9,10 @@ EFFECTIVE_VERSION                              := $(VERSION)-$(shell git rev-par
 
 .PHONY: install-requirements
 install-requirements:
-	@go install github.com/ahmetb/gen-crd-api-reference-docs
-	@go install github.com/golang/mock/mockgen
+	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/ahmetb/gen-crd-api-reference-docs
+	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/golang/mock/mockgen
 	@$(REPO_ROOT)/hack/install-requirements.sh
+
 
 .PHONY: format
 format:
@@ -23,7 +24,7 @@ check:
 
 .PHONY: test
 test:
-	@go test $(REPO_ROOT)/cmd/... $(REPO_ROOT)/pkg/... $(REPO_ROOT)/landscaper-cli
+	@go test -mod=vendor $(REPO_ROOT)/cmd/... $(REPO_ROOT)/pkg/... $(REPO_ROOT)/landscaper-cli
 
 .PHONY: verify
 verify: check

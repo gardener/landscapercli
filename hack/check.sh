@@ -23,7 +23,7 @@ echo "Executing golangci-lint"
 golangci-lint run $GOLANGCI_LINT_CONFIG_FILE --timeout 10m $@
 
 echo "Executing go vet"
-go vet $@
+go vet -mod=vendor $@
 
 echo "Executing gofmt"
 folders=()
