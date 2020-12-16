@@ -20,10 +20,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/gardener/landscaper/cmd/landscaper-cli/app/constants"
 	"github.com/gardener/landscaper/pkg/logger"
 	"github.com/gardener/landscaper/pkg/utils/oci"
 	"github.com/gardener/landscaper/pkg/utils/oci/cache"
+
+	"github.com/gardener/landscapercli/cmd/constants"
 )
 
 type pushOptions struct {

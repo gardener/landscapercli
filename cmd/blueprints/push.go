@@ -19,7 +19,6 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
-	"github.com/gardener/landscaper/cmd/landscaper-cli/app/constants"
 	"github.com/gardener/landscaper/pkg/apis/core"
 	lsv1alpha1 "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/pkg/apis/core/validation"
@@ -28,6 +27,8 @@ import (
 	"github.com/gardener/landscaper/pkg/logger"
 	"github.com/gardener/landscaper/pkg/utils/oci"
 	"github.com/gardener/landscaper/pkg/utils/oci/cache"
+
+	"github.com/gardener/landscapercli/cmd/constants"
 )
 
 type pushOptions struct {

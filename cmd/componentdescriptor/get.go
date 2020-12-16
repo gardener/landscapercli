@@ -18,11 +18,12 @@ import (
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/yaml"
 
-	"github.com/gardener/landscaper/cmd/landscaper-cli/app/constants"
 	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
 	"github.com/gardener/landscaper/pkg/logger"
 	"github.com/gardener/landscaper/pkg/utils/oci"
 	"github.com/gardener/landscaper/pkg/utils/oci/cache"
+
+	"github.com/gardener/landscapercli/cmd/constants"
 )
 
 type showOptions struct {
