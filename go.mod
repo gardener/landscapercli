@@ -22,4 +22,7 @@ require (
 	sigs.k8s.io/yaml v1.2.0
 )
 
-replace github.com/mandelsoft/spiff => github.com/mandelsoft/spiff v1.3.0-beta-7.0.20200909122641-3393af1d3804
+replace (
+	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
+	github.com/mandelsoft/spiff => github.com/mandelsoft/spiff v1.3.0-beta-7.0.20200909122641-3393af1d3804
+)
