@@ -17,10 +17,11 @@ import (
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/yaml"
 
+	"github.com/gardener/component-cli/ociclient"
+	"github.com/gardener/component-cli/ociclient/cache"
 	"github.com/gardener/landscaper/pkg/landscaper/jsonschema"
+
 	"github.com/gardener/landscapercli/pkg/logger"
-	"github.com/gardener/landscaper/pkg/utils/oci"
-	"github.com/gardener/landscaper/pkg/utils/oci/cache"
 
 	"github.com/gardener/landscapercli/cmd/constants"
 )
@@ -64,7 +65,7 @@ func (o *showOptions) run(ctx context.Context, log logr.Logger) error {
 		return err
 	}
 
-	ociClient, err := oci.NewClient(log, oci.WithCache{Cache: cache})
+	ociClient, err := ociclient.NewClient(log, ociclient.WithCache{Cache: cache})
 	if err != nil {
 		return err
 	}
@@ -73,7 +74,7 @@ func (o *showOptions) run(ctx context.Context, log logr.Logger) error {
 	if err != nil {
 		return fmt.Errorf("unable to get oci manifest: %w", err)
 	}
-	layers := oci.GetLayerByMediaType(manifest.Layers, jsonschema.JSONSchemaMediaType)
+	layers := ociclient.GetLayerByMediaType(manifest.Layers, jsonschema.JSONSchemaMediaType)
 	if len(layers) == 0 {
 		return fmt.Errorf("no jsonschema blobs with the media type %s can be found", jsonschema.JSONSchemaMediaType)
 	}
