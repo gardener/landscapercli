@@ -18,10 +18,11 @@ import (
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/yaml"
 
+	"github.com/gardener/component-cli/ociclient"
+	"github.com/gardener/component-cli/ociclient/cache"
 	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
+
 	"github.com/gardener/landscapercli/pkg/logger"
-	"github.com/gardener/landscaper/pkg/utils/oci"
-	"github.com/gardener/landscaper/pkg/utils/oci/cache"
 
 	"github.com/gardener/landscapercli/cmd/constants"
 )
@@ -72,7 +73,7 @@ func (o *showOptions) run(ctx context.Context, log logr.Logger) error {
 		return err
 	}
 
-	ociClient, err := oci.NewClient(log, oci.WithCache{Cache: cache}, oci.AllowPlainHttp(o.allowPlainHttp))
+	ociClient, err := ociclient.NewClient(log, ociclient.WithCache{Cache: cache}, ociclient.AllowPlainHttp(o.allowPlainHttp))
 	if err != nil {
 		return err
 	}
