@@ -1,5 +1,8 @@
 # Landscaper CLI
 
+**This project is still in an early development phase. Currently, commands are not bug free and all APIs could 
+change in the near future.**
+
 The Landscaper CLI tool supports users to interact with [Landscaper](https://github.com/gardener/landscaper) 
 systems and their custom resources like Installations, Executions, DeployItems, DataObjects, Targets etc. These 
 resources can simply be accessed using `kubectl`.
