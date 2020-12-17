@@ -87,8 +87,6 @@ github.com/docker/go-metrics
 github.com/docker/go-units
 # github.com/evanphx/json-patch v4.9.0+incompatible
 github.com/evanphx/json-patch
-# github.com/fsnotify/fsnotify v1.4.9
-github.com/fsnotify/fsnotify
 # github.com/gardener/component-cli v0.3.0
 ## explicit
 github.com/gardener/component-cli/ociclient
@@ -173,6 +171,12 @@ github.com/gorilla/mux
 # github.com/hashicorp/golang-lru v0.5.4
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
+# github.com/hpcloud/tail v1.0.0
+github.com/hpcloud/tail
+github.com/hpcloud/tail/ratelimiter
+github.com/hpcloud/tail/util
+github.com/hpcloud/tail/watch
+github.com/hpcloud/tail/winfile
 # github.com/huandu/xstrings v1.3.2
 github.com/huandu/xstrings
 # github.com/imdario/mergo v0.3.9
@@ -216,13 +220,7 @@ github.com/modern-go/concurrent
 github.com/modern-go/reflect2
 # github.com/morikuni/aec v1.0.0
 github.com/morikuni/aec
-# github.com/nxadm/tail v1.4.4
-github.com/nxadm/tail
-github.com/nxadm/tail/ratelimiter
-github.com/nxadm/tail/util
-github.com/nxadm/tail/watch
-github.com/nxadm/tail/winfile
-# github.com/onsi/ginkgo v1.14.0
+# github.com/onsi/ginkgo v1.14.0 => github.com/onsi/ginkgo v1.8.0
 ## explicit
 github.com/onsi/ginkgo/config
 github.com/onsi/ginkgo/ginkgo
@@ -645,3 +643,4 @@ sigs.k8s.io/structured-merge-diff/v4/value
 sigs.k8s.io/yaml
 # github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
 # github.com/mandelsoft/spiff => github.com/mandelsoft/spiff v1.3.0-beta-7.0.20200909122641-3393af1d3804
+# github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.8.0
