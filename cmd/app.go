@@ -13,6 +13,7 @@ import (
 
 	"github.com/gardener/landscapercli/cmd/blueprints"
 	"github.com/gardener/landscapercli/cmd/componentdescriptor"
+	"github.com/gardener/landscapercli/cmd/quickstart"
 	"github.com/gardener/landscapercli/cmd/version"
 
 	"github.com/spf13/cobra"
@@ -38,6 +39,7 @@ func NewLandscaperCliCommand(ctx context.Context) *cobra.Command {
 	cmd.AddCommand(version.NewVersionCommand())
 	cmd.AddCommand(blueprints.NewBlueprintsCommand(ctx))
 	cmd.AddCommand(componentdescriptor.NewComponentsCommand(ctx))
+	cmd.AddCommand(quickstart.NewQuickstartCommand(ctx))
 
 	return cmd
 }
