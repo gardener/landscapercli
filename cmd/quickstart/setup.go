@@ -26,9 +26,9 @@ const (
 )
 
 type setupOptions struct {
-	kubeconfigPath     string
-	namespace          string
-	setupOCIRegistry   bool
+	kubeconfigPath       string
+	namespace            string
+	setupOCIRegistry     bool
 	landscaperValuesPath string
 }
 
@@ -85,7 +85,7 @@ func (o *setupOptions) run(ctx context.Context, log logr.Logger) error {
 	}
 
 	if o.setupOCIRegistry {
-		err = setupOCIRegistry(o.namespace, k8sClient)
+		err = setupOCIRegistry(ctx, o.namespace, k8sClient)
 		if err != nil {
 			return err
 		}
@@ -151,9 +151,9 @@ func setupLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperV
 	return nil
 }
 
-func setupOCIRegistry(namespace string, k8sClient kubernetes.Interface) error {
+func setupOCIRegistry(ctx context.Context, namespace string, k8sClient kubernetes.Interface) error {
 	ociRegistry := NewOCIRegistry(namespace, k8sClient)
-	return ociRegistry.install()
+	return ociRegistry.install(ctx)
 }
 
 func execute(command string) (err error) {
