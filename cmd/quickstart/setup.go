@@ -26,9 +26,10 @@ const (
 )
 
 type setupOptions struct {
-	kubeconfigPath   string
-	namespace        string
-	setupOCIRegistry bool
+	kubeconfigPath     string
+	namespace          string
+	setupOCIRegistry   bool
+	landscaperValuesPath string
 }
 
 func NewSetupCommand(ctx context.Context) *cobra.Command {
@@ -90,7 +91,7 @@ func (o *setupOptions) run(ctx context.Context, log logr.Logger) error {
 		}
 	}
 
-	err = setupLandscaper(ctx, o.kubeconfigPath, o.namespace)
+	err = setupLandscaper(ctx, o.kubeconfigPath, o.namespace, o.landscaperValuesPath)
 	if err != nil {
 		return err
 	}
@@ -105,10 +106,11 @@ func (o *setupOptions) Complete(args []string) error {
 func (o *setupOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
 	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where landscaper and OCI registry are installed (default: "+defaultNamespace+")")
-	fs.BoolVar(&o.setupOCIRegistry, "setupOCIRegistry", false, "setup an internal OCI registry in the target cluster")
+	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the Landscaper Helm installation")
+	fs.BoolVar(&o.setupOCIRegistry, "setup-oci-registry", false, "setup an internal OCI registry in the target cluster")
 }
 
-func setupLandscaper(ctx context.Context, kubeconfigPath, namespace string) error {
+func setupLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperValues string) error {
 	landscaperChartURI := "eu.gcr.io/gardener-project/landscaper/charts/landscaper-controller:0.3.0"
 	pullCmd := fmt.Sprintf("helm chart pull %s", landscaperChartURI)
 	err := execute(pullCmd)
@@ -141,7 +143,7 @@ func setupLandscaper(ctx context.Context, kubeconfigPath, namespace string) erro
 
 	chartPath := path.Join(tempDir, fileInfos[0].Name())
 
-	err = execute(fmt.Sprintf("helm upgrade --install --namespace %s landscaper %s --kubeconfig %s", namespace, chartPath, kubeconfigPath))
+	err = execute(fmt.Sprintf("helm upgrade --install --namespace %s landscaper %s -f %s --kubeconfig %s", namespace, chartPath, landscaperValues, kubeconfigPath))
 	if err != nil {
 		return err
 	}
