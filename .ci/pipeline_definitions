@@ -26,7 +26,8 @@ landscaper-cli:
     release:
       traits:
         version:
-          preprocess: 'finalize' 'inject-branch-name'
+          preprocess: 'finalize'
         release:
           nextversion: 'bump_minor'
           release_notes_policy: disabled
+          git_tags: '- ref_template: refs/tags/{VERSION}-dev'
