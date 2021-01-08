@@ -26,7 +26,8 @@ landscaper-cli:
     release:
       traits:
         version:
-# der release sollte ein _dev hinten haben
-#          preprocess: 'finalize'
+          # der release sollte ein _dev hinten haben
+          preprocess: 'finalize'
         release:
           nextversion: 'bump_minor'
+          release_notes_policy: disabled
