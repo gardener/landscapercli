@@ -2,9 +2,11 @@ package quickstart
 
 import (
 	"context"
+	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -32,9 +34,7 @@ func NewOCIRegistry(namespace string, k8sClient kubernetes.Interface) *ociRegist
 	return obj
 }
 
-func (r *ociRegistry) install() error {
-	ctx := context.TODO()
-
+func (r *ociRegistry) install(ctx context.Context) error {
 	_, err := r.k8sClient.AppsV1().Deployments(r.namespace).Create(ctx, r.deployment, metav1.CreateOptions{})
 	if err != nil {
 		return err
@@ -47,13 +47,41 @@ func (r *ociRegistry) install() error {
 
 	_, err = r.k8sClient.CoreV1().Services(r.namespace).Create(ctx, r.service, metav1.CreateOptions{})
 	if err != nil {
-		 return err
+		return err
 	}
 
 	return nil
 }
 
-func (r *ociRegistry) uninstall() error {
+func (r *ociRegistry) uninstall(ctx context.Context) error {
+	err := r.k8sClient.AppsV1().Deployments(r.namespace).Delete(ctx, r.deployment.Name, metav1.DeleteOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			fmt.Println("Registry Deployment not found...Skipping")
+		} else {
+			return err
+		}
+	}
+
+	//TODO: check if pv also gets deleted
+	err = r.k8sClient.CoreV1().PersistentVolumeClaims(r.namespace).Delete(ctx, r.pvc.Name, metav1.DeleteOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			fmt.Println("Registry PersistentVolumeClaim not found...Skipping")
+		} else {
+			return err
+		}
+	}
+
+	err = r.k8sClient.CoreV1().Services(r.namespace).Delete(ctx, r.service.Name, metav1.DeleteOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			fmt.Println("Registry Service not found...Skipping")
+		} else {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -70,8 +98,8 @@ func createK8sObjects() (*appsv1.Deployment, *corev1.PersistentVolumeClaim, *cor
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      appName,
-			Labels:    labels,
+			Name:   appName,
+			Labels: labels,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
@@ -117,8 +145,8 @@ func createK8sObjects() (*appsv1.Deployment, *corev1.PersistentVolumeClaim, *cor
 
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      pvcName,
-			Labels:    labels,
+			Name:   pvcName,
+			Labels: labels,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -134,8 +162,8 @@ func createK8sObjects() (*appsv1.Deployment, *corev1.PersistentVolumeClaim, *cor
 
 	var service = &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      appName,
-			Labels:    labels,
+			Name:   appName,
+			Labels: labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Type:     corev1.ServiceTypeClusterIP,
