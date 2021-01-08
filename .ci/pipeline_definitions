@@ -26,7 +26,7 @@ landscaper-cli:
     release:
       traits:
         version:
-          preprocess: 'finalize'
+          preprocess: 'finalize inject-branch-name'
         release:
           nextversion: 'bump_minor'
           release_notes_policy: disabled
