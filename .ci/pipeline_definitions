@@ -34,9 +34,9 @@ landscaper-cli:
       traits:
         version:
           preprocess: 'finalize'
-          version_interface: 'file'
-          read_callback: 'version_read_callback.sh'
-          write_callback: 'version_write_callback.sh'
+          version_interface: 'callback'
+          read_callback: '.ci/version_read_callback.sh'
+          write_callback: '.ci/version_write_callback.sh'
         release:
           nextversion: 'bump_minor'
           release_notes_policy: disabled
