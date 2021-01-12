@@ -69,28 +69,31 @@ func (r *ociRegistry) install(ctx context.Context) error {
 }
 
 func (r *ociRegistry) uninstall(ctx context.Context) error {
+	fmt.Printf("Deleting Deployment %s in namespace %s\n", r.deployment.Name, r.namespace)
 	err := r.k8sClient.AppsV1().Deployments(r.namespace).Delete(ctx, r.deployment.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			fmt.Println("Registry Deployment not found...Skipping")
+			fmt.Println("Deployment not found...Skipping")
 		} else {
 			return err
 		}
 	}
 
+	fmt.Printf("Deleting Persitent Volume Claim %s in namespace %s\n", r.pvc.Name, r.namespace)
 	err = r.k8sClient.CoreV1().PersistentVolumeClaims(r.namespace).Delete(ctx, r.pvc.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			fmt.Println("Registry PersistentVolumeClaim not found...Skipping")
+			fmt.Println("PersistentVolumeClaim not found...Skipping")
 		} else {
 			return err
 		}
 	}
 
+	fmt.Printf("Deleting Service %s in namespace %s\n", r.service.Name, r.namespace)
 	err = r.k8sClient.CoreV1().Services(r.namespace).Delete(ctx, r.service.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			fmt.Println("Registry Service not found...Skipping")
+			fmt.Println("Service not found...Skipping")
 		} else {
 			return err
 		}
