@@ -26,10 +26,11 @@ const (
 )
 
 type setupOptions struct {
-	kubeconfigPath       string
-	namespace            string
-	setupOCIRegistry     bool
-	landscaperValuesPath string
+	kubeconfigPath         string
+	namespace              string
+	setupOCIRegistry       bool
+	landscaperValuesPath   string
+	landscaperChartVersion string
 }
 
 func NewSetupCommand(ctx context.Context) *cobra.Command {
@@ -94,7 +95,7 @@ func (o *setupOptions) run(ctx context.Context, log logr.Logger) error {
 	}
 
 	fmt.Println("Installing Landscaper...")
-	err = setupLandscaper(ctx, o.kubeconfigPath, o.namespace, o.landscaperValuesPath)
+	err = setupLandscaper(ctx, o.kubeconfigPath, o.namespace, o.landscaperValuesPath, o.landscaperChartVersion)
 	if err != nil {
 		return err
 	}
@@ -112,10 +113,14 @@ func (o *setupOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where landscaper and OCI registry are installed (default: "+defaultNamespace+")")
 	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the Landscaper Helm installation")
 	fs.BoolVar(&o.setupOCIRegistry, "setup-oci-registry", false, "setup an internal OCI registry in the target cluster")
+	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", "", "use custom landscaper chart version")
 }
 
-func setupLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperValues string) error {
-	landscaperChartURI := "eu.gcr.io/gardener-project/landscaper/charts/landscaper-controller:v0.4.0-dev-203919cd11175450d6032552d116cab8c86023cc"
+func setupLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperValues string, landscaperChartVersion string) error {
+	if landscaperChartVersion == "" {
+		landscaperChartVersion = "v0.4.0-dev-203919cd11175450d6032552d116cab8c86023cc"
+	}
+	landscaperChartURI := fmt.Sprintf("eu.gcr.io/gardener-project/landscaper/charts/landscaper-controller:%s", landscaperChartVersion)
 	pullCmd := fmt.Sprintf("helm chart pull %s", landscaperChartURI)
 	err := execute(pullCmd)
 	if err != nil {
