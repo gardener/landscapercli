@@ -59,15 +59,19 @@ func (o *teardownOptions) run(ctx context.Context, log logr.Logger) error {
 		return err
 	}
 
+	fmt.Println("Teardown OCI Registry...")
 	err = teardownOCIRegistry(ctx, o.namespace, k8sClient)
 	if err != nil {
 		return err
 	}
+	fmt.Println("OCI registry teardown succeeded!")
 
+	fmt.Println("Teardown Landscaper...")
 	err = teardownLandscaper(ctx, o.kubeconfigPath, o.namespace)
 	if err != nil {
 		return err
 	}
+	fmt.Println("Landscaper teardown succeeded!")
 
 	return nil
 }
