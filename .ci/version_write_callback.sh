@@ -8,4 +8,5 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-echo "${EFFECTIVE_VERSION}-dev"
+version=$(</dev/stdin)
+echo "version=${version}"
