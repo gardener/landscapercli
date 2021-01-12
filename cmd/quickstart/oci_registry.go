@@ -35,16 +35,19 @@ func NewOCIRegistry(namespace string, k8sClient kubernetes.Interface) *ociRegist
 }
 
 func (r *ociRegistry) install(ctx context.Context) error {
+	fmt.Printf("Creating Deployment %s in namespace %s\n", r.deployment.Name, r.namespace)
 	_, err := r.k8sClient.AppsV1().Deployments(r.namespace).Create(ctx, r.deployment, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("Creating Persitent Volume Claim %s in namespace %s\n", r.pvc.Name, r.namespace)
 	_, err = r.k8sClient.CoreV1().PersistentVolumeClaims(r.namespace).Create(ctx, r.pvc, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("Creating Service %s in namespace %s\n", r.service.Name, r.namespace)
 	_, err = r.k8sClient.CoreV1().Services(r.namespace).Create(ctx, r.service, metav1.CreateOptions{})
 	if err != nil {
 		return err
@@ -63,7 +66,6 @@ func (r *ociRegistry) uninstall(ctx context.Context) error {
 		}
 	}
 
-	//TODO: check if pv also gets deleted
 	err = r.k8sClient.CoreV1().PersistentVolumeClaims(r.namespace).Delete(ctx, r.pvc.Name, metav1.DeleteOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
