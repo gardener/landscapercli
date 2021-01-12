@@ -90,7 +90,7 @@ func (o *setupOptions) run(ctx context.Context, log logr.Logger) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println("OCI registry installation succeeded!")
+		fmt.Print("OCI registry installation succeeded!\n\n")
 	}
 
 	fmt.Println("Installing Landscaper...")
@@ -173,7 +173,7 @@ func execute(command string) error {
 		fmt.Printf("Failed with error: %s:\n%s\n", err, string(out))
 		return err
 	}
-	fmt.Printf("Sucessfully executed: %s\n\n", string(command))
+	fmt.Println("Executed sucessfully!")
 
 	return nil
 }
