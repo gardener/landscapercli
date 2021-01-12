@@ -26,10 +26,11 @@ const (
 )
 
 type setupOptions struct {
-	kubeconfigPath       string
-	namespace            string
-	setupOCIRegistry     bool
-	landscaperValuesPath string
+	kubeconfigPath         string
+	namespace              string
+	setupOCIRegistry       bool
+	landscaperValuesPath   string
+	landscaperChartVersion string
 }
 
 func NewSetupCommand(ctx context.Context) *cobra.Command {
@@ -85,16 +86,20 @@ func (o *setupOptions) run(ctx context.Context, log logr.Logger) error {
 	}
 
 	if o.setupOCIRegistry {
+		fmt.Println("Installing OCI registry...")
 		err = setupOCIRegistry(ctx, o.namespace, k8sClient)
 		if err != nil {
 			return err
 		}
+		fmt.Print("OCI registry installation succeeded!\n\n")
 	}
 
-	err = setupLandscaper(ctx, o.kubeconfigPath, o.namespace, o.landscaperValuesPath)
+	fmt.Println("Installing Landscaper...")
+	err = setupLandscaper(ctx, o.kubeconfigPath, o.namespace, o.landscaperValuesPath, o.landscaperChartVersion)
 	if err != nil {
 		return err
 	}
+	fmt.Println("Landscaper installation succeeded!")
 
 	return nil
 }
@@ -108,10 +113,14 @@ func (o *setupOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where landscaper and OCI registry are installed (default: "+defaultNamespace+")")
 	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the Landscaper Helm installation")
 	fs.BoolVar(&o.setupOCIRegistry, "setup-oci-registry", false, "setup an internal OCI registry in the target cluster")
+	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", "", "use custom landscaper chart version")
 }
 
-func setupLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperValues string) error {
-	landscaperChartURI := "eu.gcr.io/gardener-project/landscaper/charts/landscaper-controller:0.3.0"
+func setupLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperValues string, landscaperChartVersion string) error {
+	if landscaperChartVersion == "" {
+		landscaperChartVersion = "v0.4.0-dev-203919cd11175450d6032552d116cab8c86023cc"
+	}
+	landscaperChartURI := fmt.Sprintf("eu.gcr.io/gardener-project/landscaper/charts/landscaper-controller:%s", landscaperChartVersion)
 	pullCmd := fmt.Sprintf("helm chart pull %s", landscaperChartURI)
 	err := execute(pullCmd)
 	if err != nil {
@@ -122,7 +131,7 @@ func setupLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperV
 	defer func() {
 		err = os.RemoveAll(tempDir)
 		if err != nil {
-			fmt.Printf("cannot remove directory %s: %s", tempDir, err.Error())
+			fmt.Printf("cannot remove temporary directory %s: %s", tempDir, err.Error())
 		}
 	}()
 
@@ -156,19 +165,20 @@ func setupOCIRegistry(ctx context.Context, namespace string, k8sClient kubernete
 	return ociRegistry.install(ctx)
 }
 
-func execute(command string) (err error) {
-	fmt.Printf("executing: %s\n", command)
+func execute(command string) error {
+	fmt.Printf("Executing: %s\n", command)
 
 	arr := strings.Split(command, " ")
 
-	c := exec.Command(arr[0], arr[1:]...)
-	c.Env = []string{"HELM_EXPERIMENTAL_OCI=1", "HOME=" + os.Getenv("HOME"), "PATH=" + os.Getenv("PATH")}
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
+	cmd := exec.Command(arr[0], arr[1:]...)
+	cmd.Env = []string{"HELM_EXPERIMENTAL_OCI=1", "HOME=" + os.Getenv("HOME"), "PATH=" + os.Getenv("PATH")}
+	out, err := cmd.CombinedOutput()
 
-	err = c.Run()
+	if err != nil {
+		fmt.Printf("Failed with error: %s:\n%s\n", err, string(out))
+		return err
+	}
+	fmt.Println("Executed sucessfully!")
 
-	fmt.Println()
-
-	return
+	return nil
 }
