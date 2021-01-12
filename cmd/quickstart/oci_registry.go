@@ -38,19 +38,31 @@ func (r *ociRegistry) install(ctx context.Context) error {
 	fmt.Printf("Creating Deployment %s in namespace %s\n", r.deployment.Name, r.namespace)
 	_, err := r.k8sClient.AppsV1().Deployments(r.namespace).Create(ctx, r.deployment, metav1.CreateOptions{})
 	if err != nil {
-		return err
+		if k8sErrors.IsAlreadyExists(err) {
+			fmt.Println("Deployment already exists...Skipping")
+		} else {
+			return err
+		}
 	}
 
 	fmt.Printf("Creating Persitent Volume Claim %s in namespace %s\n", r.pvc.Name, r.namespace)
 	_, err = r.k8sClient.CoreV1().PersistentVolumeClaims(r.namespace).Create(ctx, r.pvc, metav1.CreateOptions{})
 	if err != nil {
-		return err
+		if k8sErrors.IsAlreadyExists(err) {
+			fmt.Println("Persitent Volume Claim already exists...Skipping")
+		} else {
+			return err
+		}
 	}
 
 	fmt.Printf("Creating Service %s in namespace %s\n", r.service.Name, r.namespace)
 	_, err = r.k8sClient.CoreV1().Services(r.namespace).Create(ctx, r.service, metav1.CreateOptions{})
 	if err != nil {
-		return err
+		if k8sErrors.IsAlreadyExists(err) {
+			fmt.Println("Service already exists...Skipping")
+		} else {
+			return err
+		}
 	}
 
 	return nil
