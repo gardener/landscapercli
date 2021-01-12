@@ -30,3 +30,11 @@ landscaper-cli:
         release:
           nextversion: 'bump_minor'
           release_notes_policy: disabled
+    release-dev:
+      traits:
+        version:
+          preprocess: 'finalize'
+          read_callback: 'version_read_callback.sh'
+        release:
+          nextversion: 'bump_minor'
+          release_notes_policy: disabled
