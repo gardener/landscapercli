@@ -1,31 +1,29 @@
 package util
 
 import (
-	"io"
+	"fmt"
 	"strings"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-func ParseUnstructuredK8sManifest(k8sManifest string) ([]*unstructured.Unstructured, error) {
-	k8sObjects := []*unstructured.Unstructured{}
-	decoder := yaml.NewYAMLOrJSONDecoder(strings.NewReader(k8sManifest), 1024)
+func GetValueFromNestedMap(data map[string]interface{}, valuePath string) (interface{}, error) {
+	var val interface{}
+	var ok bool
 
-	for {
-		k8sObj := &unstructured.Unstructured{
-			Object: map[string]interface{}{},
-		}
-		err := decoder.Decode(&k8sObj.Object)
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				return nil, err
+	keys := strings.Split(valuePath, ".")
+	for index, key := range(keys) {
+		if index == len(keys)-1 {
+			val, ok = data[key]
+			if !ok {
+				return nil, fmt.Errorf("Cannot get value for path %s", valuePath)
+			}
+		} else {
+			tmp := data[key]
+			data, ok = tmp.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("Cannot get value for path %s", valuePath)
 			}
 		}
-		k8sObjects = append(k8sObjects, k8sObj)
 	}
 
-	return k8sObjects, nil
+	return val, nil
 }

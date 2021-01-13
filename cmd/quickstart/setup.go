@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/util"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -19,6 +20,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -28,7 +30,7 @@ const (
 type setupOptions struct {
 	kubeconfigPath         string
 	namespace              string
-	setupOCIRegistry       bool
+	installOCIRegistry     bool
 	landscaperValuesPath   string
 	landscaperChartVersion string
 }
@@ -60,12 +62,12 @@ func NewSetupCommand(ctx context.Context) *cobra.Command {
 func (o *setupOptions) run(ctx context.Context, log logr.Logger) error {
 	cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfigPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("Cannot parse K8s config: %w", err)
 	}
 
 	k8sClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("Cannot build K8s clientset: %w", err)
 	}
 
 	_, err = k8sClient.CoreV1().Namespaces().Get(ctx, o.namespace, v1.GetOptions{})
@@ -78,28 +80,68 @@ func (o *setupOptions) run(ctx context.Context, log logr.Logger) error {
 			}
 			_, err = k8sClient.CoreV1().Namespaces().Create(ctx, namespace, v1.CreateOptions{})
 			if err != nil {
-				return err
+				return fmt.Errorf("Cannot create namespace %s: %w", o.namespace, err)
 			}
 		} else {
-			return err
+			return fmt.Errorf("Cannot get namespace %s: %w", o.namespace, err)
 		}
 	}
 
-	if o.setupOCIRegistry {
+	if o.installOCIRegistry {
 		fmt.Println("Installing OCI registry...")
-		err = setupOCIRegistry(ctx, o.namespace, k8sClient)
+		err = installOCIRegistry(ctx, o.namespace, k8sClient)
 		if err != nil {
-			return err
+			return fmt.Errorf("Cannot install OCI registry: %w", err)
 		}
 		fmt.Print("OCI registry installation succeeded!\n\n")
 	}
 
 	fmt.Println("Installing Landscaper...")
-	err = setupLandscaper(ctx, o.kubeconfigPath, o.namespace, o.landscaperValuesPath, o.landscaperChartVersion)
+	err = installLandscaper(ctx, o.kubeconfigPath, o.namespace, o.landscaperValuesPath, o.landscaperChartVersion)
 	if err != nil {
-		return err
+		return fmt.Errorf("Cannot install landscaper: %w", err)
 	}
 	fmt.Println("Landscaper installation succeeded!")
+
+	err = runPostInstallChecks(o, log)
+	if err != nil {
+		msg := fmt.Sprintf("Found problems during post-install checks: %s", err)
+		log.V(util.LogLevelWarning).Info(msg)
+	}
+
+	return nil
+}
+
+func runPostInstallChecks(opts *setupOptions, log logr.Logger) error {
+	var allowPlainHttpRegistries, ok bool
+	if opts.landscaperValuesPath != "" {
+		valuesFileContent, err := ioutil.ReadFile(opts.landscaperValuesPath)
+		if err != nil {
+			return fmt.Errorf("Cannot read file: %w", err)
+		}
+
+		values := map[string]interface{}{}
+		err = yaml.UnmarshalStrict(valuesFileContent, &values)
+		if err != nil {
+			return fmt.Errorf("Cannot unmarshall values.yaml: %w", err)
+		}
+
+		valuePath := "landscaper.registryConfig.allowPlainHttpRegistries"
+		val, err := util.GetValueFromNestedMap(values, valuePath)
+		if err != nil {
+			return fmt.Errorf("Cannot access Helm values: %w", err)
+		}
+
+		allowPlainHttpRegistries, ok = val.(bool)
+		if !ok {
+			return fmt.Errorf("Value for path %s must be of type boolean", valuePath)
+		}
+	}
+
+	if opts.installOCIRegistry && !allowPlainHttpRegistries {
+		log.V(util.LogLevelWarning).Info("You installed the cluster-internal OCI registry without enabling support for HTTP-only registries on the Landscaper.")
+		log.V(util.LogLevelWarning).Info("For using the landscaper with the cluster-internal OCI registry, please set landscaper.registryConfig.allowPlainHttpRegistries in the Landscaper Helm values to true.")
+	}
 
 	return nil
 }
@@ -112,11 +154,11 @@ func (o *setupOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
 	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where landscaper and OCI registry are installed (default: "+defaultNamespace+")")
 	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the Landscaper Helm installation")
-	fs.BoolVar(&o.setupOCIRegistry, "setup-oci-registry", false, "setup an internal OCI registry in the target cluster")
+	fs.BoolVar(&o.installOCIRegistry, "install-oci-registry", false, "install an internal OCI registry in the target cluster")
 	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", "", "use custom landscaper chart version")
 }
 
-func setupLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperValues string, landscaperChartVersion string) error {
+func installLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperValues string, landscaperChartVersion string) error {
 	if landscaperChartVersion == "" {
 		landscaperChartVersion = "v0.4.0-dev-203919cd11175450d6032552d116cab8c86023cc"
 	}
@@ -160,7 +202,7 @@ func setupLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperV
 	return nil
 }
 
-func setupOCIRegistry(ctx context.Context, namespace string, k8sClient kubernetes.Interface) error {
+func installOCIRegistry(ctx context.Context, namespace string, k8sClient kubernetes.Interface) error {
 	ociRegistry := NewOCIRegistry(namespace, k8sClient)
 	return ociRegistry.install(ctx)
 }
