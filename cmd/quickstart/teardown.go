@@ -46,30 +46,30 @@ func NewTeardownCommand(ctx context.Context) *cobra.Command {
 func (o *teardownOptions) run(ctx context.Context, log logr.Logger) error {
 	cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfigPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("Cannot parse K8s config: %w", err)
 	}
 
 	k8sClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("Cannot build K8s clientset: %w", err)
 	}
 
 	_, err = k8sClient.CoreV1().Namespaces().Get(ctx, o.namespace, v1.GetOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("Cannot get namespace %s: %w", o.namespace, err)
 	}
 
 	fmt.Println("Teardown OCI Registry...")
 	err = teardownOCIRegistry(ctx, o.namespace, k8sClient)
 	if err != nil {
-		return err
+		return fmt.Errorf("Cannot uninstall OCI registry: %w", err)
 	}
-	fmt.Println("OCI registry teardown succeeded!")
+	fmt.Print("OCI registry teardown succeeded!\n\n")
 
 	fmt.Println("Teardown Landscaper...")
 	err = teardownLandscaper(ctx, o.kubeconfigPath, o.namespace)
 	if err != nil {
-		return err
+		return fmt.Errorf("Cannot uninstall landscaper: %w", err)
 	}
 	fmt.Println("Landscaper teardown succeeded!")
 
