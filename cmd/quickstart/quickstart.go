@@ -17,8 +17,8 @@ func NewQuickstartCommand(ctx context.Context) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(NewSetupCommand(ctx))
-	cmd.AddCommand(NewTeardownCommand(ctx))
+	cmd.AddCommand(NewInstallCommand(ctx))
+	cmd.AddCommand(NewUninstallCommand(ctx))
 
 	return cmd
 }

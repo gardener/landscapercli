@@ -14,16 +14,16 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-type teardownOptions struct {
+type uninstallOptions struct {
 	kubeconfigPath string
 	namespace      string
 }
 
-func NewTeardownCommand(ctx context.Context) *cobra.Command {
-	opts := &teardownOptions{}
+func NewUninstallCommand(ctx context.Context) *cobra.Command {
+	opts := &uninstallOptions{}
 	cmd := &cobra.Command{
-		Use:     "teardown",
-		Aliases: []string{"td"},
+		Use:     "uninstall",
+		Aliases: []string{"u"},
 		Short:   "",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -43,7 +43,7 @@ func NewTeardownCommand(ctx context.Context) *cobra.Command {
 	return cmd
 }
 
-func (o *teardownOptions) run(ctx context.Context, log logr.Logger) error {
+func (o *uninstallOptions) run(ctx context.Context, log logr.Logger) error {
 	cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfigPath)
 	if err != nil {
 		return fmt.Errorf("Cannot parse K8s config: %w", err)
@@ -59,38 +59,38 @@ func (o *teardownOptions) run(ctx context.Context, log logr.Logger) error {
 		return fmt.Errorf("Cannot get namespace %s: %w", o.namespace, err)
 	}
 
-	fmt.Println("Teardown OCI Registry...")
-	err = teardownOCIRegistry(ctx, o.namespace, k8sClient)
+	fmt.Println("Uninstall OCI Registry...")
+	err = uninstallOCIRegistry(ctx, o.namespace, k8sClient)
 	if err != nil {
 		return fmt.Errorf("Cannot uninstall OCI registry: %w", err)
 	}
-	fmt.Print("OCI registry teardown succeeded!\n\n")
+	fmt.Print("OCI registry uninstall succeeded!\n\n")
 
-	fmt.Println("Teardown Landscaper...")
-	err = teardownLandscaper(ctx, o.kubeconfigPath, o.namespace)
+	fmt.Println("Uninstall Landscaper...")
+	err = uninstallLandscaper(ctx, o.kubeconfigPath, o.namespace)
 	if err != nil {
 		return fmt.Errorf("Cannot uninstall landscaper: %w", err)
 	}
-	fmt.Println("Landscaper teardown succeeded!")
+	fmt.Println("Landscaper uninstall succeeded!")
 
 	return nil
 }
 
-func (o *teardownOptions) Complete(args []string) error {
+func (o *uninstallOptions) Complete(args []string) error {
 	return nil
 }
 
-func (o *teardownOptions) AddFlags(fs *pflag.FlagSet) {
+func (o *uninstallOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
 	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where landscaper and OCI registry are installed (default: "+defaultNamespace+")")
 }
 
-func teardownOCIRegistry(ctx context.Context, namespace string, k8sClient kubernetes.Interface) error {
+func uninstallOCIRegistry(ctx context.Context, namespace string, k8sClient kubernetes.Interface) error {
 	ociRegistry := NewOCIRegistry(namespace, k8sClient)
 	return ociRegistry.uninstall(ctx)
 }
 
-func teardownLandscaper(ctx context.Context, kubeconfigPath, namespace string) error {
+func uninstallLandscaper(ctx context.Context, kubeconfigPath, namespace string) error {
 	err := execute(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", namespace, kubeconfigPath))
 	if err != nil {
 		return err

@@ -27,7 +27,7 @@ const (
 	defaultNamespace = "landscaper"
 )
 
-type setupOptions struct {
+type installOptions struct {
 	kubeconfigPath         string
 	namespace              string
 	installOCIRegistry     bool
@@ -35,11 +35,11 @@ type setupOptions struct {
 	landscaperChartVersion string
 }
 
-func NewSetupCommand(ctx context.Context) *cobra.Command {
-	opts := &setupOptions{}
+func NewInstallCommand(ctx context.Context) *cobra.Command {
+	opts := &installOptions{}
 	cmd := &cobra.Command{
-		Use:     "setup",
-		Aliases: []string{"s"},
+		Use:     "install",
+		Aliases: []string{"i"},
 		Short:   "",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -59,7 +59,7 @@ func NewSetupCommand(ctx context.Context) *cobra.Command {
 	return cmd
 }
 
-func (o *setupOptions) run(ctx context.Context, log logr.Logger) error {
+func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 	cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfigPath)
 	if err != nil {
 		return fmt.Errorf("Cannot parse K8s config: %w", err)
@@ -112,7 +112,7 @@ func (o *setupOptions) run(ctx context.Context, log logr.Logger) error {
 	return nil
 }
 
-func runPostInstallChecks(opts *setupOptions, log logr.Logger) error {
+func runPostInstallChecks(opts *installOptions, log logr.Logger) error {
 	var allowPlainHttpRegistries, ok bool
 	if opts.landscaperValuesPath != "" {
 		valuesFileContent, err := ioutil.ReadFile(opts.landscaperValuesPath)
@@ -146,11 +146,11 @@ func runPostInstallChecks(opts *setupOptions, log logr.Logger) error {
 	return nil
 }
 
-func (o *setupOptions) Complete(args []string) error {
+func (o *installOptions) Complete(args []string) error {
 	return nil
 }
 
-func (o *setupOptions) AddFlags(fs *pflag.FlagSet) {
+func (o *installOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
 	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where landscaper and OCI registry are installed (default: "+defaultNamespace+")")
 	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the Landscaper Helm installation")
