@@ -2,7 +2,7 @@ meta:
   schemaVersion: v2
 
 component:
-  name: echo-serer-cd
+  name: echo-server-cd
   version: v0.1.0
 
   provider: internal
