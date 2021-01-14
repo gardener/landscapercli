@@ -15,8 +15,8 @@ kubectl port-forward oci-registry-<pod-id> 5000:5000
 3. Save and upload the helm chart to the OCI registry
 ```
 export HELM_EXPERIMENTAL_OCI=1
-helm chart save . localhost:5000/echo-server:v1.1.0
-helm chart push localhost:5000/echo-server:v1.1.0
+helm chart save . localhost:5000/echo-server-chart:v1.1.0
+helm chart push localhost:5000/echo-server-chart:v1.1.0
 ```
 4. Apply the target to your cluster
 
