@@ -40,7 +40,8 @@ func NewInstallCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "install",
 		Aliases: []string{"i"},
-		Short:   "",
+		Short:   "command to install the landscaper (and optionally an OCI registry) into a target cluster",
+		Example: "landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper --install-oci-registry",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
