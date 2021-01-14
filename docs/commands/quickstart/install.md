@@ -13,6 +13,16 @@ landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-val
 To install a specific version of the landscaper chart, use the `landscaper-chart-version` argument.
 
 For more details on the cli usage, consult [landscaper-cli_quickstart_install reference](../../reference/landscaper-cli_quickstart_install.md).
+
+### Interact with OCI registry
+If you decide to install the OCI registry, you have to use port-forwading, since it will not be exposed externaly. 
+You can forward the port 5000 of the registry pod to your localhost with the following commnad:
+```
+kubectl port-forward oci-registry-<pod-id> 5000:5000
+```
+Afterwards, you can use the tools of your choice to push artifacts against the localhost:5000 registry url. 
+TODO: verify special /etc/hosts domain name for docker push
+
 ### Landscaper Values
 The landscaper values are used during the internal helm install of the landscaper chart. Therefore, all values from the chart can be specified. 
 
