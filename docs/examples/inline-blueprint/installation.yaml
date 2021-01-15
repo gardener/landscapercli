@@ -1,0 +1,55 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Installation
+metadata:
+  name: echo-server-inline-example
+spec:
+
+  blueprint:
+    inline:
+      filesystem:
+        blueprint.yaml: |
+          apiVersion: landscaper.gardener.cloud/v1alpha1
+          kind: Blueprint
+          
+          imports:
+          - name: cluster
+            targetType: landscaper.gardener.cloud/kubernetes-cluster
+          
+          - name: appname
+            schema:
+              type: string
+          
+          - name: appnamespace
+            schema:
+              type: string
+          
+          deployExecutions:
+          - name: default
+            type: GoTemplate
+            template: |
+              deployItems:
+              - name: deploy
+                type: landscaper.gardener.cloud/helm
+                target:
+                  name: {{ .imports.cluster.metadata.name }}
+                  namespace: {{ .imports.cluster.metadata.namespace }}
+                config:
+                  apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
+                  kind: ProviderConfiguration
+          
+                  chart:
+                    ref: "<base url oci registry>:5000/echo-server-chart:v1.1.0"
+          
+                  updateStrategy: patch
+          
+                  name: {{ .imports.appname }}
+                  namespace: {{ .imports.appnamespace }}          
+
+  imports:
+    targets:
+    - name: cluster
+      target: "#test-target"
+    
+  importDataMappings:
+    appname: echo-server
+    appnamespace: landscaper-example

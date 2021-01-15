@@ -1,0 +1,23 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Installation
+metadata:
+  name: echo-server-cd-example
+spec:
+
+  blueprint:
+    ref:
+      repositoryContext:
+        type: ociRegistry
+        baseUrl: <base url oci registry>:5000/components
+      componentName: echo-server-cd
+      version: v0.1.0
+      resourceName: echo-server-blueprint
+
+  imports:
+    targets:
+    - name: cluster
+      target: "#test-target"
+    
+  importDataMappings:
+    appname: echo-server
+    appnamespace: landscaper-example
