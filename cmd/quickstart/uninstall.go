@@ -83,7 +83,7 @@ func (o *uninstallOptions) Complete(args []string) error {
 
 func (o *uninstallOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
-	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where landscaper and OCI registry are installed (default: "+defaultNamespace+")")
+	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where the landscaper and the OCI registry are installed")
 }
 
 func uninstallOCIRegistry(ctx context.Context, namespace string, k8sClient kubernetes.Interface) error {

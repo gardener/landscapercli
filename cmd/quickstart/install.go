@@ -25,7 +25,7 @@ import (
 
 const (
 	defaultNamespace = "landscaper"
-	defaultLandscaperChartVersion = "v0.4.0-dev-203919cd11175450d6032552d116cab8c86023cc"
+	defaultLandscaperChartVersion = "v0.4.0"
 )
 
 type installOptions struct {
@@ -41,7 +41,7 @@ func NewInstallCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "install",
 		Aliases: []string{"i"},
-		Short:   "command to install the landscaper (and optionally an OCI registry) into a target cluster",
+		Short:   "command to install the landscaper (and optionally an OCI registry) in a target cluster",
 		Example: "landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper --install-oci-registry",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -154,16 +154,13 @@ func (o *installOptions) Complete(args []string) error {
 
 func (o *installOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
-	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where landscaper and OCI registry are installed (default: "+defaultNamespace+")")
+	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where the landscaper and the OCI registry are installed")
 	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the landscaper Helm installation")
 	fs.BoolVar(&o.installOCIRegistry, "install-oci-registry", false, "install an internal OCI registry in the target cluster")
-	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", "", "use custom landscaper chart version (default: " +defaultLandscaperChartVersion+")")
+	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", defaultLandscaperChartVersion, "use a custom landscaper chart version")
 }
 
 func installLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperValues string, landscaperChartVersion string) error {
-	if landscaperChartVersion == "" {
-		landscaperChartVersion = defaultLandscaperChartVersion
-	}
 	landscaperChartURI := fmt.Sprintf("eu.gcr.io/gardener-project/landscaper/charts/landscaper-controller:%s", landscaperChartVersion)
 	pullCmd := fmt.Sprintf("helm chart pull %s", landscaperChartURI)
 	err := execute(pullCmd)
