@@ -2,7 +2,6 @@ package quickstart
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -11,10 +10,7 @@ func NewQuickstartCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "quickstart",
 		Aliases: []string{"qs"},
-		Short:   "",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("quickstart command")
-		},
+		Short:   "useful commands for getting quickly up and running with the landscaper",
 	}
 
 	cmd.AddCommand(NewInstallCommand(ctx))
