@@ -136,8 +136,12 @@ func (o *renderOptions) run(_ context.Context, log logr.Logger) error {
 
 	if o.outputResources.Has(OutputResourceDeployItems) {
 		templateStateHandler := template.NewMemoryStateHandler()
-		deployItemTemplates, err := template.New(nil, templateStateHandler).
-			TemplateDeployExecutions(blueprint, o.componentDescriptor, &cdv2.ComponentDescriptorList{}, o.values.Imports)
+		deployItemTemplates, err := template.New(nil, templateStateHandler).TemplateDeployExecutions(template.DeployExecutionOptions{
+			Imports:              o.values.Imports,
+			Blueprint:            blueprint,
+			ComponentDescriptor:  o.componentDescriptor,
+			ComponentDescriptors: &cdv2.ComponentDescriptorList{},
+		})
 		if err != nil {
 			return fmt.Errorf("unable to template deploy executions: %w", err)
 		}
