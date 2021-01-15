@@ -10,8 +10,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/gardener/landscapercli/pkg/logger"
-	"github.com/gardener/landscapercli/pkg/util"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -21,10 +19,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/yaml"
+
+	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/util"
 )
 
 const (
-	defaultNamespace = "landscaper"
+	defaultNamespace              = "landscaper"
 	defaultLandscaperChartVersion = "v0.4.0"
 )
 

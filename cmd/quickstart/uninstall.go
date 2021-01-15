@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/gardener/landscapercli/pkg/logger"
 )
 
 type uninstallOptions struct {

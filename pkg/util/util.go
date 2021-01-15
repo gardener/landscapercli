@@ -10,7 +10,7 @@ func GetValueFromNestedMap(data map[string]interface{}, valuePath string) (inter
 	var ok bool
 
 	keys := strings.Split(valuePath, ".")
-	for index, key := range(keys) {
+	for index, key := range keys {
 		if index == len(keys)-1 {
 			val, ok = data[key]
 			if !ok {
