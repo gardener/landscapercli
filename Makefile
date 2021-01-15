@@ -13,6 +13,10 @@ install-requirements:
 	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/golang/mock/mockgen
 	@$(REPO_ROOT)/hack/install-requirements.sh
 
+.PHONY: revendor
+revendor:
+	@GO111MODULE=on go mod vendor
+	@GO111MODULE=on go mod tidy
 
 .PHONY: format
 format:
