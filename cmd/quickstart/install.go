@@ -26,7 +26,7 @@ import (
 
 const (
 	defaultNamespace              = "landscaper"
-	defaultLandscaperChartVersion = "v0.4.0"
+	defaultLandscaperChartVersion = "v0.4.2-dev-480911e91df02773b75be5c4a50ea9e2a59af4e3"
 )
 
 type installOptions struct {
