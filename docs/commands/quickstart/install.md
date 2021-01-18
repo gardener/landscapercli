@@ -4,7 +4,7 @@ The quickstart install command allows to install the landscaper (and optionaly a
 
 ## Prerequisites
 - K8s cluster
-- Helm 3
+- [Helm 3](https://helm.sh/docs/intro/install/)
 
 ## Usage
 ```
@@ -18,7 +18,7 @@ For more details on the cli usage, consult [landscaper-cli_quickstart_install re
 If you decide to install the OCI registry, you have to use port-forwading, since it will not be exposed externaly. 
 You can forward the port 5000 of the registry pod to your localhost with the following commnad:
 ```
-kubectl port-forward oci-registry-<pod-id> 5000:5000
+kubectl port-forward oci-registry-<pod-id> 5000:5000 -n landscaper
 ```
 Afterwards, you can use the tools of your choice to push artifacts against the localhost:5000 registry url. 
 TODO: verify special /etc/hosts domain name for docker push
