@@ -16,7 +16,7 @@ We may also think to improve the kubectl experience but this will then be rather
 
 [Link](./docs/installation.md)
 
-## Work with an OCI Registry
+## Login to an OCI Registry
 
 In order for the `landscaper-cli` to work with the registry, it needs valid credentials. The easiest way to generate 
 these, would be via `docker login`. 
@@ -31,3 +31,12 @@ could be found [here](https://github.com/gardener/landscaper/blob/master/docs/tu
 Other examples:
 https://github.com/gardener/landscaper/blob/master/docs/tutorials/02-simple-import.md 
 
+## Commands 
+
+Detailed descriptions for commands could be found [here](docs/commands/README.md).
+
+The generated command reference is located in this [folder](docs/reference/landscaper-cli.md). 
+
+## Examples 
+
+Examples could be found [here](docs/examples/README.md).
