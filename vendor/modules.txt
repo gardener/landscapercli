@@ -89,12 +89,12 @@ github.com/docker/go-metrics
 github.com/docker/go-units
 # github.com/evanphx/json-patch v4.9.0+incompatible
 github.com/evanphx/json-patch
-# github.com/gardener/component-cli v0.3.0
+# github.com/gardener/component-cli v0.4.1-0.20210115155235-6f6c40d7d28a
 ## explicit
 github.com/gardener/component-cli/ociclient
 github.com/gardener/component-cli/ociclient/cache
 github.com/gardener/component-cli/ociclient/credentials
-# github.com/gardener/component-spec/bindings-go v0.0.0-20201215161450-f36336f4c2ce
+# github.com/gardener/component-spec/bindings-go v0.0.0-20210115163314-4b901541b394
 ## explicit
 github.com/gardener/component-spec/bindings-go/apis
 github.com/gardener/component-spec/bindings-go/apis/v2
@@ -105,7 +105,7 @@ github.com/gardener/component-spec/bindings-go/codec
 github.com/gardener/component-spec/bindings-go/ctf
 github.com/gardener/component-spec/bindings-go/oci
 github.com/gardener/component-spec/bindings-go/utils/selector
-# github.com/gardener/landscaper v0.4.0
+# github.com/gardener/landscaper v0.4.1
 ## explicit
 github.com/gardener/landscaper/pkg/apis/config
 github.com/gardener/landscaper/pkg/apis/config/helper
