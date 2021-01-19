@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package componentdescriptor
+package remote
 
 import (
 	"context"
@@ -14,17 +14,15 @@ import (
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	cdoci "github.com/gardener/component-spec/bindings-go/oci"
 	"github.com/go-logr/logr"
+	"github.com/mandelsoft/vfs/pkg/osfs"
+	"github.com/mandelsoft/vfs/pkg/vfs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/yaml"
 
-	"github.com/gardener/component-cli/ociclient"
-	"github.com/gardener/component-cli/ociclient/cache"
-	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
-
-	"github.com/gardener/landscapercli/pkg/logger"
-
-	"github.com/gardener/landscapercli/cmd/constants"
+	ociopts "github.com/gardener/component-cli/ociclient/options"
+	"github.com/gardener/component-cli/pkg/commands/constants"
+	"github.com/gardener/component-cli/pkg/logger"
 )
 
 type showOptions struct {
@@ -34,28 +32,28 @@ type showOptions struct {
 	componentName string
 	// version is the component version in the oci registry.
 	version string
-	// allowPlainHttp allows the fallback to http if the oci registry does not support https
-	allowPlainHttp bool
 
-	// cacheDir defines the oci cache directory
-	cacheDir string
+	// OciOptions contains all exposed options to configure the oci client.
+	OciOptions ociopts.Options
 }
 
 // NewGetCommand shows definitions and their configuration.
 func NewGetCommand(ctx context.Context) *cobra.Command {
 	opts := &showOptions{}
 	cmd := &cobra.Command{
-		Use:     "get",
-		Args:    cobra.ExactArgs(3),
-		Example: "landscapercli cd get [baseurl] [componentname] [version]",
-		Short:   "fetch the component descriptor from a oci registry",
+		Use:   "get [baseurl] [componentname] [Version]",
+		Args:  cobra.ExactArgs(3),
+		Short: "fetch the component descriptor from a oci registry",
+		Long: `
+get fetches the component descriptor from a baseurl with the given name and Version.
+`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
 
-			if err := opts.run(ctx, logger.Log); err != nil {
+			if err := opts.run(ctx, logger.Log, osfs.New()); err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
@@ -67,22 +65,7 @@ func NewGetCommand(ctx context.Context) *cobra.Command {
 	return cmd
 }
 
-func (o *showOptions) run(ctx context.Context, log logr.Logger) error {
-	cache, err := cache.NewCache(log, cache.WithBasePath(o.cacheDir))
-	if err != nil {
-		return err
-	}
-
-	ociClient, err := ociclient.NewClient(log, ociclient.WithCache{Cache: cache}, ociclient.AllowPlainHttp(o.allowPlainHttp))
-	if err != nil {
-		return err
-	}
-
-	componentRegistry, err := componentsregistry.NewOCIRegistryWithOCIClient(log, ociClient)
-	if err != nil {
-		return err
-	}
-
+func (o *showOptions) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
 	repoCtx := cdv2.RepositoryContext{
 		Type:    cdv2.OCIRegistryType,
 		BaseURL: o.baseUrl,
@@ -91,7 +74,14 @@ func (o *showOptions) run(ctx context.Context, log logr.Logger) error {
 	if err != nil {
 		return fmt.Errorf("invalid component reference: %w", err)
 	}
-	cd, _, err := componentRegistry.Resolve(ctx, repoCtx, o.componentName, o.version)
+
+	ociClient, _, err := o.OciOptions.Build(log, fs)
+	if err != nil {
+		return fmt.Errorf("unable to build oci client: %s", err.Error())
+	}
+
+	cdresolver := cdoci.NewResolver().WithOCIClient(ociClient).WithRepositoryContext(repoCtx)
+	cd, _, err := cdresolver.Resolve(ctx, o.componentName, o.version)
 	if err != nil {
 		return fmt.Errorf("unable to to fetch component descriptor %s: %w", ociRef, err)
 	}
@@ -111,13 +101,13 @@ func (o *showOptions) Complete(args []string) error {
 	o.componentName = args[1]
 	o.version = args[2]
 
-	landscaperCliHomeDir, err := constants.LandscaperCliHomeDir()
+	cliHomeDir, err := constants.CliHomeDir()
 	if err != nil {
 		return err
 	}
-	o.cacheDir = filepath.Join(landscaperCliHomeDir, "components")
-	if err := os.MkdirAll(o.cacheDir, os.ModePerm); err != nil {
-		return fmt.Errorf("unable to create cache directory %s: %w", o.cacheDir, err)
+	o.OciOptions.CacheDir = filepath.Join(cliHomeDir, "components")
+	if err := os.MkdirAll(o.OciOptions.CacheDir, os.ModePerm); err != nil {
+		return fmt.Errorf("unable to create cache directory %s: %w", o.OciOptions.CacheDir, err)
 	}
 
 	if len(o.baseUrl) == 0 {
@@ -127,14 +117,9 @@ func (o *showOptions) Complete(args []string) error {
 		return errors.New("a component name must be defined")
 	}
 	if len(o.version) == 0 {
-		return errors.New("a component's version must be defined")
-	}
-	if len(o.cacheDir) == 0 {
-		return errors.New("a cache directory must be defined")
+		return errors.New("a component's Version must be defined")
 	}
 	return nil
 }
 
-func (o *showOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.BoolVar(&o.allowPlainHttp, "allow-plain-http", false, "allows the fallback to http if the oci registry does not support https")
-}
+func (o *showOptions) AddFlags(fs *pflag.FlagSet) {}

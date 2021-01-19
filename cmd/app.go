@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+//go:generate go run -mod=vendor ../hack/generate-docs ../docs/reference
+
 package cmd
 
 import (
@@ -9,13 +11,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gardener/landscapercli/pkg/logger"
-
 	"github.com/gardener/landscapercli/cmd/blueprints"
-	"github.com/gardener/landscapercli/cmd/componentdescriptor"
 	"github.com/gardener/landscapercli/cmd/quickstart"
 	"github.com/gardener/landscapercli/cmd/version"
+	"github.com/gardener/landscapercli/pkg/logger"
 
+	componentcli "github.com/gardener/component-cli/cmd/component-cli/app"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +39,7 @@ func NewLandscaperCliCommand(ctx context.Context) *cobra.Command {
 
 	cmd.AddCommand(version.NewVersionCommand())
 	cmd.AddCommand(blueprints.NewBlueprintsCommand(ctx))
-	cmd.AddCommand(componentdescriptor.NewComponentsCommand(ctx))
+	cmd.AddCommand(componentcli.NewComponentsCliCommand(ctx))
 	cmd.AddCommand(quickstart.NewQuickstartCommand(ctx))
 
 	return cmd
