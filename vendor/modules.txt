@@ -89,12 +89,30 @@ github.com/docker/go-metrics
 github.com/docker/go-units
 # github.com/evanphx/json-patch v4.9.0+incompatible
 github.com/evanphx/json-patch
-# github.com/gardener/component-cli v0.4.1-0.20210115155235-6f6c40d7d28a
+# github.com/gardener/component-cli v0.4.1-0.20210119071551-8395aa6336bd
 ## explicit
+github.com/gardener/component-cli/cmd/component-cli/app
 github.com/gardener/component-cli/ociclient
 github.com/gardener/component-cli/ociclient/cache
 github.com/gardener/component-cli/ociclient/credentials
-# github.com/gardener/component-spec/bindings-go v0.0.0-20210115163314-4b901541b394
+github.com/gardener/component-cli/ociclient/credentials/secretserver
+github.com/gardener/component-cli/ociclient/options
+github.com/gardener/component-cli/pkg/commands/componentarchive
+github.com/gardener/component-cli/pkg/commands/componentarchive/componentreferences
+github.com/gardener/component-cli/pkg/commands/componentarchive/input
+github.com/gardener/component-cli/pkg/commands/componentarchive/resources
+github.com/gardener/component-cli/pkg/commands/componentarchive/sources
+github.com/gardener/component-cli/pkg/commands/constants
+github.com/gardener/component-cli/pkg/commands/ctf
+github.com/gardener/component-cli/pkg/commands/imagevector
+github.com/gardener/component-cli/pkg/commands/remote
+github.com/gardener/component-cli/pkg/componentarchive
+github.com/gardener/component-cli/pkg/components
+github.com/gardener/component-cli/pkg/imagevector
+github.com/gardener/component-cli/pkg/logger
+github.com/gardener/component-cli/pkg/utils
+github.com/gardener/component-cli/pkg/version
+# github.com/gardener/component-spec/bindings-go v0.0.27
 ## explicit
 github.com/gardener/component-spec/bindings-go/apis
 github.com/gardener/component-spec/bindings-go/apis/v2

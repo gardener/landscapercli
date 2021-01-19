@@ -17,7 +17,7 @@ landscaper cli
 ### SEE ALSO
 
 * [landscaper-cli blueprints](landscaper-cli_blueprints.md)	 - command to interact with blueprints stored in an oci registry
-* [landscaper-cli componentdescriptor](landscaper-cli_componentdescriptor.md)	 - command to interact with component descriptors stored in an oci registry
-* [landscaper-cli quickstart](landscaper-cli_quickstart.md)	 - 
+* [landscaper-cli components-cli](landscaper-cli_components-cli.md)	 - components cli
+* [landscaper-cli quickstart](landscaper-cli_quickstart.md)	 - useful commands for getting quickly up and running with the landscaper
 * [landscaper-cli version](landscaper-cli_version.md)	 - displays the version
 

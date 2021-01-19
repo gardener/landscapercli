@@ -2,7 +2,7 @@ meta:
   schemaVersion: v2
 
 component:
-  name: echo-server-cd
+  name: github.com/gardener/echo-server-cd
   version: v0.1.0
 
   provider: internal

@@ -1,22 +1,21 @@
-## landscaper-cli componentdescriptor get
+## landscaper-cli components-cli remote get
 
 fetch the component descriptor from a oci registry
 
-```
-landscaper-cli componentdescriptor get [flags]
-```
+### Synopsis
 
-### Examples
+
+get fetches the component descriptor from a baseurl with the given name and Version.
+
 
 ```
-landscapercli cd get [baseurl] [componentname] [version]
+landscaper-cli components-cli remote get [baseurl] [componentname] [Version] [flags]
 ```
 
 ### Options
 
 ```
-      --allow-plain-http   allows the fallback to http if the oci registry does not support https
-  -h, --help               help for get
+  -h, --help   help for get
 ```
 
 ### Options inherited from parent commands
@@ -32,5 +31,5 @@ landscapercli cd get [baseurl] [componentname] [version]
 
 ### SEE ALSO
 
-* [landscaper-cli componentdescriptor](landscaper-cli_componentdescriptor.md)	 - command to interact with component descriptors stored in an oci registry
+* [landscaper-cli components-cli remote](landscaper-cli_components-cli_remote.md)	 - command to interact with component descriptors stored in an oci registry
 

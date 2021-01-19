@@ -1,10 +1,6 @@
 ## landscaper-cli quickstart
 
-
-
-```
-landscaper-cli quickstart [flags]
-```
+useful commands for getting quickly up and running with the landscaper
 
 ### Options
 
@@ -26,6 +22,6 @@ landscaper-cli quickstart [flags]
 ### SEE ALSO
 
 * [landscaper-cli](landscaper-cli.md)	 - landscaper cli
-* [landscaper-cli quickstart install](landscaper-cli_quickstart_install.md)	 - command to install the landscaper (and optionally an OCI registry) into a target cluster
+* [landscaper-cli quickstart install](landscaper-cli_quickstart_install.md)	 - command to install the landscaper (and optionally an OCI registry) in a target cluster
 * [landscaper-cli quickstart uninstall](landscaper-cli_quickstart_uninstall.md)	 - command to uninstall the landscaper and OCI registry (from the install command) in a target cluster
 
