@@ -83,7 +83,7 @@ func NewRenderCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "render",
 		Args:    cobra.RangeArgs(1, 2),
-		Example: "landscapercli blueprints render [path to Blueprint directory] [all,deployitems,subinstallations]",
+		Example: "landscaper-cli blueprints render [path to Blueprint directory] [all,deployitems,subinstallations]",
 		Short:   "renders the given blueprint",
 		Long: fmt.Sprintf(`
 Renders the blueprint with the given values files.

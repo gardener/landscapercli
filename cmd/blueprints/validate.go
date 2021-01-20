@@ -33,7 +33,7 @@ func NewValidationCommand(_ context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "validate [path to Blueprint directory]",
 		Args:    cobra.ExactArgs(1),
-		Example: "landscapercli blueprints validate path/to/blueprint/directory",
+		Example: "landscaper-cli blueprints validate path/to/blueprint/directory",
 		Short:   "validates a local blueprint filesystem",
 		Long: "The validate command validates a Blueprint in a local directory. " +
 			"The blueprint directory must contain a file with name blueprint.yaml.",

@@ -13,7 +13,7 @@ landscaper-cli blueprints get [ref to OCI artifact] [flags]
 ### Examples
 
 ```
-landscapercli blueprints get my-registry/my-repository:v1.0.0
+landscaper-cli blueprints get my-registry/my-repository:v1.0.0
 ```
 
 ### Options
