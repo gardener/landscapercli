@@ -1,10 +1,15 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func GetValueFromNestedMap(data map[string]interface{}, valuePath string) (interface{}, error) {
@@ -64,4 +69,40 @@ func ExecCommandNonBlocking(command string) (*exec.Cmd, error) {
 	fmt.Println("Executed sucessfully!")
 
 	return cmd, nil
+}
+
+func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
+	ctx := context.TODO()
+	retries := 0
+	for {
+		podList := corev1.PodList{}
+		err := k8sClient.List(ctx, &podList, client.InNamespace(namespace))
+		if err != nil {
+			return fmt.Errorf("Cannot list pods: %w", err)
+		}
+
+		numberOfRunningPods := 0
+		for _, pod := range podList.Items {
+			for _, condition := range pod.Status.Conditions {
+				if condition.Type == corev1.PodReady {
+					if condition.Status == corev1.ConditionTrue {
+						numberOfRunningPods++
+					}
+				}
+			}
+		}
+
+		if numberOfRunningPods == len(podList.Items) {
+			break
+		}
+
+		if retries >= maxRetries {
+			return fmt.Errorf("Pods not ready after sleepTime=%dns and maxRetries=%d", sleepTime, maxRetries)
+		}
+		retries++
+		
+		time.Sleep(sleepTime)
+	}
+
+	return nil
 }
