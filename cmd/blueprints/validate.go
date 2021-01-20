@@ -31,10 +31,12 @@ type validationOptions struct {
 func NewValidationCommand(_ context.Context) *cobra.Command {
 	opts := &validationOptions{}
 	cmd := &cobra.Command{
-		Use:     "validate",
-		Args:    cobra.ExactArgs(2),
-		Example: "landscapercli blueprints validate [path to Blueprint directory]",
+		Use:     "validate [path to Blueprint directory]",
+		Args:    cobra.ExactArgs(1),
+		Example: "landscapercli blueprints validate path/to/blueprint/directory",
 		Short:   "validates a local blueprint filesystem",
+		Long: "The validate command validates a Blueprint in a local directory. " +
+			"The blueprint directory must contain a file with name blueprint.yaml.",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
