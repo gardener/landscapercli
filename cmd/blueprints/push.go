@@ -48,10 +48,13 @@ type pushOptions struct {
 func NewPushCommand(ctx context.Context) *cobra.Command {
 	opts := &pushOptions{}
 	cmd := &cobra.Command{
-		Use:     "push",
+		Use:     "push [ref to OCI artifact] [path to Blueprint directory]",
 		Args:    cobra.ExactArgs(2),
-		Example: "landscapercli blueprints push [ref] [path to Blueprint directory]",
-		Short:   "command to interact with definitions of an oci registry",
+		Example: "landscaper-cli blueprints push my-registry/my-repository:v1.0.0 path/to/blueprint/directory",
+		Short:   "command to upload a blueprint into an oci registry",
+		Long: "The push command uploads a Blueprint from a local directory into an OCI registry. " +
+			"The blueprint directory must contain a file with name blueprint.yaml. The reference to the OCI artifact " +
+			"consists of the base URL of the OCI registry, the repository (namespace), and the tag.",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())

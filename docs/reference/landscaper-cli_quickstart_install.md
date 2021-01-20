@@ -18,7 +18,7 @@ landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-val
   -h, --help                              help for install
       --install-oci-registry              install an internal OCI registry in the target cluster
       --kubeconfig string                 path to the kubeconfig of the target cluster
-      --landscaper-chart-version string   use a custom landscaper chart version (default "v0.4.2-dev-480911e91df02773b75be5c4a50ea9e2a59af4e3")
+      --landscaper-chart-version string   use a custom landscaper chart version (default "v0.4.2")
       --landscaper-values string          path to values.yaml for the landscaper Helm installation
       --namespace string                  namespace where the landscaper and the OCI registry are installed (default "landscaper")
 ```
