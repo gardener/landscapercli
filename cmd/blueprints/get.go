@@ -48,7 +48,7 @@ func NewGetCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get [ref to OCI artifact]",
 		Args:    cobra.MinimumNArgs(1),
-		Example: "landscapercli blueprints get my-registry/my-repository:v1.0.0",
+		Example: "landscaper-cli blueprints get my-registry/my-repository:v1.0.0",
 		Short:   "command to download a blueprint from an oci registry",
 		Long: "The get command downloads a Blueprint from an OCI registry. The reference to the OCI artifact " +
 			"consists of the base URL of the OCI registry, the repository (namespace), and the tag.",

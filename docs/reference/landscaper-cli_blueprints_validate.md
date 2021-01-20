@@ -13,7 +13,7 @@ landscaper-cli blueprints validate [path to Blueprint directory] [flags]
 ### Examples
 
 ```
-landscapercli blueprints validate path/to/blueprint/directory
+landscaper-cli blueprints validate path/to/blueprint/directory
 ```
 
 ### Options
