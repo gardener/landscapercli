@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/util"
 )
 
 type uninstallOptions struct {
@@ -93,7 +94,7 @@ func uninstallOCIRegistry(ctx context.Context, namespace string, k8sClient kuber
 }
 
 func uninstallLandscaper(ctx context.Context, kubeconfigPath, namespace string) error {
-	err := execute(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", namespace, kubeconfigPath))
+	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", namespace, kubeconfigPath))
 	if err != nil {
 		return err
 	}

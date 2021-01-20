@@ -20,9 +20,8 @@ require (
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	k8s.io/api v0.19.5
 	k8s.io/apimachinery v0.19.5
-	k8s.io/cli-runtime v0.19.5
 	k8s.io/client-go v0.19.5
-	k8s.io/kubectl v0.19.5
+	sigs.k8s.io/controller-runtime v0.6.0
 	sigs.k8s.io/yaml v1.2.0
 )
 

@@ -2,35 +2,30 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	"net/url"
 	"os"
-	"os/signal"
-	"strings"
-	"sync"
-	"syscall"
 	"time"
 
+	landscaper "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
 	"github.com/gardener/landscapercli/cmd/quickstart"
 	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/portforward"
-	"k8s.io/client-go/transport/spdy"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const landscaperValues = `
 landscaper:
   registryConfig: # contains optional oci secrets
-    allowPlainHttpRegistries: false
+    allowPlainHttpRegistries: true
     secrets: {}
 #     <name>: <docker config json>
   deployers:
@@ -40,8 +35,18 @@ landscaper:
 `
 
 const (
-	defaultNamespace = "integration-test"
+	defaultNamespace = "landscaper"
 )
+
+var (
+	scheme   = runtime.NewScheme()
+)
+
+func init() {
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = landscaper.AddToScheme(scheme)
+	// +kubebuilder:scaffold:scheme
+}
 
 func main() {
 	fmt.Println("Hallo Integration-Test")
@@ -68,9 +73,9 @@ func main() {
 
 	log, err := logger.NewCliLogger()
 	logger.SetLogger(log)
-
 	ctx := context.TODO()
-	args := []string{
+
+	installArgs := []string{
 		"--kubeconfig",
 		kubeconfig,
 		"--landscaper-values",
@@ -79,10 +84,10 @@ func main() {
 		"--namespace",
 		namespace,
 	}
-	cmd := quickstart.NewInstallCommand(ctx)
-	cmd.SetArgs(args)
+	installCmd := quickstart.NewInstallCommand(ctx)
+	installCmd.SetArgs(installArgs)
 
-	err = cmd.Execute()
+	err = installCmd.Execute()
 	if err != nil {
 		fmt.Println("Install Command failed: %w", err)
 		os.Exit(1)
@@ -94,21 +99,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	k8sClient, err := kubernetes.NewForConfig(cfg)
+	k8sClient, err := client.New(cfg, client.Options{
+		Scheme: scheme,
+	})
 	if err != nil {
-		fmt.Println("Cannot build K8s clientset: %w", err)
+		fmt.Println("Cannot build K8s client: %w", err)
 		os.Exit(1)
 	}
 
 	// Wait until Pods are up and running
 	for {
-		time.Sleep(10 * time.Second)
-		podList, err := k8sClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+		
+		podList := corev1.PodList{}
+		err = k8sClient.List(ctx, &podList, client.InNamespace(namespace))
 		if err != nil {
 			fmt.Println("Cannot list pods: %w", err)
 			os.Exit(1)
 		}
-
+		
 		numberOfRunningPods := 0
 		for _, pod := range podList.Items {
 			for _, condition := range pod.Status.Conditions {
@@ -119,15 +127,28 @@ func main() {
 				}
 			}
 		}
-
+		
 		if numberOfRunningPods == len(podList.Items) {
 			break
 		}
+
+		time.Sleep(5 * time.Second)
 	}
 
-	ociRegistryPods, err := k8sClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: "app=oci-registry",
-	})
+	ociRegistryPods := corev1.PodList{}
+	err = k8sClient.List(
+		ctx,
+		&ociRegistryPods,
+		client.InNamespace(namespace),
+		client.MatchingLabelsSelector{
+			Selector: labels.SelectorFromSet(
+				labels.Set(map[string]string{
+					"app": "oci-registry",
+				}),
+			),
+		},
+	)
+
 	if err != nil {
 		fmt.Println("Cannot list pods: %w", err)
 		os.Exit(1)
@@ -138,112 +159,225 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Start Port-forward, source https://gianarb.it/blog/programmatically-kube-port-forward-in-go
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	stopPortForwarding, wgPortForwarding := startPortForwarding(cfg, &ociRegistryPods.Items[0])
-
-	// Perform Tests
-	time.Sleep(1 * time.Minute)
-
-	// Run "landscaper-cli quickstart uninstall"
-
-	stopPortForwarding()
-	wgPortForwarding.Wait()
-
-	// Check if everything was cleaned up
-
-}
-
-func startPortForwarding(cfg *rest.Config, pod *corev1.Pod) (func(), *sync.WaitGroup) {
-	var wgPortForwarding sync.WaitGroup
-	wgPortForwarding.Add(1)
-
-	stopCh := make(chan struct{}, 1)
-	readyCh := make(chan struct{})
-
-	stream := genericclioptions.IOStreams{
-		In:     os.Stdin,
-		Out:    os.Stdout,
-		ErrOut: os.Stderr,
+	// Start Port-forward
+	portforwardCmd, err := util.ExecCommandNonBlocking("kubectl port-forward "+ociRegistryPods.Items[0].Name+" 5000:5000 --kubeconfig "+kubeconfig+" --namespace "+namespace)
+	if err != nil {
+		fmt.Println("kubectl port-forward failed: %w", err)
+		os.Exit(1)
 	}
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		fmt.Println("Stopping port forwarding...")
-		close(stopCh)
-		wgPortForwarding.Done()
-	}()
-
-	go func() {
-		// PortForward the pod specified from its port 9090 to the local port
-		// 8080
-		err := forwardAPod(PortForwardAPodRequest{
-			RestConfig: cfg,
-			Pod: v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      pod.Name,
-					Namespace: pod.Namespace,
-				},
-			},
-			LocalPort: 5000,
-			PodPort:   5000,
-			Streams:   stream,
-			StopCh:    stopCh,
-			ReadyCh:   readyCh,
-		})
+	defer func() {
+		// Disable port-forward
+		err = portforwardCmd.Process.Kill()
 		if err != nil {
-			panic(err)
+			fmt.Println("Cannot kill kubectl port-forward process: %w", err)
+			os.Exit(1)
 		}
 	}()
 
-	<-readyCh
-	println("Port forwarding is ready to get traffic.")
+	// Prepare Helm Chart
+	err = util.ExecCommandBlocking("helm pull https://storage.googleapis.com/sap-hub-test/echo-server-1.1.0.tgz")
+	if err != nil {
+		fmt.Println("helm pull failed: %w", err)
+		os.Exit(1)
+	}
+	defer func() {
+		err = os.Remove("echo-server-1.1.0.tgz")
+		if err != nil {
+			fmt.Printf("cannot remove echo-server-1.1.0.tgz: %s", err.Error())
+		}
+	}()
 
-	stopPortForwarding := func() {
-		fmt.Println("Stopping port forwarding...")
-		close(stopCh)
-		wgPortForwarding.Done()
+	err = util.ExecCommandBlocking("helm chart save echo-server-1.1.0.tgz localhost:5000/echo-server-chart:v1.1.0")
+	if err != nil {
+		fmt.Println("helm chart save failed: %w", err)
+		os.Exit(1)
 	}
 
-	return stopPortForwarding, &wgPortForwarding
+	err = util.ExecCommandBlocking("helm chart push localhost:5000/echo-server-chart:v1.1.0")
+	if err != nil {
+		fmt.Println("helm chart push failed: %w", err)
+		os.Exit(1)
+	}
 
+	// Create target
+	kubeconfigContent, err := ioutil.ReadFile(kubeconfig)
+	if err != nil {
+		fmt.Println("Cannot read kubeconfig: %w", err)
+		os.Exit(1)
+	}
+
+	test1 := map[string]interface{}{
+		"kubeconfig": string(kubeconfigContent),
+	}
+
+	marsh1, err := json.Marshal(test1)
+	if err != nil {
+		panic(err)
+	}
+
+	target := &landscaper.Target{
+		ObjectMeta: v1.ObjectMeta{
+			Name: "test-target",
+			Namespace: namespace,
+		},
+		Spec: landscaper.TargetSpec{
+			Type: landscaper.KubernetesClusterTargetType,
+			Configuration: marsh1,
+		},
+	}
+
+	err = k8sClient.Create(ctx, target, &client.CreateOptions{})
+	if err != nil {
+		fmt.Println("cannot create target: %w", err)
+		os.Exit(1)
+	}
+
+	// Perform Tests
+	test := NewTest(k8sClient)
+	err = test.Run()
+	if err != nil {
+		fmt.Println("landscaper test failed: %w", err)
+		os.Exit(1)
+	}
+
+	// delete target
+	err = k8sClient.Delete(ctx, target, &client.DeleteOptions{})
+	if err != nil {
+		fmt.Println("cannot delete target: %w", err)
+		os.Exit(1)
+	}
+
+	// Run "landscaper-cli quickstart uninstall"
+	uninstallArgs := []string{
+		"--kubeconfig",
+		kubeconfig,
+		"--namespace",
+		namespace,
+	}
+	uninstallCmd := quickstart.NewUninstallCommand(ctx)
+	uninstallCmd.SetArgs(uninstallArgs)
+	
+	err = uninstallCmd.Execute()
+	if err != nil {
+		fmt.Println("Uninstall Command failed: %w", err)
+		os.Exit(1)
+	}
+
+	// Check if everything was cleaned up
+
+
+	fmt.Println("Adieu Integration-Test")
 }
 
-func forwardAPod(req PortForwardAPodRequest) error {
-	path := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward",
-		req.Pod.Namespace, req.Pod.Name)
-	hostIP := strings.TrimLeft(req.RestConfig.Host, "htps:/")
 
-	transport, upgrader, err := spdy.RoundTripperFor(req.RestConfig)
+// ########################################### Landscaper Test #######################################
+type Test struct {
+	client client.Client
+}
+
+func NewTest(client client.Client) *Test {
+	obj := &Test{
+		client: client,
+	}
+	return obj
+}
+
+func (t *Test) Run() error {
+	ctx := context.TODO()
+
+	inst := buildInstallation("test-1", "landscaper")
+
+	err := t.client.Create(ctx, inst, &client.CreateOptions{})
 	if err != nil {
 		return err
 	}
 
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, &url.URL{Scheme: "https", Path: path, Host: hostIP})
-	fw, err := portforward.New(dialer, []string{fmt.Sprintf("%d:%d", req.LocalPort, req.PodPort)}, req.StopCh, req.ReadyCh, req.Streams.Out, req.Streams.ErrOut)
+	time.Sleep(15*time.Second)
+
+	err = t.client.Delete(ctx, inst, &client.DeleteOptions{})
 	if err != nil {
 		return err
 	}
-	return fw.ForwardPorts()
+
+	time.Sleep(10*time.Second)
+
+	return nil
 }
 
-type PortForwardAPodRequest struct {
-	// RestConfig is the kubernetes config
-	RestConfig *rest.Config
-	// Pod is the selected pod for this port forwarding
-	Pod v1.Pod
-	// LocalPort is the local port that will be selected to expose the PodPort
-	LocalPort int
-	// PodPort is the target port for the pod
-	PodPort int
-	// Steams configures where to write or read input from
-	Streams genericclioptions.IOStreams
-	// StopCh is the channel used to manage the port forward lifecycle
-	StopCh <-chan struct{}
-	// ReadyCh communicates when the tunnel is ready to receive traffic
-	ReadyCh chan struct{}
+func buildInstallation(name, namespace string,) *landscaper.Installation {
+	inlineBlueprint := `
+        apiVersion: landscaper.gardener.cloud/v1alpha1
+        kind: Blueprint
+
+        imports:
+        - name: cluster
+          targetType: landscaper.gardener.cloud/kubernetes-cluster
+
+        - name: appname
+          schema:
+            type: string
+
+        - name: appnamespace
+          schema:
+            type: string
+
+        deployExecutions:
+        - name: default
+          type: GoTemplate
+          template: |
+            deployItems:
+            - name: deploy
+              type: landscaper.gardener.cloud/helm
+              target:
+                name: {{ .imports.cluster.metadata.name }}
+                namespace: {{ .imports.cluster.metadata.namespace }}
+              config:
+                apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
+                kind: ProviderConfiguration
+
+                chart:
+                  ref: "oci-registry.landscaper.svc.cluster.local:5000/echo-server-chart:v1.1.0"
+        
+                updateStrategy: patch
+
+                name: {{ .imports.appname }}
+                namespace: {{ .imports.appnamespace }}
+    `
+
+	fs := map[string]interface{}{
+		"blueprint.yaml": inlineBlueprint,
+	}
+
+	marsh, err := json.Marshal(fs)
+	if err != nil {
+		panic(err)
+	}
+
+	obj := &landscaper.Installation{
+		ObjectMeta: v1.ObjectMeta{
+			Name: name,
+			Namespace: namespace,
+		},
+		Spec: landscaper.InstallationSpec{
+			Blueprint: landscaper.BlueprintDefinition{
+				Inline: &landscaper.InlineBlueprint{
+					Filesystem: json.RawMessage(marsh),
+				},
+			},
+			Imports: landscaper.InstallationImports{
+				Targets: []landscaper.TargetImportExport{
+					{
+						Name: "cluster",
+						Target: "#test-target",
+					},
+				},
+			},
+			ImportDataMappings: map[string]json.RawMessage{
+				"appname": json.RawMessage(`"echo-server"`),
+				"appnamespace": json.RawMessage(`"landscaper-example"`),
+			},
+		},
+	}
+
+	return obj
 }
