@@ -46,10 +46,12 @@ type showOptions struct {
 func NewGetCommand(ctx context.Context) *cobra.Command {
 	opts := &showOptions{}
 	cmd := &cobra.Command{
-		Use:     "get",
+		Use:     "get [ref to OCI artifact]",
 		Args:    cobra.MinimumNArgs(1),
-		Example: "landscapercli blueprints get [ref]",
-		Short:   "command to interact with definitions of an oci registry",
+		Example: "landscapercli blueprints get my-registry/my-repository:v1.0.0",
+		Short:   "command to download a blueprint from an oci registry",
+		Long: "The get command downloads a Blueprint from an OCI registry. The reference to the OCI artifact " +
+			"consists of the base URL of the OCI registry, the repository (namespace), and the tag.",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())

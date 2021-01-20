@@ -1,15 +1,19 @@
 ## landscaper-cli blueprints get
 
-command to interact with definitions of an oci registry
+command to download a blueprint from an oci registry
+
+### Synopsis
+
+The get command downloads a Blueprint from an OCI registry. The reference to the OCI artifact consists of the base URL of the OCI registry, the repository (namespace), and the tag.
 
 ```
-landscaper-cli blueprints get [flags]
+landscaper-cli blueprints get [ref to OCI artifact] [flags]
 ```
 
 ### Examples
 
 ```
-landscapercli blueprints get [ref]
+landscapercli blueprints get my-registry/my-repository:v1.0.0
 ```
 
 ### Options
