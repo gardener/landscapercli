@@ -79,6 +79,8 @@ func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTi
 	ctx := context.TODO()
 	retries := 0
 	for {
+		fmt.Printf("Waiting... retries: %d\n", retries)
+
 		podList := corev1.PodList{}
 		err := k8sClient.List(ctx, &podList, client.InNamespace(namespace))
 		if err != nil {
@@ -117,6 +119,8 @@ func WaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types
 	inst := &landscaper.Installation{}
 	
 	for {
+		fmt.Printf("Waiting... retries: %d\n", retries)
+
 		err := k8sClient.Get(ctx, key, inst)
 		if err != nil {
 			return fmt.Errorf("Cannot get installation: %w", err)
@@ -142,6 +146,8 @@ func WaitUntilObjectIsDeleted(k8sClient client.Client, objKey types.NamespacedNa
 	retries := 0
 
 	for {
+		fmt.Printf("Waiting... retries: %d\n", retries)
+
 		err := k8sClient.Get(ctx, objKey, obj)
 		if err != nil {
 			if k8sErrors.IsNotFound(err) {

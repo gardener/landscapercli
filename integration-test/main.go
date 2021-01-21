@@ -19,6 +19,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -26,7 +27,6 @@ import (
 
 const (
 	defaultLandscaperNamespace = "landscaper"
-	targetName = "test-target"
 )
 
 var (
@@ -36,7 +36,6 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = landscaper.AddToScheme(scheme)
-	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -76,6 +75,7 @@ func run() error {
 		fmt.Println("Running cleanup check routine")
 	}()
 
+	fmt.Println("Running landscaper-cli quickstart install")
 	runQuickstartInstall(kubeconfig, landscaperNamespace)
 	if err != nil {
 		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
@@ -89,13 +89,16 @@ func run() error {
 
 	const (
 		sleepTime = 5*time.Second
-		maxRetries = 0
+		maxRetries = 6
 	)
+
+	fmt.Println("Waiting for Landscaper Pods to get ready")
 	err = util.WaitUntilAllPodsAreReady(k8sClient, landscaperNamespace, sleepTime, maxRetries)
 	if err != nil {
 		return fmt.Errorf("error while waiting for Landscaper Pods: %w", err)
 	}
 
+	fmt.Println("Starting port-forward to OCI registry")
 	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, landscaperNamespace, kubeconfig)
 	if err != nil {
 		return fmt.Errorf("port-forward to OCI registry failed: %w", err)
@@ -108,12 +111,15 @@ func run() error {
 		}
 	}()
 
-	err = uploadEchoServerHelmChart()
+	fmt.Println("Upload echo-server Helm Chart to OCI registry")
+	helmChartRef, err := uploadEchoServerHelmChart(landscaperNamespace)
 	if err != nil {
 		return fmt.Errorf("upload of echo-server Helm Chart failed: %w", err)
 	}
 
-	err = createTarget(k8sClient, targetName, landscaperNamespace, kubeconfig)
+	fmt.Println("Creating target CR")
+	targetKey := client.ObjectKey{Name: "test-target", Namespace: landscaperNamespace}
+	err = createTarget(k8sClient, targetKey, kubeconfig)
 	if err != nil {
 		return fmt.Errorf("cannot create target: %w", err)
 	}
@@ -121,8 +127,8 @@ func run() error {
 		// delete target
 		target := &landscaper.Target{
 			ObjectMeta: v1.ObjectMeta{
-				Name:      targetName,
-				Namespace: landscaperNamespace,
+				Name:      targetKey.Name,
+				Namespace: targetKey.Namespace,
 			},
 		}
 		err = k8sClient.Delete(ctx, target, &client.DeleteOptions{})
@@ -131,41 +137,43 @@ func run() error {
 		}
 	}()
 
+	fmt.Println("Running test suite")
 	// ################################ <Run Tests> ################################
 
-	err = tests.RunQuickstartInstallTest(k8sClient, targetName)
+	err = tests.RunQuickstartInstallTest(k8sClient, targetKey, helmChartRef)
 	if err != nil {
 		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)
 	}
 
 	// ############################### </Run Tests> ################################
-
+	fmt.Println("Test suite finished successfully")
+	
 	return nil
 }
 
-func createTarget(k8sClient client.Client, name, namespace, kubeconfig string) error {
+func createTarget(k8sClient client.Client, key types.NamespacedName, kubeconfig string) error {
 	kubeconfigContent, err := ioutil.ReadFile(kubeconfig)
 	if err != nil {
-		return fmt.Errorf("Cannot read kubeconfig: %w", err)
+		return fmt.Errorf("cannot read kubeconfig: %w", err)
 	}
 
-	test1 := map[string]interface{}{
+	config := map[string]interface{}{
 		"kubeconfig": string(kubeconfigContent),
 	}
 
-	marsh1, err := json.Marshal(test1)
+	marshalledConfig, err := json.Marshal(config)
 	if err != nil {
 		panic(err)
 	}
 
 	target := &landscaper.Target{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "test-target",
-			Namespace: namespace,
+			Name:      key.Name,
+			Namespace: key.Namespace,
 		},
 		Spec: landscaper.TargetSpec{
 			Type:          landscaper.KubernetesClusterTargetType,
-			Configuration: marsh1,
+			Configuration: marshalledConfig,
 		},
 	}
 
@@ -194,11 +202,11 @@ func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigP
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("Cannot list pods: %w", err)
+		return nil, fmt.Errorf("cannot list pods: %w", err)
 	}
 
 	if len(ociRegistryPods.Items) != 1 {
-		return nil, fmt.Errorf("len(ociRegistryPods.Items) != 1")
+		return nil, fmt.Errorf("expected 1 OCI registry Pod, found %d", len(ociRegistryPods.Items))
 	}
 
 	portforwardCmd, err := util.ExecCommandNonBlocking("kubectl port-forward " + ociRegistryPods.Items[0].Name + " 5000:5000 --kubeconfig " + kubeconfigPath + " --namespace " + namespace)
@@ -209,29 +217,30 @@ func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigP
 	return portforwardCmd, nil
 }
 
-func uploadEchoServerHelmChart() error {
+func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 	err := util.ExecCommandBlocking("helm pull https://storage.googleapis.com/sap-hub-test/echo-server-1.1.0.tgz")
 	if err != nil {
-		return fmt.Errorf("helm pull failed: %w", err)
+		return "", fmt.Errorf("helm pull failed: %w", err)
 	}
 	defer func() {
 		err = os.Remove("echo-server-1.1.0.tgz")
 		if err != nil {
-			fmt.Printf("cannot remove echo-server-1.1.0.tgz: %s", err.Error())
+			fmt.Printf("Cannot remove echo-server-1.1.0.tgz: %s", err.Error())
 		}
 	}()
 
 	err = util.ExecCommandBlocking("helm chart save echo-server-1.1.0.tgz localhost:5000/echo-server-chart:v1.1.0")
 	if err != nil {
-		return fmt.Errorf("helm chart save failed: %w", err)
+		return "", fmt.Errorf("helm chart save failed: %w", err)
 	}
 
 	err = util.ExecCommandBlocking("helm chart push localhost:5000/echo-server-chart:v1.1.0")
 	if err != nil {
-		return fmt.Errorf("helm chart push failed: %w", err)
+		return "", fmt.Errorf("helm chart push failed: %w", err)
 	}
 
-	return nil
+	helmChartRef := fmt.Sprintf("oci-registry.%s.svc.cluster.local:5000/echo-server-chart:v1.1.0", landscaperNamespace)
+	return helmChartRef, nil
 }
 
 func runQuickstartUninstall(kubeconfigPath, installNamespace string) error {
@@ -246,7 +255,7 @@ func runQuickstartUninstall(kubeconfigPath, installNamespace string) error {
 
 	err := uninstallCmd.Execute()
 	if err != nil {
-		return fmt.Errorf("Uninstall Command failed: %w", err)
+		return fmt.Errorf("uninstall command failed: %w", err)
 	}
 
 	return nil
@@ -267,13 +276,13 @@ func runQuickstartInstall(kubeconfigPath, installNamespace string) error {
 	defer func() {
 		err = os.Remove(tmpFile.Name())
 		if err != nil {
-			fmt.Printf("cannot remove temporary file %s: %s", tmpFile.Name(), err.Error())
+			fmt.Printf("Cannot remove temporary file %s: %s", tmpFile.Name(), err.Error())
 		}
 	}()
 
 	err = ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValues), 0644)
 	if err != nil {
-		return fmt.Errorf("Cannot write to file: %w", err)
+		return fmt.Errorf("cannot write to file: %w", err)
 	}
 
 	installArgs := []string{
@@ -290,7 +299,7 @@ func runQuickstartInstall(kubeconfigPath, installNamespace string) error {
 
 	err = installCmd.Execute()
 	if err != nil {
-		return fmt.Errorf("Install Command failed: %w", err)
+		return fmt.Errorf("install command failed: %w", err)
 	}
 
 	return nil
