@@ -11,14 +11,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func RunQuickstartInstallTest(k8sClient client.Client, targetKey types.NamespacedName, helmChartRef string) error {
+func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target, helmChartRef string) error {
 	test := quickstartInstallTest{
 		k8sClient:    k8sClient,
-		targetKey:    targetKey,
+		target:       target,
 		helmChartRef: helmChartRef,
 	}
 	return test.run()
@@ -26,36 +25,44 @@ func RunQuickstartInstallTest(k8sClient client.Client, targetKey types.Namespace
 
 type quickstartInstallTest struct {
 	k8sClient    client.Client
-	targetKey    types.NamespacedName
+	target       *landscaper.Target
 	helmChartRef string
 }
 
 func (t *quickstartInstallTest) run() error {
 	const (
-		instName     = "echo-server"
-		appNamespace = "inttest-qs-install"
-		sleepTime    = 5 * time.Second
-		maxRetries   = 4
+		instName      = "echo-server"
+		testNamespace = "qs-install-test"
+		sleepTime     = 5 * time.Second
+		maxRetries    = 6
 	)
+
+	defer util.CleanupNamespace(t.k8sClient, testNamespace)
 
 	ctx := context.TODO()
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: appNamespace,
+			Name: testNamespace,
 		},
 	}
-	fmt.Printf("Creating namespace %s\n", appNamespace)
+	fmt.Printf("Creating namespace %s\n", testNamespace)
 	err := t.k8sClient.Create(ctx, namespace, &client.CreateOptions{})
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
-			fmt.Printf("Namespace %s already exists...Skipping\n", appNamespace)
+			fmt.Printf("Namespace %s already exists...Skipping\n", testNamespace)
 		} else {
-			return fmt.Errorf("cannot create namespace %s: %w", appNamespace, err)
+			return fmt.Errorf("cannot create namespace %s: %w", testNamespace, err)
 		}
 	}
 
-	inst, err := buildHelmInstallation(instName, t.targetKey, t.helmChartRef, appNamespace)
+	t.target.Namespace = testNamespace
+	err = t.k8sClient.Create(ctx, t.target, &client.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("cannot create target: %w", err)
+	}
+
+	inst, err := buildHelmInstallation(instName, t.target, t.helmChartRef, testNamespace)
 	if err != nil {
 		return fmt.Errorf("cannot build echo-server installation")
 	}
@@ -72,22 +79,10 @@ func (t *quickstartInstallTest) run() error {
 	}
 	fmt.Println("Installation successful")
 
-	fmt.Println("Deleting installation")
-	err = t.k8sClient.Delete(ctx, inst, &client.DeleteOptions{})
-	if err != nil {
-		return fmt.Errorf("cannot delete installation: %w", err)
-	}
-
-	err = util.WaitUntilObjectIsDeleted(t.k8sClient, client.ObjectKey{Name: inst.Name, Namespace: inst.Namespace}, inst, sleepTime, maxRetries)
-	if err != nil {
-		return fmt.Errorf("error while waiting for installation deletion: %w", err)
-	}
-	fmt.Println("Installation successfully deleted")
-
 	return nil
 }
 
-func buildHelmInstallation(name string, targetKey types.NamespacedName, helmChartRef, appNamespace string) (*landscaper.Installation, error) {
+func buildHelmInstallation(name string, target *landscaper.Target, helmChartRef, appNamespace string) (*landscaper.Installation, error) {
 	inlineBlueprint := fmt.Sprintf(`
         apiVersion: landscaper.gardener.cloud/v1alpha1
         kind: Blueprint
@@ -139,7 +134,7 @@ func buildHelmInstallation(name string, targetKey types.NamespacedName, helmChar
 	obj := &landscaper.Installation{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: targetKey.Namespace,
+			Namespace: target.Namespace,
 		},
 		Spec: landscaper.InstallationSpec{
 			Blueprint: landscaper.BlueprintDefinition{
@@ -151,7 +146,7 @@ func buildHelmInstallation(name string, targetKey types.NamespacedName, helmChar
 				Targets: []landscaper.TargetImportExport{
 					{
 						Name:   "cluster",
-						Target: "#"+targetKey.Name,
+						Target: "#" + target.Name,
 					},
 				},
 			},

@@ -75,16 +75,36 @@ func ExecCommandNonBlocking(command string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
-	ctx := context.TODO()
+func CheckCondition(conditionFunc func() (bool, error), sleepTime time.Duration, maxRetries int) error {
 	retries := 0
 	for {
-		fmt.Printf("Waiting... retries: %d\n", retries)
+		fmt.Printf("Checking condition... retries: %d\n", retries)
 
-		podList := corev1.PodList{}
-		err := k8sClient.List(ctx, &podList, client.InNamespace(namespace))
+		ok, err := conditionFunc()
 		if err != nil {
-			return fmt.Errorf("Cannot list pods: %w", err)
+			return err
+		}
+
+		if ok {
+			break
+		}
+
+		if retries >= maxRetries {
+			return fmt.Errorf("timeout after sleepTime=%dsec and maxRetries=%d", sleepTime/time.Second, maxRetries)
+		}
+		retries++
+
+		time.Sleep(sleepTime)
+	}
+	return nil
+}
+
+func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
+	conditionFunc := func() (bool, error) {
+		podList := corev1.PodList{}
+		err := k8sClient.List(context.TODO(), &podList, client.InNamespace(namespace))
+		if err != nil {
+			return false, fmt.Errorf("Cannot list pods: %w", err)
 		}
 
 		numberOfRunningPods := 0
@@ -99,70 +119,102 @@ func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTi
 		}
 
 		if numberOfRunningPods == len(podList.Items) {
-			break
+			return true, nil
 		}
 
-		if retries >= maxRetries {
-			return fmt.Errorf("Pods not ready after sleepTime=%dns and maxRetries=%d", sleepTime, maxRetries)
-		}
-		retries++
-		
-		time.Sleep(sleepTime)
+		return false, nil
 	}
 
-	return nil
+	return CheckCondition(conditionFunc, sleepTime, maxRetries)
 }
 
 func WaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types.NamespacedName, sleepTime time.Duration, maxRetries int) error {
-	ctx := context.TODO()
-	retries := 0
-	inst := &landscaper.Installation{}
-	
-	for {
-		fmt.Printf("Waiting... retries: %d\n", retries)
-
-		err := k8sClient.Get(ctx, key, inst)
+	conditionFunc := func() (bool, error) {
+		inst := &landscaper.Installation{}
+		err := k8sClient.Get(context.TODO(), key, inst)
 		if err != nil {
-			return fmt.Errorf("Cannot get installation: %w", err)
+			return false, fmt.Errorf("cannot get installation: %w", err)
 		}
 
 		if inst.Status.Phase == landscaper.ComponentPhaseSucceeded {
-			break
+			return true, nil
 		}
 
-		if retries >= maxRetries {
-			return fmt.Errorf("Installation not succeeded after sleepTime=%dns and maxRetries=%d", sleepTime, maxRetries)
-		}
-		retries++
-		
-		time.Sleep(sleepTime)
+		return false, nil
 	}
 
-	return nil
+	return CheckCondition(conditionFunc, sleepTime, maxRetries)
 }
 
 func WaitUntilObjectIsDeleted(k8sClient client.Client, objKey types.NamespacedName, obj runtime.Object, sleepTime time.Duration, maxRetries int) error {
-	ctx := context.TODO()
-	retries := 0
-
-	for {
-		fmt.Printf("Waiting... retries: %d\n", retries)
-
-		err := k8sClient.Get(ctx, objKey, obj)
+	conditionFunc := func() (bool, error) {
+		err := k8sClient.Get(context.TODO(), objKey, obj)
 		if err != nil {
 			if k8sErrors.IsNotFound(err) {
-				break
+				return true, nil
 			}
-			return err
+			return false, err
 		}
-
-		if retries >= maxRetries {
-			return fmt.Errorf("Object %s still exists after sleepTime=%dns and maxRetries=%d", objKey, sleepTime, maxRetries)
-		}
-		retries++
-		
-		time.Sleep(sleepTime)
+		return false, nil
 	}
 
-	return nil
+	return CheckCondition(conditionFunc, sleepTime, maxRetries)
 }
+
+func CleanupNamespace(k8sClient client.Client, namespace string) {
+	ctx := context.TODO()
+
+	targetList := &landscaper.TargetList{}
+	k8sClient.List(ctx, targetList, &client.ListOptions{Namespace: namespace})
+
+	for _, target := range targetList.Items {
+		fmt.Println("Deleting target:", target.Name)
+		err := k8sClient.Delete(ctx, &target, &client.DeleteOptions{})
+		if err != nil {
+			fmt.Println("Cannot delete target: %w", err)
+		}
+	}
+
+	installationList := &landscaper.InstallationList{}
+	k8sClient.List(ctx, installationList, &client.ListOptions{Namespace: namespace})
+
+	for _, installation := range installationList.Items {
+		fmt.Println("Deleting installation:", installation.Name)
+		err := k8sClient.Delete(ctx, &installation, &client.DeleteOptions{})
+		if err != nil {
+			fmt.Println("Cannot delete installation: %w", err)
+		}
+	}
+
+	executionList := &landscaper.ExecutionList{}
+	k8sClient.List(ctx, executionList, &client.ListOptions{Namespace: namespace})
+
+	for _, execution := range executionList.Items {
+		fmt.Println("Deleting execution:", execution.Name)
+		err := k8sClient.Delete(ctx, &execution, &client.DeleteOptions{})
+		if err != nil {
+			fmt.Println("Cannot delete execution: %w", err)
+		}
+	}
+
+	deployItemList := &landscaper.DeployItemList{}
+	k8sClient.List(ctx, deployItemList, &client.ListOptions{Namespace: namespace})
+
+	for _, deployItem := range deployItemList.Items {
+		fmt.Println("Deleting deployitem:", deployItem.Name)
+		err := k8sClient.Delete(ctx, &deployItem, &client.DeleteOptions{})
+		if err != nil {
+			fmt.Println("Cannot delete deployitem: %w", err)
+		}
+	}
+
+}
+
+// func removeFinalizer(ctx context.Context, object metav1.Object) error {
+// 	if len(object.GetFinalizers()) == 0 {
+// 		return nil
+// 	}
+
+// 	object.SetFinalizers([]string{})
+// 	return e.Client.Update(ctx, object.(runtime.Object))
+// }
