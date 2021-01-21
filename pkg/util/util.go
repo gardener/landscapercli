@@ -8,7 +8,11 @@ import (
 	"strings"
 	"time"
 
+	landscaper "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -98,6 +102,56 @@ func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTi
 
 		if retries >= maxRetries {
 			return fmt.Errorf("Pods not ready after sleepTime=%dns and maxRetries=%d", sleepTime, maxRetries)
+		}
+		retries++
+		
+		time.Sleep(sleepTime)
+	}
+
+	return nil
+}
+
+func WaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types.NamespacedName, sleepTime time.Duration, maxRetries int) error {
+	ctx := context.TODO()
+	retries := 0
+	inst := &landscaper.Installation{}
+	
+	for {
+		err := k8sClient.Get(ctx, key, inst)
+		if err != nil {
+			return fmt.Errorf("Cannot get installation: %w", err)
+		}
+
+		if inst.Status.Phase == landscaper.ComponentPhaseSucceeded {
+			break
+		}
+
+		if retries >= maxRetries {
+			return fmt.Errorf("Installation not succeeded after sleepTime=%dns and maxRetries=%d", sleepTime, maxRetries)
+		}
+		retries++
+		
+		time.Sleep(sleepTime)
+	}
+
+	return nil
+}
+
+func WaitUntilObjectIsDeleted(k8sClient client.Client, objKey types.NamespacedName, obj runtime.Object, sleepTime time.Duration, maxRetries int) error {
+	ctx := context.TODO()
+	retries := 0
+
+	for {
+		err := k8sClient.Get(ctx, objKey, obj)
+		if err != nil {
+			if k8sErrors.IsNotFound(err) {
+				break
+			}
+			return err
+		}
+
+		if retries >= maxRetries {
+			return fmt.Errorf("Object %s still exists after sleepTime=%dns and maxRetries=%d", objKey, sleepTime, maxRetries)
 		}
 		retries++
 		

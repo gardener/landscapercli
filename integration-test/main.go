@@ -12,10 +12,10 @@ import (
 
 	landscaper "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
 	"github.com/gardener/landscapercli/cmd/quickstart"
+	"github.com/gardener/landscapercli/integration-test/tests"
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	defaultNamespace = "landscaper"
+	defaultLandscaperNamespace = "landscaper"
 	targetName = "test-target"
 )
 
@@ -39,7 +39,111 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-func CreateTarget(k8sClient client.Client, name, namespace, kubeconfig string) error {
+func main() {
+	fmt.Println("========== Starting integration-test ==========")
+	err := run()
+	if err != nil {
+		fmt.Println("Error while running integration-test:", err)
+		os.Exit(1)
+	}
+	fmt.Println("========== Integration-test finished successfully ==========")
+}
+
+func run() error {
+	var kubeconfig, landscaperNamespace string
+	flag.StringVar(&kubeconfig, "kubeconfig", "", "path to the kubeconfig of the target cluster")
+	flag.StringVar(&landscaperNamespace, "landscaper-namespace", defaultLandscaperNamespace, "namespace on the target cluster to setup Landscaper")
+	flag.Parse()
+
+	log, err := logger.NewCliLogger()
+	logger.SetLogger(log)
+	ctx := context.TODO()
+
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return fmt.Errorf("cannot parse K8s config: %w", err)
+	}
+
+	k8sClient, err := client.New(cfg, client.Options{
+		Scheme: scheme,
+	})
+	if err != nil {
+		return fmt.Errorf("cannot build K8s client: %w", err)
+	}
+
+	defer func() {
+		// Check if everything was cleaned up
+		fmt.Println("Running cleanup check routine")
+	}()
+
+	runQuickstartInstall(kubeconfig, landscaperNamespace)
+	if err != nil {
+		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
+	}
+	defer func() {
+		err = runQuickstartUninstall(kubeconfig, landscaperNamespace)
+		if err != nil {
+			fmt.Println("landscaper-cli quickstart uninstall failed: %w", err)
+		}
+	}()
+
+	const (
+		sleepTime = 5*time.Second
+		maxRetries = 0
+	)
+	err = util.WaitUntilAllPodsAreReady(k8sClient, landscaperNamespace, sleepTime, maxRetries)
+	if err != nil {
+		return fmt.Errorf("error while waiting for Landscaper Pods: %w", err)
+	}
+
+	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, landscaperNamespace, kubeconfig)
+	if err != nil {
+		return fmt.Errorf("port-forward to OCI registry failed: %w", err)
+	}
+	defer func() {
+		// Disable port-forward
+		err = portforwardCmd.Process.Kill()
+		if err != nil {
+			fmt.Println("Cannot kill port-forward process: %w", err)
+		}
+	}()
+
+	err = uploadEchoServerHelmChart()
+	if err != nil {
+		return fmt.Errorf("upload of echo-server Helm Chart failed: %w", err)
+	}
+
+	err = createTarget(k8sClient, targetName, landscaperNamespace, kubeconfig)
+	if err != nil {
+		return fmt.Errorf("cannot create target: %w", err)
+	}
+	defer func() {
+		// delete target
+		target := &landscaper.Target{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      targetName,
+				Namespace: landscaperNamespace,
+			},
+		}
+		err = k8sClient.Delete(ctx, target, &client.DeleteOptions{})
+		if err != nil {
+			fmt.Println("Cannot delete target: %w", err)
+		}
+	}()
+
+	// ################################ <Run Tests> ################################
+
+	err = tests.RunQuickstartInstallTest(k8sClient, targetName)
+	if err != nil {
+		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)
+	}
+
+	// ############################### </Run Tests> ################################
+
+	return nil
+}
+
+func createTarget(k8sClient client.Client, name, namespace, kubeconfig string) error {
 	kubeconfigContent, err := ioutil.ReadFile(kubeconfig)
 	if err != nil {
 		return fmt.Errorf("Cannot read kubeconfig: %w", err)
@@ -73,7 +177,7 @@ func CreateTarget(k8sClient client.Client, name, namespace, kubeconfig string) e
 	return nil
 }
 
-func StartOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigPath string) (*exec.Cmd, error) {
+func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigPath string) (*exec.Cmd, error) {
 	ctx := context.TODO()
 	ociRegistryPods := corev1.PodList{}
 	err := k8sClient.List(
@@ -105,7 +209,7 @@ func StartOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigP
 	return portforwardCmd, nil
 }
 
-func UploadEchoServerHelmChart() error {
+func uploadEchoServerHelmChart() error {
 	err := util.ExecCommandBlocking("helm pull https://storage.googleapis.com/sap-hub-test/echo-server-1.1.0.tgz")
 	if err != nil {
 		return fmt.Errorf("helm pull failed: %w", err)
@@ -130,7 +234,7 @@ func UploadEchoServerHelmChart() error {
 	return nil
 }
 
-func RunQuickstartUninstall(kubeconfigPath, installNamespace string) error {
+func runQuickstartUninstall(kubeconfigPath, installNamespace string) error {
 	uninstallArgs := []string{
 		"--kubeconfig",
 		kubeconfigPath,
@@ -148,7 +252,7 @@ func RunQuickstartUninstall(kubeconfigPath, installNamespace string) error {
 	return nil
 }
 
-func RunQuickstartInstall(kubeconfigPath, installNamespace string) error {
+func runQuickstartInstall(kubeconfigPath, installNamespace string) error {
 	const landscaperValues = `
       landscaper:
         registryConfig: # contains optional oci secrets
@@ -190,248 +294,4 @@ func RunQuickstartInstall(kubeconfigPath, installNamespace string) error {
 	}
 
 	return nil
-}
-
-func main() {
-	fmt.Println("Hallo Integration-Test")
-
-	var kubeconfig, namespace string
-	flag.StringVar(&kubeconfig, "kubeconfig", "", "kubeconfig of the taget K8s cluster")
-	flag.StringVar(&namespace, "namespace", defaultNamespace, "namespace on the target cluster")
-	flag.Parse()
-
-	log, err := logger.NewCliLogger()
-	logger.SetLogger(log)
-	ctx := context.TODO()
-
-	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		fmt.Println("Cannot parse K8s config: %w", err)
-		os.Exit(1)
-	}
-
-	k8sClient, err := client.New(cfg, client.Options{
-		Scheme: scheme,
-	})
-	if err != nil {
-		fmt.Println("Cannot build K8s client: %w", err)
-		os.Exit(1)
-	}
-
-	RunQuickstartInstall(kubeconfig, namespace)
-	if err != nil {
-		fmt.Println("quickstart install: %w", err)
-		os.Exit(1)
-	}
-	defer func() {
-		err = RunQuickstartUninstall(kubeconfig, namespace)
-		if err != nil {
-			fmt.Println("quickstart uninstall failed: %w", err)
-			os.Exit(1)
-		}
-	}()
-
-	const (
-		sleepTime = 5*time.Second
-		maxRetries = 4
-	)
-	err = util.WaitUntilAllPodsAreReady(k8sClient, namespace, sleepTime, maxRetries)
-	if err != nil {
-		fmt.Println("waiting for pods failed: %w", err)
-		os.Exit(1)
-	}
-
-	portforwardCmd, err := StartOCIRegistryPortForward(k8sClient, namespace, kubeconfig)
-	if err != nil {
-		fmt.Println("portforward to oci registry failed: %w", err)
-		os.Exit(1)
-	}
-	defer func() {
-		// Disable port-forward
-		err = portforwardCmd.Process.Kill()
-		if err != nil {
-			fmt.Println("Cannot kill kubectl port-forward process: %w", err)
-			os.Exit(1)
-		}
-	}()
-
-	err = UploadEchoServerHelmChart()
-	if err != nil {
-		fmt.Println("upload of echo server helm chart failed: %w", err)
-		os.Exit(1)
-	}
-
-	err = CreateTarget(k8sClient, targetName, namespace, kubeconfig)
-	if err != nil {
-		fmt.Println("Cannot create target: %w", err)
-		os.Exit(1)
-	}
-	defer func() {
-		// delete target
-		target := &landscaper.Target{
-			ObjectMeta: v1.ObjectMeta{
-				Name:      targetName,
-				Namespace: namespace,
-			},
-		}
-		err = k8sClient.Delete(ctx, target, &client.DeleteOptions{})
-		if err != nil {
-			fmt.Println("cannot delete target: %w", err)
-			os.Exit(1)
-		}
-	}()
-
-	// Perform Tests
-	test := NewTest(k8sClient, "#"+targetName)
-	err = test.Run()
-	if err != nil {
-		fmt.Println("landscaper test failed: %w", err)
-		os.Exit(1)
-	}
-
-	// Check if everything was cleaned up. Idea: write a defer() function at the beginning of main()
-
-	fmt.Println("Adieu Integration-Test")
-}
-
-// ########################################### Landscaper Test #######################################
-type Test struct {
-	client     client.Client
-	targetName string
-}
-
-func NewTest(client client.Client, targetName string) *Test {
-	obj := &Test{
-		client:     client,
-		targetName: targetName,
-	}
-	return obj
-}
-
-func (t *Test) Run() error {
-	ctx := context.TODO()
-
-	instName := "test-1"
-	instNs := "landscaper"
-
-	inst := buildInstallation(instName, instNs, t.targetName, "landscaper-example")
-
-	err := t.client.Create(ctx, inst, &client.CreateOptions{})
-	if err != nil {
-		return err
-	}
-
-	for {
-		err = t.client.Get(ctx, client.ObjectKey{Name: instName, Namespace: instNs}, inst)
-		if err != nil {
-			return err
-		}
-
-		if inst.Status.Phase == landscaper.ComponentPhaseSucceeded {
-			fmt.Println("installation.phase == succeeded")
-			break
-		}
-
-		fmt.Println("installation.phase != succeeded => go to sleep...")
-		time.Sleep(5 * time.Second)
-	}
-
-	err = t.client.Delete(ctx, inst, &client.DeleteOptions{})
-	if err != nil {
-		return err
-	}
-
-	for {
-		err = t.client.Get(ctx, client.ObjectKey{Name: instName, Namespace: instNs}, inst)
-		if err != nil {
-			if k8sErrors.IsNotFound(err) {
-				fmt.Println("installation was deleted successfully")
-				break
-			}
-			return err
-		}
-
-		fmt.Println("waiting for installation to be deleted => go to sleep...")
-		time.Sleep(5 * time.Second)
-	}
-
-	return nil
-}
-
-func buildInstallation(name, namespace, targetName, appNamespace string) *landscaper.Installation {
-	inlineBlueprint := `
-        apiVersion: landscaper.gardener.cloud/v1alpha1
-        kind: Blueprint
-
-        imports:
-        - name: cluster
-          targetType: landscaper.gardener.cloud/kubernetes-cluster
-
-        - name: appname
-          schema:
-            type: string
-
-        - name: appnamespace
-          schema:
-            type: string
-
-        deployExecutions:
-        - name: default
-          type: GoTemplate
-          template: |
-            deployItems:
-            - name: deploy
-              type: landscaper.gardener.cloud/helm
-              target:
-                name: {{ .imports.cluster.metadata.name }}
-                namespace: {{ .imports.cluster.metadata.namespace }}
-              config:
-                apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
-                kind: ProviderConfiguration
-
-                chart:
-                  ref: "oci-registry.landscaper.svc.cluster.local:5000/echo-server-chart:v1.1.0"
-        
-                updateStrategy: patch
-
-                name: {{ .imports.appname }}
-                namespace: {{ .imports.appnamespace }}
-    `
-
-	fs := map[string]interface{}{
-		"blueprint.yaml": inlineBlueprint,
-	}
-
-	marsh, err := json.Marshal(fs)
-	if err != nil {
-		panic(err)
-	}
-
-	obj := &landscaper.Installation{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: landscaper.InstallationSpec{
-			Blueprint: landscaper.BlueprintDefinition{
-				Inline: &landscaper.InlineBlueprint{
-					Filesystem: json.RawMessage(marsh),
-				},
-			},
-			Imports: landscaper.InstallationImports{
-				Targets: []landscaper.TargetImportExport{
-					{
-						Name:   "cluster",
-						Target: targetName,
-					},
-				},
-			},
-			ImportDataMappings: map[string]json.RawMessage{
-				"appname":      json.RawMessage(`"echo-server"`),
-				"appnamespace": json.RawMessage(fmt.Sprintf(`"%s"`, appNamespace)),
-			},
-		},
-	}
-
-	return obj
 }
