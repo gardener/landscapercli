@@ -21,6 +21,7 @@ func NewBlueprintsCommand(ctx context.Context) *cobra.Command {
 	cmd.AddCommand(NewPushCommand(ctx))
 	cmd.AddCommand(NewGetCommand(ctx))
 	cmd.AddCommand(NewCreateCommand(ctx))
+	cmd.AddCommand(NewAddCommand(ctx))
 	cmd.AddCommand(NewValidationCommand(ctx))
 	cmd.AddCommand(NewRenderCommand(ctx))
 

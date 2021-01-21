@@ -22,6 +22,7 @@ command to interact with blueprints stored in an oci registry
 ### SEE ALSO
 
 * [landscaper-cli](landscaper-cli.md)	 - landscaper cli
+* [landscaper-cli blueprints add](landscaper-cli_blueprints_add.md)	 - command to add parts to a blueprint
 * [landscaper-cli blueprints create](landscaper-cli_blueprints_create.md)	 - command to create a blueprint template in the specified directory
 * [landscaper-cli blueprints get](landscaper-cli_blueprints_get.md)	 - command to download a blueprint from an oci registry
 * [landscaper-cli blueprints push](landscaper-cli_blueprints_push.md)	 - command to upload a blueprint into an oci registry
