@@ -55,19 +55,34 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 	return cmd
 }
 
+func (o *createOptions) Complete(args []string) error {
+	o.blueprintPath = args[0]
+	return nil
+}
+
+func (o *createOptions) AddFlags(fs *pflag.FlagSet) {
+}
+
 func (o *createOptions) run(ctx context.Context, log logr.Logger) error {
-	typeMeta := metav1.TypeMeta{
-		APIVersion: "landscaper.gardener.cloud/v1alpha1",
-		Kind:       "Blueprint",
+	exists, err := o.existsBlueprint()
+	if err != nil {
+		return err
+	}
+	if exists {
+		return fmt.Errorf("The blueprint already exists")
 	}
 
-	blueprintFilePath := filepath.Join(o.blueprintPath, blueprintFilename)
-	f, err := os.Create(blueprintFilePath)
+	f, err := os.Create(o.getBlueprintFilePath())
 	if err != nil {
 		return err
 	}
 
 	defer f.Close()
+
+	typeMeta := metav1.TypeMeta{
+		APIVersion: "landscaper.gardener.cloud/v1alpha1",
+		Kind:       "Blueprint",
+	}
 
 	typeMetaBytes, err := yaml.Marshal(typeMeta)
 	if err != nil {
@@ -107,10 +122,18 @@ func (o *createOptions) run(ctx context.Context, log logr.Logger) error {
 	return nil
 }
 
-func (o *createOptions) Complete(args []string) error {
-	o.blueprintPath = args[0]
-	return nil
+func (o *createOptions) existsBlueprint() (bool, error) {
+	_, err := os.Stat(o.getBlueprintFilePath())
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
-func (o *createOptions) AddFlags(fs *pflag.FlagSet) {
+func (o *createOptions) getBlueprintFilePath() string {
+	return filepath.Join(o.blueprintPath, blueprintFilename)
 }
