@@ -161,6 +161,73 @@ func WaitUntilObjectIsDeleted(k8sClient client.Client, objKey types.NamespacedNa
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
+// delete instalaltions and namespace gracefully and wait till its done or timeout.
+func GracefulyDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) {
+	ctx := context.TODO()
+
+	//all installations, gracefulyDeleteInstallation()
+	installationList := landscaper.InstallationList{}
+	k8sClient.List(ctx, &installationList, &client.ListOptions{Namespace: namespace})
+
+	for _, installation := range installationList.Items {
+		fmt.Println("Deleting installation:", installation.Name)
+		err := k8sClient.Delete(ctx, &installation, &client.DeleteOptions{})
+		if err != nil {
+			fmt.Println("Cannot delete namespace since installation cant be deleted: %w", err)
+		}
+	}
+
+	//wait for all are deleted
+	err := WaitUntilAllInstallationsAreDeleted(k8sClient, namespace, sleepTime, maxRetries)
+	if err != nil {
+		//unterscheide zwischen timeout und general error
+	}
+
+	//if error, return error to trigger force delete
+}
+
+func WaitUntilAllInstallationsAreDeleted(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
+	conditionFunc := func() (bool, error) {
+		ctx := context.TODO()
+
+		installationList := &landscaper.InstallationList{}
+		err := k8sClient.List(ctx, installationList, &client.ListOptions{Namespace: namespace})
+		if err != nil {
+			return false, err
+		}
+		return len(installationList.Items) == 0, nil
+
+	}
+	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
+}
+
+// Gracefully delete an instalaltion and wait until it is completed
+func gracefulyDeleteInstallation(k8sClient client.Client, installation landscaper.Installation) error {
+	ctx := context.TODO()
+
+	// delete instalaltion
+	err := k8sClient.Delete(ctx, &installation, &client.DeleteOptions{})
+	if err != nil {
+		fmt.Println("Cannot delete installation: %w", err)
+	}
+
+	//wait till installation is gone
+
+	//if installation artifacts still exist, return error
+
+}
+
+//delete all objects (and remove finalizer if ncessary) in a namespace and the namespace itself
+func forceDeleteNamespace() {
+
+	// delete ns
+
+	//waiting if ns is deleted
+
+	// remove finalizer on remaining objects
+
+}
+
 func CleanupNamespace(k8sClient client.Client, namespace string) {
 	ctx := context.TODO()
 
