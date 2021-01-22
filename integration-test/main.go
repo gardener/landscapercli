@@ -26,6 +26,23 @@ import (
 
 const (
 	defaultLandscaperNamespace = "landscaper"
+	defaultMaxRetries          = 10
+)
+const (
+	//SleepTime is the time to sleep when waiting for a certain status
+	SleepTime = 5 * time.Second
+)
+
+var (
+	// Kubeconfig is the path to the kubeconfig for the cluster
+	Kubeconfig string
+
+	// LandscaperNamespace is the namespace with the landscaper
+	LandscaperNamespace string
+
+	// MaxRetries determines how often a waiting for status opertion checks for reaching
+	// the targeted status (in combination with SleepTime)
+	MaxRetries int
 )
 
 var (
@@ -48,15 +65,15 @@ func main() {
 }
 
 func run() error {
-	var kubeconfig, landscaperNamespace string
-	flag.StringVar(&kubeconfig, "kubeconfig", "", "path to the kubeconfig of the target cluster")
-	flag.StringVar(&landscaperNamespace, "landscaper-namespace", defaultLandscaperNamespace, "namespace on the target cluster to setup Landscaper")
+	flag.StringVar(&Kubeconfig, "kubeconfig", "", "path to the kubeconfig of the target cluster")
+	flag.StringVar(&LandscaperNamespace, "landscaper-namespace", defaultLandscaperNamespace, "namespace on the target cluster to setup Landscaper")
+	flag.IntVar(&MaxRetries, "maxRetries", defaultMaxRetries, "Max. retries (every 5s) for all waiting operations")
 	flag.Parse()
 
 	log, err := logger.NewCliLogger()
 	logger.SetLogger(log)
 
-	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	cfg, err := clientcmd.BuildConfigFromFlags("", Kubeconfig)
 	if err != nil {
 		return fmt.Errorf("cannot parse K8s config: %w", err)
 	}
@@ -74,30 +91,25 @@ func run() error {
 	}()
 
 	fmt.Println("Running landscaper-cli quickstart install")
-	runQuickstartInstall(kubeconfig, landscaperNamespace)
+	runQuickstartInstall(Kubeconfig, LandscaperNamespace)
 	if err != nil {
 		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
 	}
 	defer func() {
-		err = runQuickstartUninstall(kubeconfig, landscaperNamespace)
+		err = runQuickstartUninstall(Kubeconfig, LandscaperNamespace)
 		if err != nil {
 			fmt.Println("landscaper-cli quickstart uninstall failed: %w", err)
 		}
 	}()
 
-	const (
-		sleepTime  = 5 * time.Second
-		maxRetries = 6
-	)
-
 	fmt.Println("Waiting for Landscaper Pods to get ready")
-	err = util.WaitUntilAllPodsAreReady(k8sClient, landscaperNamespace, sleepTime, maxRetries)
+	err = util.WaitUntilAllPodsAreReady(k8sClient, LandscaperNamespace, SleepTime, MaxRetries)
 	if err != nil {
 		return fmt.Errorf("error while waiting for Landscaper Pods: %w", err)
 	}
 
 	fmt.Println("Starting port-forward to OCI registry")
-	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, landscaperNamespace, kubeconfig)
+	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, LandscaperNamespace, Kubeconfig)
 	if err != nil {
 		return fmt.Errorf("port-forward to OCI registry failed: %w", err)
 	}
@@ -110,13 +122,13 @@ func run() error {
 	}()
 
 	fmt.Println("Upload echo-server Helm Chart to OCI registry")
-	helmChartRef, err := uploadEchoServerHelmChart(landscaperNamespace)
+	helmChartRef, err := uploadEchoServerHelmChart(LandscaperNamespace)
 	if err != nil {
 		return fmt.Errorf("upload of echo-server Helm Chart failed: %w", err)
 	}
 
 	fmt.Println("Build target")
-	target, err := buildTarget(kubeconfig)
+	target, err := buildTarget(Kubeconfig)
 	if err != nil {
 		return fmt.Errorf("cannot build target: %w", err)
 	}
