@@ -1,0 +1,19 @@
+component:
+  name: github.com/gardener/landscapercli/nginx
+  version: v0.1.0
+
+  provider: internal
+
+  repositoryContexts:
+  - baseUrl: ""
+    type: ociRegistry
+
+  resources: []
+
+  sources: []
+
+  componentReferences: [ ]
+
+meta:
+  schemaVersion: v2
+
