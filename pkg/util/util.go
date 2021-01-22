@@ -198,11 +198,30 @@ func gracefulyDeleteNamespace(k8sClient client.Client, namespace string, sleepTi
 		fmt.Println("Deleting installation:", installation.Name)
 		err := k8sClient.Delete(ctx, &installation, &client.DeleteOptions{})
 		if err != nil {
-			return false, fmt.Errorf("Cannot delete namespace since installation cant be deleted: %w", err)
+			return false, fmt.Errorf("Cannot delete installation: %w", err)
 		}
 	}
 
 	timeout, err := WaitUntilAllInstallationsAreDeleted(k8sClient, namespace, sleepTime, maxRetries)
+	if err != nil {
+		return false, err
+	}
+	if timeout {
+		return timeout, nil
+	}
+
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	}
+	fmt.Println("Deleting namespace:", namespace)
+	err = k8sClient.Delete(ctx, ns, &client.DeleteOptions{})
+	if err != nil {
+		return false, fmt.Errorf("cannot delete namespace: %w", err)
+	}
+
+	timeout, err = WaitUntilObjectIsDeleted(k8sClient, client.ObjectKey{Name: namespace}, ns, sleepTime, maxRetries)
 	if err != nil {
 		return false, err
 	}
