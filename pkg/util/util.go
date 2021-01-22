@@ -11,6 +11,7 @@ import (
 	landscaper "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -118,11 +119,7 @@ func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTi
 			}
 		}
 
-		if numberOfRunningPods == len(podList.Items) {
-			return true, nil
-		}
-
-		return false, nil
+		return numberOfRunningPods == len(podList.Items), nil
 	}
 
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
@@ -136,11 +133,7 @@ func WaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types
 			return false, fmt.Errorf("cannot get installation: %w", err)
 		}
 
-		if inst.Status.Phase == landscaper.ComponentPhaseSucceeded {
-			return true, nil
-		}
-
-		return false, nil
+		return inst.Status.Phase == landscaper.ComponentPhaseSucceeded, nil
 	}
 
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
@@ -161,31 +154,6 @@ func WaitUntilObjectIsDeleted(k8sClient client.Client, objKey types.NamespacedNa
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
-// delete instalaltions and namespace gracefully and wait till its done or timeout.
-func GracefulyDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) {
-	ctx := context.TODO()
-
-	//all installations, gracefulyDeleteInstallation()
-	installationList := landscaper.InstallationList{}
-	k8sClient.List(ctx, &installationList, &client.ListOptions{Namespace: namespace})
-
-	for _, installation := range installationList.Items {
-		fmt.Println("Deleting installation:", installation.Name)
-		err := k8sClient.Delete(ctx, &installation, &client.DeleteOptions{})
-		if err != nil {
-			fmt.Println("Cannot delete namespace since installation cant be deleted: %w", err)
-		}
-	}
-
-	//wait for all are deleted
-	err := WaitUntilAllInstallationsAreDeleted(k8sClient, namespace, sleepTime, maxRetries)
-	if err != nil {
-		//unterscheide zwischen timeout und general error
-	}
-
-	//if error, return error to trigger force delete
-}
-
 func WaitUntilAllInstallationsAreDeleted(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
 	conditionFunc := func() (bool, error) {
 		ctx := context.TODO()
@@ -195,93 +163,103 @@ func WaitUntilAllInstallationsAreDeleted(k8sClient client.Client, namespace stri
 		if err != nil {
 			return false, err
 		}
-		return len(installationList.Items) == 0, nil
 
+		return len(installationList.Items) == 0, nil
 	}
+
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
-// Gracefully delete an instalaltion and wait until it is completed
-func gracefulyDeleteInstallation(k8sClient client.Client, installation landscaper.Installation) error {
+// gracefully try to delete all Landscaper installations in a namespace, then delete the namespace itself
+func GracefulyDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
 	ctx := context.TODO()
 
-	// delete instalaltion
-	err := k8sClient.Delete(ctx, &installation, &client.DeleteOptions{})
+	installationList := landscaper.InstallationList{}
+	err := k8sClient.List(ctx, &installationList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
-		fmt.Println("Cannot delete installation: %w", err)
+		return err
 	}
-
-	//wait till installation is gone
-
-	//if installation artifacts still exist, return error
-
-}
-
-//delete all objects (and remove finalizer if ncessary) in a namespace and the namespace itself
-func forceDeleteNamespace() {
-
-	// delete ns
-
-	//waiting if ns is deleted
-
-	// remove finalizer on remaining objects
-
-}
-
-func CleanupNamespace(k8sClient client.Client, namespace string) {
-	ctx := context.TODO()
-
-	targetList := &landscaper.TargetList{}
-	k8sClient.List(ctx, targetList, &client.ListOptions{Namespace: namespace})
-
-	for _, target := range targetList.Items {
-		fmt.Println("Deleting target:", target.Name)
-		err := k8sClient.Delete(ctx, &target, &client.DeleteOptions{})
-		if err != nil {
-			fmt.Println("Cannot delete target: %w", err)
-		}
-	}
-
-	installationList := &landscaper.InstallationList{}
-	k8sClient.List(ctx, installationList, &client.ListOptions{Namespace: namespace})
-
 	for _, installation := range installationList.Items {
 		fmt.Println("Deleting installation:", installation.Name)
 		err := k8sClient.Delete(ctx, &installation, &client.DeleteOptions{})
 		if err != nil {
-			fmt.Println("Cannot delete installation: %w", err)
+			fmt.Println("Cannot delete namespace since installation cant be deleted: %w", err)
+		}
+	}
+
+	err = WaitUntilAllInstallationsAreDeleted(k8sClient, namespace, sleepTime, maxRetries)
+	if err != nil {
+		//unterscheide zwischen timeout und general error
+		return err
+	}
+
+	if timeout {
+		err = removeFinalizersFromLandscaperCRs(k8sClient, namespace)
+		if err != nil {
+
+		}
+	}
+
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	}
+	err = k8sClient.Delete(ctx, ns, &client.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("cannot delete namespace: %w", err)
+	}
+
+	return nil
+}
+
+// removes the finalizers from all Landscaper CRs in a namespace
+func removeFinalizersFromLandscaperCRs(k8sClient client.Client, namespace string) error {
+	ctx := context.TODO()
+
+	installationList := landscaper.InstallationList{}
+	err := k8sClient.List(ctx, &installationList, &client.ListOptions{Namespace: namespace})
+	if err != nil {
+		return fmt.Errorf("cannot list installations: %w", err)
+	}
+	for _, installation := range installationList.Items {
+		err = RemoveFinalizers(ctx, k8sClient, &installation)
+		if err != nil {
+			return fmt.Errorf("cannot remove finalizers for installation: %w", err)
 		}
 	}
 
 	executionList := &landscaper.ExecutionList{}
-	k8sClient.List(ctx, executionList, &client.ListOptions{Namespace: namespace})
-
+	err = k8sClient.List(ctx, executionList, &client.ListOptions{Namespace: namespace})
+	if err != nil {
+		return fmt.Errorf("cannot list executions: %w", err)
+	}
 	for _, execution := range executionList.Items {
-		fmt.Println("Deleting execution:", execution.Name)
-		err := k8sClient.Delete(ctx, &execution, &client.DeleteOptions{})
+		err = RemoveFinalizers(ctx, k8sClient, &execution)
 		if err != nil {
-			fmt.Println("Cannot delete execution: %w", err)
+			return fmt.Errorf("cannot remove finalizers for execution: %w", err)
 		}
 	}
 
 	deployItemList := &landscaper.DeployItemList{}
-	k8sClient.List(ctx, deployItemList, &client.ListOptions{Namespace: namespace})
-
+	err = k8sClient.List(ctx, deployItemList, &client.ListOptions{Namespace: namespace})
+	if err != nil {
+		return fmt.Errorf("cannot list deployitems: %w", err)
+	}
 	for _, deployItem := range deployItemList.Items {
-		fmt.Println("Deleting deployitem:", deployItem.Name)
-		err := k8sClient.Delete(ctx, &deployItem, &client.DeleteOptions{})
+		err = RemoveFinalizers(ctx, k8sClient, &deployItem)
 		if err != nil {
-			fmt.Println("Cannot delete deployitem: %w", err)
+			return fmt.Errorf("cannot remove finalizers for deployitem: %w", err)
 		}
 	}
 
+	return nil
 }
 
-// func removeFinalizer(ctx context.Context, object metav1.Object) error {
-// 	if len(object.GetFinalizers()) == 0 {
-// 		return nil
-// 	}
-
-// 	object.SetFinalizers([]string{})
-// 	return e.Client.Update(ctx, object.(runtime.Object))
-// }
+func RemoveFinalizers(ctx context.Context, k8sClient client.Client, object metav1.Object) error {
+	if len(object.GetFinalizers()) == 0 {
+		return nil
+	}
+	object.SetFinalizers([]string{})
+	return k8sClient.Update(ctx, object.(runtime.Object))
+}
