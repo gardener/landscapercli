@@ -75,7 +75,7 @@ func ExecCommandNonBlocking(command string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func CheckCondition(conditionFunc func() (bool, error), sleepTime time.Duration, maxRetries int) error {
+func CheckConditionPeriodically(conditionFunc func() (bool, error), sleepTime time.Duration, maxRetries int) error {
 	retries := 0
 	for {
 		fmt.Printf("Checking condition... retries: %d\n", retries)
@@ -125,7 +125,7 @@ func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTi
 		return false, nil
 	}
 
-	return CheckCondition(conditionFunc, sleepTime, maxRetries)
+	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
 func WaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types.NamespacedName, sleepTime time.Duration, maxRetries int) error {
@@ -143,7 +143,7 @@ func WaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types
 		return false, nil
 	}
 
-	return CheckCondition(conditionFunc, sleepTime, maxRetries)
+	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
 func WaitUntilObjectIsDeleted(k8sClient client.Client, objKey types.NamespacedName, obj runtime.Object, sleepTime time.Duration, maxRetries int) error {
@@ -158,7 +158,7 @@ func WaitUntilObjectIsDeleted(k8sClient client.Client, objKey types.NamespacedNa
 		return false, nil
 	}
 
-	return CheckCondition(conditionFunc, sleepTime, maxRetries)
+	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
 func CleanupNamespace(k8sClient client.Client, namespace string) {
