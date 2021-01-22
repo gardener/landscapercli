@@ -103,9 +103,12 @@ func run() error {
 	}()
 
 	fmt.Println("Waiting for Landscaper Pods to get ready")
-	err = util.WaitUntilAllPodsAreReady(k8sClient, LandscaperNamespace, SleepTime, MaxRetries)
+	timeout, err := util.WaitUntilAllPodsAreReady(k8sClient, LandscaperNamespace, SleepTime, MaxRetries)
 	if err != nil {
 		return fmt.Errorf("error while waiting for Landscaper Pods: %w", err)
+	}
+	if timeout {
+		return fmt.Errorf("timeout while waiting for landscaper pods")
 	}
 
 	fmt.Println("Starting port-forward to OCI registry")

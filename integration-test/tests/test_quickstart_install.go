@@ -30,6 +30,8 @@ type quickstartInstallTest struct {
 }
 
 func (t *quickstartInstallTest) run() error {
+	ctx := context.TODO()
+
 	const (
 		instName      = "echo-server"
 		testNamespace = "qs-install-test"
@@ -37,9 +39,7 @@ func (t *quickstartInstallTest) run() error {
 		maxRetries    = 6
 	)
 
-	defer util.CleanupNamespace(t.k8sClient, testNamespace)
-
-	ctx := context.TODO()
+	defer util.DeleteNamespace(t.k8sClient, testNamespace, sleepTime, maxRetries)
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -73,9 +73,12 @@ func (t *quickstartInstallTest) run() error {
 		return fmt.Errorf("cannot create installation: %w", err)
 	}
 
-	err = util.WaitUntilLandscaperInstallationSucceeded(t.k8sClient, client.ObjectKey{Name: inst.Name, Namespace: inst.Namespace}, sleepTime, maxRetries)
+	timeout, err := util.WaitUntilLandscaperInstallationSucceeded(t.k8sClient, client.ObjectKey{Name: inst.Name, Namespace: inst.Namespace}, sleepTime, maxRetries)
 	if err != nil {
 		return fmt.Errorf("error while waiting for installation: %w", err)
+	}
+	if timeout {
+		return fmt.Errorf("timeout at waiting for installation")
 	}
 	fmt.Println("Installation successful")
 

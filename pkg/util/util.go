@@ -76,14 +76,15 @@ func ExecCommandNonBlocking(command string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func CheckConditionPeriodically(conditionFunc func() (bool, error), sleepTime time.Duration, maxRetries int) error {
+// CheckConditionPeriodically checks the success of a function peridically. Returns (timeout, error)
+func CheckConditionPeriodically(conditionFunc func() (bool, error), sleepTime time.Duration, maxRetries int) (bool, error) {
 	retries := 0
 	for {
 		fmt.Printf("Checking condition... retries: %d\n", retries)
 
 		ok, err := conditionFunc()
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		if ok {
@@ -91,16 +92,16 @@ func CheckConditionPeriodically(conditionFunc func() (bool, error), sleepTime ti
 		}
 
 		if retries >= maxRetries {
-			return fmt.Errorf("timeout after sleepTime=%dsec and maxRetries=%d", sleepTime/time.Second, maxRetries)
+			return true, nil
 		}
 		retries++
 
 		time.Sleep(sleepTime)
 	}
-	return nil
+	return false, nil
 }
 
-func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
+func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
 	conditionFunc := func() (bool, error) {
 		podList := corev1.PodList{}
 		err := k8sClient.List(context.TODO(), &podList, client.InNamespace(namespace))
@@ -125,7 +126,7 @@ func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTi
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
-func WaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types.NamespacedName, sleepTime time.Duration, maxRetries int) error {
+func WaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types.NamespacedName, sleepTime time.Duration, maxRetries int) (bool, error) {
 	conditionFunc := func() (bool, error) {
 		inst := &landscaper.Installation{}
 		err := k8sClient.Get(context.TODO(), key, inst)
@@ -139,7 +140,7 @@ func WaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
-func WaitUntilObjectIsDeleted(k8sClient client.Client, objKey types.NamespacedName, obj runtime.Object, sleepTime time.Duration, maxRetries int) error {
+func WaitUntilObjectIsDeleted(k8sClient client.Client, objKey types.NamespacedName, obj runtime.Object, sleepTime time.Duration, maxRetries int) (bool, error) {
 	conditionFunc := func() (bool, error) {
 		err := k8sClient.Get(context.TODO(), objKey, obj)
 		if err != nil {
@@ -154,7 +155,7 @@ func WaitUntilObjectIsDeleted(k8sClient client.Client, objKey types.NamespacedNa
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
-func WaitUntilAllInstallationsAreDeleted(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
+func WaitUntilAllInstallationsAreDeleted(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
 	conditionFunc := func() (bool, error) {
 		ctx := context.TODO()
 
@@ -170,47 +171,71 @@ func WaitUntilAllInstallationsAreDeleted(k8sClient client.Client, namespace stri
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
+func DeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
+	timeout, err := gracefulyDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
+	if err != nil {
+		fmt.Printf("Deleting namespace gracefully failed with error %w, using foce delete...", err)
+		forceDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
+		return err
+	}
+	if timeout {
+		fmt.Printf("Deleting namespace gracefully timed out, using force delete...")
+		forceDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
+	}
+	return nil
+}
+
 // gracefully try to delete all Landscaper installations in a namespace, then delete the namespace itself
-func GracefulyDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
+func gracefulyDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
 	ctx := context.TODO()
 
 	installationList := landscaper.InstallationList{}
 	err := k8sClient.List(ctx, &installationList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
-		return err
+		return false, err
 	}
 	for _, installation := range installationList.Items {
 		fmt.Println("Deleting installation:", installation.Name)
 		err := k8sClient.Delete(ctx, &installation, &client.DeleteOptions{})
 		if err != nil {
-			fmt.Println("Cannot delete namespace since installation cant be deleted: %w", err)
+			return false, fmt.Errorf("Cannot delete namespace since installation cant be deleted: %w", err)
 		}
 	}
 
-	err = WaitUntilAllInstallationsAreDeleted(k8sClient, namespace, sleepTime, maxRetries)
+	timeout, err := WaitUntilAllInstallationsAreDeleted(k8sClient, namespace, sleepTime, maxRetries)
 	if err != nil {
-		//unterscheide zwischen timeout und general error
-		return err
+		return false, err
 	}
 
-	if timeout {
-		err = removeFinalizersFromLandscaperCRs(k8sClient, namespace)
-		if err != nil {
+	return timeout, nil
+}
 
-		}
-	}
+func forceDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
+	ctx := context.TODO()
 
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
 	}
-	err = k8sClient.Delete(ctx, ns, &client.DeleteOptions{})
+	err := k8sClient.Delete(ctx, ns, &client.DeleteOptions{})
 	if err != nil {
-		return fmt.Errorf("cannot delete namespace: %w", err)
+		return false, fmt.Errorf("cannot delete namespace: %w", err)
 	}
 
-	return nil
+	err = removeFinalizersFromLandscaperCRs(k8sClient, namespace)
+	if err != nil {
+		return false, fmt.Errorf("cannot remove finalizer: %w", err)
+	}
+
+	timeout, err := WaitUntilObjectIsDeleted(k8sClient, client.ObjectKey{Name: namespace}, ns, sleepTime, maxRetries)
+	if err != nil {
+		//unterscheide zwischen timeout und general error
+		return false, err
+	}
+
+	return timeout, nil
+
 }
 
 // removes the finalizers from all Landscaper CRs in a namespace
