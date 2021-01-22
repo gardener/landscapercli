@@ -7,23 +7,16 @@ package blueprints
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/ghodss/yaml"
+	"github.com/gardener/landscapercli/pkg/blueprints"
+	"github.com/gardener/landscapercli/pkg/logger"
 
-	"github.com/gardener/landscaper/pkg/apis/core"
-	lsv1alpha1 "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
-	"github.com/gardener/landscaper/pkg/kubernetes"
-
+	"github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-
-	"github.com/gardener/landscapercli/pkg/logger"
 )
 
 type addExecutionOptions struct {
@@ -72,7 +65,7 @@ func (o *addExecutionOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 func (o *addExecutionOptions) run(ctx context.Context, log logr.Logger) error {
-	blueprint, err := o.readBlueprint()
+	blueprint, err := blueprints.NewBlueprintReader(o.blueprintPath).Read()
 	if err != nil {
 		return err
 	}
@@ -95,46 +88,10 @@ func (o *addExecutionOptions) run(ctx context.Context, log logr.Logger) error {
 
 	o.addExecution(blueprint)
 
-	return o.writeBlueprint(blueprint)
+	return blueprints.NewBlueprintWriter(o.blueprintPath).Write(blueprint)
 }
 
-func (o *addExecutionOptions) readBlueprint() (*core.Blueprint, error) {
-	data, err := ioutil.ReadFile(filepath.Join(o.blueprintPath, lsv1alpha1.BlueprintFileName))
-	if err != nil {
-		return nil, err
-	}
-
-	blueprint := &core.Blueprint{}
-	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(data, nil, blueprint); err != nil {
-		return nil, err
-	}
-
-	return blueprint, nil
-}
-
-func (o *addExecutionOptions) writeBlueprint(blueprint *core.Blueprint) error {
-	data, err := yaml.Marshal(blueprint)
-	if err != nil {
-		return err
-	}
-
-	blueprintFilePath := filepath.Join(o.blueprintPath, blueprintFilename)
-	f, err := os.Create(blueprintFilePath)
-	if err != nil {
-		return err
-	}
-
-	defer f.Close()
-
-	_, err = f.Write(data)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (o *addExecutionOptions) existsExecution(blueprint *core.Blueprint) bool {
+func (o *addExecutionOptions) existsExecution(blueprint *v1alpha1.Blueprint) bool {
 	for i := range blueprint.DeployExecutions {
 		execution := &blueprint.DeployExecutions[i]
 		if execution.Name == o.name {
@@ -145,8 +102,8 @@ func (o *addExecutionOptions) existsExecution(blueprint *core.Blueprint) bool {
 	return false
 }
 
-func (o *addExecutionOptions) addExecution(blueprint *core.Blueprint) {
-	blueprint.DeployExecutions = append(blueprint.DeployExecutions, core.TemplateExecutor{
+func (o *addExecutionOptions) addExecution(blueprint *v1alpha1.Blueprint) {
+	blueprint.DeployExecutions = append(blueprint.DeployExecutions, v1alpha1.TemplateExecutor{
 		Name: o.name,
 		Type: "GoTemplate",
 		File: "/" + o.getExecutionFileName(),
