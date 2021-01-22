@@ -27,6 +27,10 @@ landscaper-cli blueprint add-deploy-item landscaper.gardener.cloud/helm --name=i
 ```
 
 Missing for adding helm chart:
+
+- clarify in blueprint: 
+  - {{ toYaml (getRepositoryContext .cd) | indent 10 }}
+  - how to add image ref in blueprint and references
 - additional chart values 
 - export values
 
