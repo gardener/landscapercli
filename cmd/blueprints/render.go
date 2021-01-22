@@ -58,11 +58,11 @@ const (
 type renderOptions struct {
 	// blueprintPath is the path to the directory containing the definition.
 	blueprintPath string
-	// componentDescriptorPath is the path tot he component descriptor to be used
+	// componentDescriptorPath is the path to the component descriptor to be used
 	componentDescriptorPath string
-	// componentDescriptorPath is the path tot he component descriptor to be used
+	// additionalComponentDescriptorPath is the path to the component descriptor to be used
 	additionalComponentDescriptorPath []string
-	// valueFiles is a list of filepaths to value yaml files.
+	// valueFiles is a list of file paths to value yaml files.
 	valueFiles []string
 	// outputFormat defines the format of the output
 	outputFormat string
