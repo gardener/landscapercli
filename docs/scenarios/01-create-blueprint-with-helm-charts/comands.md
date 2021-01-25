@@ -17,7 +17,7 @@ landscaper-cli blueprint create ./01-step github.com/gardener/landscapercli/ngin
 
 Result could be found [here](./01-step).
 
-### Add helm deploy item from some helm chart repo
+### Step 2a: Add helm deploy item from some helm chart repo
 
 In this example the helm chart is located as an OCI artifact in an OCI registry. 
 
@@ -30,13 +30,13 @@ landscaper-cli blueprint add-deploy-item landscaper.gardener.cloud/helm path-to-
   --chart-version v0.1.0
 ```
 
-Result could be found [here](./02-step).
+Result could be found [here](./02a-step).
 
-### Add values for templating
+### Step 2b: Add fixed values for helm templating
 
 Helm chart allow to specify values used for templating before the application is deployed. As 
 a component developer you want to add some of them with a fixed value and others which could
-be set by later user of the blueprint.
+be set by later user of the blueprint. Here we describe how to add fixed values. 
 
 If you want to add a helm deploy item with some fixed values 
 
@@ -45,7 +45,7 @@ landscaper-cli blueprint add-deploy-item landscaper.gardener.cloud/helm path-to-
   --name ingress-nginx \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
   --chart-version v0.1.0 \
-  --value name1=value1 \
+  --value valueName=value \
   --from-file path-to-value-yaml1\
 ```
 
@@ -70,12 +70,45 @@ landscaper-cli blueprint landscaper.gardener.cloud/helm add-values path-to-direc
   --from-file ./values.yaml
 ```
 
-The result could be found [here](./03-step)
+The result could be found [here](./02b-step)
+
+### ### Step 2c: Add configurable values for helm templating 
+
+To allow a user of blueprint to specify particular values for helm templating you need import parameters
+for the blueprint. You could specify these as follows:
+
+```
+landscaper-cli blueprint add-deploy-item landscaper.gardener.cloud/helm path-to-directory \
+  --name ingress-nginx \
+  --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
+  --chart-version v0.1.0 \
+  --import-param=parameterName=valuePath
+  --import-type=parameterName=string|int|...
+```
+
+The flag --import-param could be used several times. By default, the type of a parameter is string.
+If you want to overwrite this you could do this with the flag --import-type.
+
+The result of applying the following command to our example [here](./01-step) adds an import parameter 
+and connects if in the values section of the corresponding deploy item.
+
+```
+landscaper-cli blueprint landscaper.gardener.cloud/helm add-values path-to-directory \
+  --name ingress-nginx \
+  --value controller.livenessProbe.failureThreshold=5
+  --import-param=failurethreshold=controller.readinessProbe.failureThreshold
+  --import-type=failurethreshold=int
+```
+
+The result could be found [here](./02c-step)
+
+
+## Todo
 
 Missing for adding helm chart:
 
-  - how to add image ref in blueprint and references
-- additional chart values 
+- Describe logically what is achieved and not only referencing some strange directories
+- how to add image ref in blueprint and references
 - export values
 
 Next steps:
