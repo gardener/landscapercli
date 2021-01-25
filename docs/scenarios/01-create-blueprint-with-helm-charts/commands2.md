@@ -1,5 +1,7 @@
 # Commands
 
+> Question: is the name of a deployitem unique in its deployExecution or in the blueprint? If it is unique in the blueprint we can skip the execution name in many of the commands below.
+
 ## Create component-descriptor and blueprint
 
 The following command creates a component descriptor and a blueprint. It also adds the blueprint to the componentReferences of the component descriptor.
@@ -7,7 +9,7 @@ The following command creates a component descriptor and a blueprint. It also ad
 Command:
 
 ```
-landscaper-cli create
+landscaper-cli blueprint create
     [component directory path]
     [component name]
     [component version]
@@ -120,7 +122,7 @@ landscaper-cli blueprint add helm-templating value
     --value [value]
 ```
 
-The values section can have deep structure. Therefore, a key can be a path.
+The values section can have a deep structure. Therefore a key can be a path.
 
 Example:
 
