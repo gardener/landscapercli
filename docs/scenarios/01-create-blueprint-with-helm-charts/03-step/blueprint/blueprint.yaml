@@ -39,3 +39,11 @@ deployExecutions:
 
           name: ingress-nginx
           namespace: "{{ .imports.targetnamespace }}"
+
+          values:
+            controller:
+              livenessProbe:
+                failureThreshold: 5
+              readinessProbe:
+                failureThreshold: 3
+                initialDelaySeconds: 10

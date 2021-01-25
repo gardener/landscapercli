@@ -12,7 +12,14 @@ component:
 
   sources: []
 
-  componentReferences: [ ]
+  componentReferences:
+  - type: blueprint
+    name: ingress-nginx-blueprint
+    version: v0.1.0
+    relation: local
+    access:
+      type: ociRegistry
+      imageReference: ""
 
 meta:
   schemaVersion: v2
