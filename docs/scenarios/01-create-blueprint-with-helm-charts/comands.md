@@ -72,7 +72,7 @@ landscaper-cli blueprint landscaper.gardener.cloud/helm add-values path-to-direc
 
 The result could be found [here](./02b-step)
 
-### ### Step 2c: Add configurable values for helm templating 
+### Step 2c: Add configurable values for helm templating 
 
 To allow a user of blueprint to specify particular values for helm templating you need import parameters
 for the blueprint. You could specify these as follows:
@@ -95,13 +95,43 @@ and connects if in the values section of the corresponding deploy item.
 ```
 landscaper-cli blueprint landscaper.gardener.cloud/helm add-values path-to-directory \
   --name ingress-nginx \
-  --value controller.livenessProbe.failureThreshold=5
   --import-param=failurethreshold=controller.readinessProbe.failureThreshold
   --import-type=failurethreshold=int
 ```
 
 The result could be found [here](./02c-step)
 
+## Step 2d: Export parameter for helm deploy items
+
+If you want to export values of the values.yaml of a helm deploy item you could also specify 
+when you add the deploy item:
+
+```
+landscaper-cli blueprint add-deploy-item landscaper.gardener.cloud/helm path-to-directory \
+  --name ingress-nginx \
+  --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
+  --chart-version v0.1.0 \
+  --export-param=parameterName=valuePath
+  --export-type=parameterName=string|int|...
+  --export-from-resource=apiVersion,kind,name,namespace
+```
+
+The flag --export-param could be used several times. By default, the type of a parameter is string.
+If you want to overwrite this you could do this with the flag --export-type. By default the 
+export value is fetched from the values.yaml. If it should be fetched from a rendered resource this
+has to be specified via --export-from-resource. 
+
+The result of applying the following command to our example [here](./01-step) adds an export parameter
+and connects if in the values section of the corresponding deploy item.
+
+```
+landscaper-cli blueprint landscaper.gardener.cloud/helm add-values path-to-directory \
+  --name ingress-nginx \
+  --export-param=ingressClass=controller.ingressClass
+  --export-type=ingressClass=int
+```
+
+The result could be found [here](./02d-step)
 
 ## Todo
 
