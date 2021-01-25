@@ -17,6 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// GetValueFromNestedMap extracts the value in a given value path (e.g. landscaper.registryConfig.allowPlainHttpRegistries) or returns an error
+// if the path does not exists.
 func GetValueFromNestedMap(data map[string]interface{}, valuePath string) (interface{}, error) {
 	var val interface{}
 	var ok bool
@@ -40,6 +42,7 @@ func GetValueFromNestedMap(data map[string]interface{}, valuePath string) (inter
 	return val, nil
 }
 
+// ExecCommandBlocking executes a command and wait for its completion.  Returns a Cmd that can be used to stop the command
 func ExecCommandBlocking(command string) error {
 	fmt.Printf("Executing: %s\n", command)
 
@@ -58,6 +61,7 @@ func ExecCommandBlocking(command string) error {
 	return nil
 }
 
+// ExecCommandNonBlocking executes a command without without blocking. Returns a Cmd that can be used to stop the command.
 func ExecCommandNonBlocking(command string) (*exec.Cmd, error) {
 	fmt.Printf("Executing: %s\n", command)
 
@@ -76,7 +80,8 @@ func ExecCommandNonBlocking(command string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-// CheckConditionPeriodically checks the success of a function peridically. Returns (timeout, error)
+// CheckConditionPeriodically checks the success of a function peridically. Returns timeout(bool) to indicate the success of the function
+// and propagates possible errors of the function.
 func CheckConditionPeriodically(conditionFunc func() (bool, error), sleepTime time.Duration, maxRetries int) (bool, error) {
 	retries := 0
 	for {
@@ -101,7 +106,9 @@ func CheckConditionPeriodically(conditionFunc func() (bool, error), sleepTime ti
 	return false, nil
 }
 
-func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
+// CheckAndWaitUntilAllPodsAreReady checks and wait until all pods have the ready condition set to true. Returns an error on failure
+// or if timeout (sleepTime and maxRetries is reached). Returns a boolean indicating if all pods have the ready condition true on return.
+func CheckAndWaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
 	conditionFunc := func() (bool, error) {
 		podList := corev1.PodList{}
 		err := k8sClient.List(context.TODO(), &podList, client.InNamespace(namespace))
@@ -126,7 +133,9 @@ func WaitUntilAllPodsAreReady(k8sClient client.Client, namespace string, sleepTi
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
-func WaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types.NamespacedName, sleepTime time.Duration, maxRetries int) (bool, error) {
+// CheckAndWaitUntilLandscaperInstallationSucceeded checks and wait until the installation is on status succeeded. Returns an error on failure
+// or if timeout (sleepTime and maxRetries is reached). Returns a boolean indicating if the installation succeeded.
+func CheckAndWaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types.NamespacedName, sleepTime time.Duration, maxRetries int) (bool, error) {
 	conditionFunc := func() (bool, error) {
 		inst := &landscaper.Installation{}
 		err := k8sClient.Get(context.TODO(), key, inst)
@@ -140,7 +149,9 @@ func WaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
-func WaitUntilObjectIsDeleted(k8sClient client.Client, objKey types.NamespacedName, obj runtime.Object, sleepTime time.Duration, maxRetries int) (bool, error) {
+// CheckAndWaitUntilObjectNotExistAnymore periodically checks and wait until the object does not exist anymore. Returns an error on failure
+// or if timeout (sleepTime and maxRetries is reached). Returns a boolean indicating if the object remains on return.
+func CheckAndWaitUntilObjectNotExistAnymore(k8sClient client.Client, objKey types.NamespacedName, obj runtime.Object, sleepTime time.Duration, maxRetries int) (bool, error) {
 	conditionFunc := func() (bool, error) {
 		err := k8sClient.Get(context.TODO(), objKey, obj)
 		if err != nil {
@@ -155,7 +166,9 @@ func WaitUntilObjectIsDeleted(k8sClient client.Client, objKey types.NamespacedNa
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
-func WaitUntilAllInstallationsAreDeleted(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
+// CheckAndWaitUntilNoInstallationsInNamespaceExists periodically checks and wait until no installation in the namespace remains. Returns an error on failure
+// or if timeout (sleepTime and maxRetries is reached). Returns a boolean indicating if no installations remains on return.
+func CheckAndWaitUntilNoInstallationsInNamespaceExists(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
 	conditionFunc := func() (bool, error) {
 		ctx := context.TODO()
 
@@ -171,6 +184,8 @@ func WaitUntilAllInstallationsAreDeleted(k8sClient client.Client, namespace stri
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
+// DeleteNamespace deletes a namespace (if it exists). First, a graceful delete will be tried. On timeout, the finalizers will be deleted
+// and the namespace will be deleted forcefully.
 func DeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
 	namespaceToCheck := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -181,14 +196,13 @@ func DeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.D
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			return nil
-		} else {
-			return fmt.Errorf("Error getting namespace %s: %w", namespace, err)
 		}
+		return fmt.Errorf("Error getting namespace %s: %w", namespace, err)
 	}
 
 	timeout, err := gracefulyDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
 	if err != nil {
-		fmt.Printf("Deleting namespace gracefully failed with error %w, using foce delete...", err)
+		fmt.Printf("Deleting namespace gracefully failed with error %s, using foce delete...", err.Error())
 		forceDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
 		return err
 	}
@@ -216,7 +230,7 @@ func gracefulyDeleteNamespace(k8sClient client.Client, namespace string, sleepTi
 		}
 	}
 
-	timeout, err := WaitUntilAllInstallationsAreDeleted(k8sClient, namespace, sleepTime, maxRetries)
+	timeout, err := CheckAndWaitUntilNoInstallationsInNamespaceExists(k8sClient, namespace, sleepTime, maxRetries)
 	if err != nil {
 		return false, err
 	}
@@ -235,7 +249,7 @@ func gracefulyDeleteNamespace(k8sClient client.Client, namespace string, sleepTi
 		return false, fmt.Errorf("cannot delete namespace: %w", err)
 	}
 
-	timeout, err = WaitUntilObjectIsDeleted(k8sClient, client.ObjectKey{Name: namespace}, ns, sleepTime, maxRetries)
+	timeout, err = CheckAndWaitUntilObjectNotExistAnymore(k8sClient, client.ObjectKey{Name: namespace}, ns, sleepTime, maxRetries)
 	if err != nil {
 		return false, err
 	}
@@ -261,7 +275,7 @@ func forceDeleteNamespace(k8sClient client.Client, namespace string, sleepTime t
 		return false, fmt.Errorf("cannot remove finalizer: %w", err)
 	}
 
-	timeout, err := WaitUntilObjectIsDeleted(k8sClient, client.ObjectKey{Name: namespace}, ns, sleepTime, maxRetries)
+	timeout, err := CheckAndWaitUntilObjectNotExistAnymore(k8sClient, client.ObjectKey{Name: namespace}, ns, sleepTime, maxRetries)
 	if err != nil {
 		//unterscheide zwischen timeout und general error
 		return false, err
@@ -281,7 +295,7 @@ func removeFinalizersFromLandscaperCRs(k8sClient client.Client, namespace string
 		return fmt.Errorf("cannot list installations: %w", err)
 	}
 	for _, installation := range installationList.Items {
-		err = RemoveFinalizers(ctx, k8sClient, &installation)
+		err = removeFinalizers(ctx, k8sClient, &installation)
 		if err != nil {
 			return fmt.Errorf("cannot remove finalizers for installation: %w", err)
 		}
@@ -293,7 +307,7 @@ func removeFinalizersFromLandscaperCRs(k8sClient client.Client, namespace string
 		return fmt.Errorf("cannot list executions: %w", err)
 	}
 	for _, execution := range executionList.Items {
-		err = RemoveFinalizers(ctx, k8sClient, &execution)
+		err = removeFinalizers(ctx, k8sClient, &execution)
 		if err != nil {
 			return fmt.Errorf("cannot remove finalizers for execution: %w", err)
 		}
@@ -305,7 +319,7 @@ func removeFinalizersFromLandscaperCRs(k8sClient client.Client, namespace string
 		return fmt.Errorf("cannot list deployitems: %w", err)
 	}
 	for _, deployItem := range deployItemList.Items {
-		err = RemoveFinalizers(ctx, k8sClient, &deployItem)
+		err = removeFinalizers(ctx, k8sClient, &deployItem)
 		if err != nil {
 			return fmt.Errorf("cannot remove finalizers for deployitem: %w", err)
 		}
@@ -314,7 +328,7 @@ func removeFinalizersFromLandscaperCRs(k8sClient client.Client, namespace string
 	return nil
 }
 
-func RemoveFinalizers(ctx context.Context, k8sClient client.Client, object metav1.Object) error {
+func removeFinalizers(ctx context.Context, k8sClient client.Client, object metav1.Object) error {
 	if len(object.GetFinalizers()) == 0 {
 		return nil
 	}

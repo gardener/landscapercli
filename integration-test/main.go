@@ -100,7 +100,7 @@ func run() error {
 	}
 
 	fmt.Println("Waiting for Landscaper Pods to get ready")
-	timeout, err := util.WaitUntilAllPodsAreReady(k8sClient, LandscaperNamespace, SleepTime, MaxRetries)
+	timeout, err := util.CheckAndWaitUntilAllPodsAreReady(k8sClient, LandscaperNamespace, SleepTime, MaxRetries)
 	if err != nil {
 		return fmt.Errorf("error while waiting for Landscaper Pods: %w", err)
 	}

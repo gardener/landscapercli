@@ -75,7 +75,7 @@ func (t *quickstartInstallTest) run() error {
 		return fmt.Errorf("cannot create installation: %w", err)
 	}
 
-	timeout, err := util.WaitUntilLandscaperInstallationSucceeded(t.k8sClient, client.ObjectKey{Name: inst.Name, Namespace: inst.Namespace}, sleepTime, maxRetries)
+	timeout, err := util.CheckAndWaitUntilLandscaperInstallationSucceeded(t.k8sClient, client.ObjectKey{Name: inst.Name, Namespace: inst.Namespace}, sleepTime, maxRetries)
 	if err != nil {
 		return fmt.Errorf("error while waiting for installation: %w", err)
 	}
