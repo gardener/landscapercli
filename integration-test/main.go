@@ -40,7 +40,8 @@ func main() {
 	fmt.Println("========== Clean Up Before Test Run ==========")
 	err := runQuickstartUninstall(config)
 	if err != nil {
-		fmt.Println("landscaper-cli quickstart uninstall failed: %w", err)
+		fmt.Println("landscaper-cli quickstart uninstall failed:", err)
+		os.Exit(1)
 	}
 
 	fmt.Println("========== Starting integration-test ==========")
@@ -53,7 +54,8 @@ func main() {
 	fmt.Println("========== Clean Up After Test Run ==========")
 	err = runQuickstartUninstall(config)
 	if err != nil {
-		fmt.Println("landscaper-cli quickstart uninstall failed: %w", err)
+		fmt.Println("landscaper-cli quickstart uninstall failed:", err)
+		os.Exit(1)
 	}
 
 	fmt.Println("========== Integration-test finished successfully ==========")
