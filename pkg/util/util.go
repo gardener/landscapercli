@@ -51,10 +51,10 @@ func ExecCommandBlocking(command string) error {
 	cmd := exec.Command(arr[0], arr[1:]...)
 	cmd.Env = []string{"HELM_EXPERIMENTAL_OCI=1", "HOME=" + os.Getenv("HOME"), "PATH=" + os.Getenv("PATH")}
 	out, err := cmd.CombinedOutput()
+	outStr := string(out)
 
 	if err != nil {
-		fmt.Printf("Failed with error: %s:\n%s\n", err, string(out))
-		return err
+		return fmt.Errorf("failed with error: %s:\n%s\n", err, outStr)
 	}
 	fmt.Println("Executed sucessfully!")
 
@@ -184,7 +184,7 @@ func CheckAndWaitUntilNoInstallationsInNamespaceExists(k8sClient client.Client, 
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
-// DeleteNamespace deletes a namespace (if it exists). First, a graceful delete will be tried with a timeout. 
+// DeleteNamespace deletes a namespace (if it exists). First, a graceful delete will be tried with a timeout.
 // On timeout, the namespace will be deleted forcefully by removing the finalizers on the Landscaper CRs.
 func DeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
 	ns := &corev1.Namespace{
@@ -197,18 +197,18 @@ func DeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.D
 		if k8sErrors.IsNotFound(err) {
 			return nil
 		}
-		return fmt.Errorf("Error getting namespace %s: %w", namespace, err)
+		return fmt.Errorf("error getting namespace %s: %w", namespace, err)
 	}
 
 	timeout, err := gracefullyDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
 	if err != nil {
-		return fmt.Errorf("Deleting namespace gracefully failed: %w", err)
+		return fmt.Errorf("deleting namespace gracefully failed: %w", err)
 	}
 	if timeout {
 		fmt.Printf("Deleting namespace gracefully timed out, using force delete...")
 		err = forceDeleteNamespace(k8sClient, namespace)
 		if err != nil {
-			return fmt.Errorf("Deleting namespace forcefully failed: %w", err)
+			return fmt.Errorf("deleting namespace forcefully failed: %w", err)
 		}
 	}
 	return nil
@@ -225,9 +225,9 @@ func gracefullyDeleteNamespace(k8sClient client.Client, namespace string, sleepT
 	}
 	for _, installation := range installationList.Items {
 		fmt.Println("Deleting installation:", installation.Name)
-		err := k8sClient.Delete(ctx, &installation, &client.DeleteOptions{})
+		err = k8sClient.Delete(ctx, &installation, &client.DeleteOptions{})
 		if err != nil {
-			return false, fmt.Errorf("Cannot delete installation: %w", err)
+			return false, fmt.Errorf("cannot delete installation: %w", err)
 		}
 	}
 

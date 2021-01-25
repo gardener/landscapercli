@@ -22,7 +22,7 @@ func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target
 	// cleanup before
 	err := util.DeleteNamespace(k8sClient, namespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
-		return fmt.Errorf("Cannot delete namespace: %w", err)
+		return fmt.Errorf("cannot delete namespace before test run: %w", err)
 	}
 
 	test := quickstartInstallTest{
@@ -34,11 +34,15 @@ func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target
 		maxRetries:   config.MaxRetries,
 	}
 	err = test.run()
+	if err != nil {
+		// dont cleanup after erroneous test run to keep failed resources on the cluster
+		return fmt.Errorf("test failed: %w", err)
+	}
 
-	// cleanup after
+	// cleanup after successful test run
 	err = util.DeleteNamespace(k8sClient, namespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
-		return fmt.Errorf("Cannot delete namespace: %w", err)
+		return fmt.Errorf("cannot delete namespace after test run: %w", err)
 	}
 
 	return nil
@@ -79,7 +83,7 @@ func (t *quickstartInstallTest) run() error {
 
 	inst, err := buildHelmInstallation(instName, t.target, t.helmChartRef, t.namespace)
 	if err != nil {
-		return fmt.Errorf("cannot build echo-server installation: %w", err)
+		return fmt.Errorf("cannot build helm installation: %w", err)
 	}
 
 	fmt.Printf("Creating installation %s in namespace %s\n", inst.Name, inst.Namespace)

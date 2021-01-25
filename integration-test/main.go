@@ -35,16 +35,22 @@ func init() {
 }
 
 func main() {
-	fmt.Println("========== Starting integration-test ==========")
 	config := parseConfig()
 
-	err := run(config)
+	fmt.Println("========== Clean Up Before Test Run ==========")
+	err := runQuickstartUninstall(config)
+	if err != nil {
+		fmt.Println("landscaper-cli quickstart uninstall failed: %w", err)
+	}
+
+	fmt.Println("========== Starting integration-test ==========")
+	err = run(config)
 	if err != nil {
 		fmt.Println("Error while running integration-test:", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("========== Clean Up ==========")
+	fmt.Println("========== Clean Up After Test Run ==========")
 	err = runQuickstartUninstall(config)
 	if err != nil {
 		fmt.Println("landscaper-cli quickstart uninstall failed: %w", err)
@@ -57,9 +63,9 @@ func parseConfig() *config.Config {
 	var kubeconfig, landscaperNamespace string
 	var maxRetries int
 
-	flag.StringVar(&kubeconfig, "kubeconfig", "", "path to the kubeconfig of the target cluster")
-	flag.StringVar(&landscaperNamespace, "landscaper-namespace", "landscaper", "namespace on the target cluster to setup Landscaper")
-	flag.IntVar(&maxRetries, "maxRetries", 6, "Max. retries (every 5s) for all waiting operations")
+	flag.StringVar(&kubeconfig, "kubeconfig", "", "path to the kubeconfig of the cluster")
+	flag.StringVar(&landscaperNamespace, "landscaper-namespace", "landscaper", "namespace on the cluster to setup Landscaper")
+	flag.IntVar(&maxRetries, "maxRetries", 6, "max retries (every 5s) for all waiting operations")
 	flag.Parse()
 
 	config := config.Config {
@@ -92,7 +98,7 @@ func run(config *config.Config) error {
 	}
 
 	fmt.Println("Running landscaper-cli quickstart install")
-	runQuickstartInstall(config)
+	err = runQuickstartInstall(config)
 	if err != nil {
 		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
 	}
@@ -133,6 +139,7 @@ func run(config *config.Config) error {
 
 	fmt.Println("Running test suite")
 	// ################################ <Run Tests> ################################
+
 	err = tests.RunQuickstartInstallTest(k8sClient, target, helmChartRef, config)
 	if err != nil {
 		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)

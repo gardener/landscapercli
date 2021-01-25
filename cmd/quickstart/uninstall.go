@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -96,6 +97,11 @@ func uninstallOCIRegistry(ctx context.Context, namespace string, k8sClient kuber
 func uninstallLandscaper(ctx context.Context, kubeconfigPath, namespace string) error {
 	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", namespace, kubeconfigPath))
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			// Ignore error if the release that should be deleted was not found ;)
+			fmt.Println("Release not found...Skipping")
+			return nil
+		}
 		return err
 	}
 
