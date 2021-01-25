@@ -10,17 +10,14 @@ import (
 	"os"
 	"path/filepath"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/gardener/landscapercli/pkg/blueprints"
+	"github.com/gardener/landscapercli/pkg/logger"
 
+	"github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"sigs.k8s.io/yaml"
-
-	"github.com/gardener/landscapercli/pkg/logger"
 )
-
-const blueprintFilename = "blueprint.yaml"
 
 type createOptions struct {
 	// blueprintPath is the path to the directory containing the definition.
@@ -72,49 +69,9 @@ func (o *createOptions) run(ctx context.Context, log logr.Logger) error {
 		return fmt.Errorf("The blueprint already exists")
 	}
 
-	f, err := os.Create(o.getBlueprintFilePath())
-	if err != nil {
-		return err
-	}
+	blueprint := &v1alpha1.Blueprint{}
 
-	defer f.Close()
-
-	typeMeta := metav1.TypeMeta{
-		APIVersion: "landscaper.gardener.cloud/v1alpha1",
-		Kind:       "Blueprint",
-	}
-
-	typeMetaBytes, err := yaml.Marshal(typeMeta)
-	if err != nil {
-		return err
-	}
-
-	_, err = f.Write(typeMetaBytes)
-	if err != nil {
-		return err
-	}
-
-	_, err = f.WriteString("\nimports: []")
-	if err != nil {
-		return err
-	}
-
-	_, err = f.WriteString("\n\nexports: []")
-	if err != nil {
-		return err
-	}
-
-	_, err = f.WriteString("\n\nexportExecutions: []")
-	if err != nil {
-		return err
-	}
-
-	_, err = f.WriteString("\n\nsubinstallations: []")
-	if err != nil {
-		return err
-	}
-
-	_, err = f.WriteString("\n\ndeployExecutions: []")
+	err = blueprints.NewBlueprintWriter(o.blueprintPath).Write(blueprint)
 	if err != nil {
 		return err
 	}
@@ -135,5 +92,5 @@ func (o *createOptions) existsBlueprint() (bool, error) {
 }
 
 func (o *createOptions) getBlueprintFilePath() string {
-	return filepath.Join(o.blueprintPath, blueprintFilename)
+	return filepath.Join(o.blueprintPath, v1alpha1.BlueprintFileName)
 }
