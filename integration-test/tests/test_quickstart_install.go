@@ -7,66 +7,79 @@ import (
 	"time"
 
 	landscaper "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
+	"github.com/gardener/landscapercli/integration-test/config"
 	"github.com/gardener/landscapercli/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target, helmChartRef string) error {
+func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target, helmChartRef string, config *config.Config) error {
+	const (
+		namespace = "qs-install-test"
+	)
+
+	// cleanup before
+	err := util.DeleteNamespace(k8sClient, namespace, config.SleepTime, config.MaxRetries)
+	if err != nil {
+		return fmt.Errorf("Cannot delete namespace: %w", err)
+	}
+
 	test := quickstartInstallTest{
 		k8sClient:    k8sClient,
 		target:       target,
 		helmChartRef: helmChartRef,
+		namespace:    namespace,
+		sleepTime:    config.SleepTime,
+		maxRetries:   config.MaxRetries,
 	}
-	return test.run()
+	err = test.run()
+
+	// cleanup after
+	err = util.DeleteNamespace(k8sClient, namespace, config.SleepTime, config.MaxRetries)
+	if err != nil {
+		return fmt.Errorf("Cannot delete namespace: %w", err)
+	}
+
+	return nil
 }
 
 type quickstartInstallTest struct {
 	k8sClient    client.Client
 	target       *landscaper.Target
 	helmChartRef string
+	namespace    string
+	sleepTime    time.Duration
+	maxRetries   int
 }
 
 func (t *quickstartInstallTest) run() error {
-	ctx := context.TODO()
-
 	const (
-		instName      = "echo-server"
-		testNamespace = "qs-install-test"
-		sleepTime     = 5 * time.Second
-		maxRetries    = 6
+		instName = "echo-server"
 	)
 
-	defer util.DeleteNamespace(t.k8sClient, testNamespace, sleepTime, maxRetries)
-
-	util.DeleteNamespace(t.k8sClient, testNamespace, sleepTime, maxRetries)
+	ctx := context.TODO()
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: testNamespace,
+			Name: t.namespace,
 		},
 	}
-	fmt.Printf("Creating namespace %s\n", testNamespace)
+	fmt.Printf("Creating namespace %s\n", t.namespace)
 	err := t.k8sClient.Create(ctx, namespace, &client.CreateOptions{})
 	if err != nil {
-		if k8sErrors.IsAlreadyExists(err) {
-			fmt.Printf("Namespace %s already exists...Skipping\n", testNamespace)
-		} else {
-			return fmt.Errorf("cannot create namespace %s: %w", testNamespace, err)
-		}
+		return fmt.Errorf("cannot create namespace %s: %w", t.namespace, err)
 	}
 
-	t.target.Namespace = testNamespace
+	t.target.Namespace = t.namespace
 	err = t.k8sClient.Create(ctx, t.target, &client.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("cannot create target: %w", err)
 	}
 
-	inst, err := buildHelmInstallation(instName, t.target, t.helmChartRef, testNamespace)
+	inst, err := buildHelmInstallation(instName, t.target, t.helmChartRef, t.namespace)
 	if err != nil {
-		return fmt.Errorf("cannot build echo-server installation")
+		return fmt.Errorf("cannot build echo-server installation: %w", err)
 	}
 
 	fmt.Printf("Creating installation %s in namespace %s\n", inst.Name, inst.Namespace)
@@ -75,9 +88,9 @@ func (t *quickstartInstallTest) run() error {
 		return fmt.Errorf("cannot create installation: %w", err)
 	}
 
-	timeout, err := util.CheckAndWaitUntilLandscaperInstallationSucceeded(t.k8sClient, client.ObjectKey{Name: inst.Name, Namespace: inst.Namespace}, sleepTime, maxRetries)
+	timeout, err := util.CheckAndWaitUntilLandscaperInstallationSucceeded(t.k8sClient, client.ObjectKey{Name: inst.Name, Namespace: inst.Namespace}, t.sleepTime, t.maxRetries)
 	if err != nil {
-		return fmt.Errorf("error while waiting for installation: %w", err)
+		return fmt.Errorf("error while waiting for installation to succeed: %w", err)
 	}
 	if timeout {
 		return fmt.Errorf("timeout at waiting for installation")

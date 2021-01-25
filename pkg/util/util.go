@@ -184,15 +184,15 @@ func CheckAndWaitUntilNoInstallationsInNamespaceExists(k8sClient client.Client, 
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
 }
 
-// DeleteNamespace deletes a namespace (if it exists). First, a graceful delete will be tried. On timeout, the finalizers will be deleted
-// and the namespace will be deleted forcefully.
+// DeleteNamespace deletes a namespace (if it exists). First, a graceful delete will be tried with a timeout. 
+// On timeout, the namespace will be deleted forcefully by removing the finalizers on the Landscaper CRs.
 func DeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
-	namespaceToCheck := &corev1.Namespace{
+	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
 	}
-	err := k8sClient.Get(context.TODO(), client.ObjectKey{Name: namespace}, namespaceToCheck)
+	err := k8sClient.Get(context.TODO(), client.ObjectKey{Name: namespace}, ns)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			return nil
@@ -200,21 +200,22 @@ func DeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.D
 		return fmt.Errorf("Error getting namespace %s: %w", namespace, err)
 	}
 
-	timeout, err := gracefulyDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
+	timeout, err := gracefullyDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
 	if err != nil {
-		fmt.Printf("Deleting namespace gracefully failed with error %s, using foce delete...", err.Error())
-		forceDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
-		return err
+		return fmt.Errorf("Deleting namespace gracefully failed: %w", err)
 	}
 	if timeout {
 		fmt.Printf("Deleting namespace gracefully timed out, using force delete...")
-		forceDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
+		err = forceDeleteNamespace(k8sClient, namespace)
+		if err != nil {
+			return fmt.Errorf("Deleting namespace forcefully failed: %w", err)
+		}
 	}
 	return nil
 }
 
 // gracefully try to delete all Landscaper installations in a namespace, then delete the namespace itself
-func gracefulyDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
+func gracefullyDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
 	ctx := context.TODO()
 
 	installationList := landscaper.InstallationList{}
@@ -249,15 +250,10 @@ func gracefulyDeleteNamespace(k8sClient client.Client, namespace string, sleepTi
 		return false, fmt.Errorf("cannot delete namespace: %w", err)
 	}
 
-	timeout, err = CheckAndWaitUntilObjectNotExistAnymore(k8sClient, client.ObjectKey{Name: namespace}, ns, sleepTime, maxRetries)
-	if err != nil {
-		return false, err
-	}
-
-	return timeout, nil
+	return false, nil
 }
 
-func forceDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
+func forceDeleteNamespace(k8sClient client.Client, namespace string) error {
 	ctx := context.TODO()
 
 	ns := &corev1.Namespace{
@@ -267,22 +263,15 @@ func forceDeleteNamespace(k8sClient client.Client, namespace string, sleepTime t
 	}
 	err := k8sClient.Delete(ctx, ns, &client.DeleteOptions{})
 	if err != nil {
-		return false, fmt.Errorf("cannot delete namespace: %w", err)
+		return fmt.Errorf("cannot delete namespace: %w", err)
 	}
 
 	err = removeFinalizersFromLandscaperCRs(k8sClient, namespace)
 	if err != nil {
-		return false, fmt.Errorf("cannot remove finalizer: %w", err)
+		return fmt.Errorf("cannot remove finalizer: %w", err)
 	}
 
-	timeout, err := CheckAndWaitUntilObjectNotExistAnymore(k8sClient, client.ObjectKey{Name: namespace}, ns, sleepTime, maxRetries)
-	if err != nil {
-		//unterscheide zwischen timeout und general error
-		return false, err
-	}
-
-	return timeout, nil
-
+	return nil
 }
 
 // removes the finalizers from all Landscaper CRs in a namespace

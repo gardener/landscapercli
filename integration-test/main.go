@@ -12,6 +12,7 @@ import (
 
 	landscaper "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
 	"github.com/gardener/landscapercli/cmd/quickstart"
+	"github.com/gardener/landscapercli/integration-test/config"
 	"github.com/gardener/landscapercli/integration-test/tests"
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
@@ -22,27 +23,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-const (
-	defaultLandscaperNamespace = "landscaper"
-	defaultMaxRetries          = 10
-)
-const (
-	//SleepTime is the time to sleep when waiting for a certain status
-	SleepTime = 5 * time.Second
-)
-
-var (
-	// Kubeconfig is the path to the kubeconfig for the cluster
-	Kubeconfig string
-
-	// LandscaperNamespace is the namespace with the landscaper
-	LandscaperNamespace string
-
-	// MaxRetries determines how often a waiting for status opertion checks for reaching
-	// the targeted status (in combination with SleepTime)
-	MaxRetries int
 )
 
 var (
@@ -56,15 +36,16 @@ func init() {
 
 func main() {
 	fmt.Println("========== Starting integration-test ==========")
-	err := run()
+	config := parseConfig()
+
+	err := run(config)
 	if err != nil {
 		fmt.Println("Error while running integration-test:", err)
 		os.Exit(1)
 	}
 
 	fmt.Println("========== Clean Up ==========")
-	// uninstall landscaper
-	err = runQuickstartUninstall(Kubeconfig, LandscaperNamespace)
+	err = runQuickstartUninstall(config)
 	if err != nil {
 		fmt.Println("landscaper-cli quickstart uninstall failed: %w", err)
 	}
@@ -72,16 +53,33 @@ func main() {
 	fmt.Println("========== Integration-test finished successfully ==========")
 }
 
-func run() error {
-	flag.StringVar(&Kubeconfig, "kubeconfig", "", "path to the kubeconfig of the target cluster")
-	flag.StringVar(&LandscaperNamespace, "landscaper-namespace", defaultLandscaperNamespace, "namespace on the target cluster to setup Landscaper")
-	flag.IntVar(&MaxRetries, "maxRetries", defaultMaxRetries, "Max. retries (every 5s) for all waiting operations")
+func parseConfig() *config.Config {
+	var kubeconfig, landscaperNamespace string
+	var maxRetries int
+
+	flag.StringVar(&kubeconfig, "kubeconfig", "", "path to the kubeconfig of the target cluster")
+	flag.StringVar(&landscaperNamespace, "landscaper-namespace", "landscaper", "namespace on the target cluster to setup Landscaper")
+	flag.IntVar(&maxRetries, "maxRetries", 6, "Max. retries (every 5s) for all waiting operations")
 	flag.Parse()
 
+	config := config.Config {
+		Kubeconfig: kubeconfig,
+		LandscaperNamespace: landscaperNamespace,
+		MaxRetries: maxRetries,
+		SleepTime: 5*time.Second,
+	}
+
+	return &config
+}
+
+func run(config *config.Config) error {
 	log, err := logger.NewCliLogger()
+	if err != nil {
+		return fmt.Errorf("cannot create logger: %w", err)
+	}
 	logger.SetLogger(log)
 
-	cfg, err := clientcmd.BuildConfigFromFlags("", Kubeconfig)
+	cfg, err := clientcmd.BuildConfigFromFlags("", config.Kubeconfig)
 	if err != nil {
 		return fmt.Errorf("cannot parse K8s config: %w", err)
 	}
@@ -94,13 +92,13 @@ func run() error {
 	}
 
 	fmt.Println("Running landscaper-cli quickstart install")
-	runQuickstartInstall(Kubeconfig, LandscaperNamespace)
+	runQuickstartInstall(config)
 	if err != nil {
 		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
 	}
 
 	fmt.Println("Waiting for Landscaper Pods to get ready")
-	timeout, err := util.CheckAndWaitUntilAllPodsAreReady(k8sClient, LandscaperNamespace, SleepTime, MaxRetries)
+	timeout, err := util.CheckAndWaitUntilAllPodsAreReady(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
 		return fmt.Errorf("error while waiting for Landscaper Pods: %w", err)
 	}
@@ -109,7 +107,7 @@ func run() error {
 	}
 
 	fmt.Println("Starting port-forward to OCI registry")
-	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, LandscaperNamespace, Kubeconfig)
+	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, config.LandscaperNamespace, config.Kubeconfig)
 	if err != nil {
 		return fmt.Errorf("port-forward to OCI registry failed: %w", err)
 	}
@@ -122,21 +120,20 @@ func run() error {
 	}()
 
 	fmt.Println("Upload echo-server Helm Chart to OCI registry")
-	helmChartRef, err := uploadEchoServerHelmChart(LandscaperNamespace)
+	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace)
 	if err != nil {
 		return fmt.Errorf("upload of echo-server Helm Chart failed: %w", err)
 	}
 
 	fmt.Println("Build target")
-	target, err := buildTarget(Kubeconfig)
+	target, err := buildTarget(config.Kubeconfig)
 	if err != nil {
 		return fmt.Errorf("cannot build target: %w", err)
 	}
 
 	fmt.Println("Running test suite")
 	// ################################ <Run Tests> ################################
-
-	err = tests.RunQuickstartInstallTest(k8sClient, target, helmChartRef)
+	err = tests.RunQuickstartInstallTest(k8sClient, target, helmChartRef, config)
 	if err != nil {
 		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)
 	}
@@ -233,12 +230,12 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 	return helmChartRef, nil
 }
 
-func runQuickstartUninstall(kubeconfigPath, installNamespace string) error {
+func runQuickstartUninstall(config *config.Config) error {
 	uninstallArgs := []string{
 		"--kubeconfig",
-		kubeconfigPath,
+		config.Kubeconfig,
 		"--namespace",
-		installNamespace,
+		config.LandscaperNamespace,
 	}
 	uninstallCmd := quickstart.NewUninstallCommand(context.TODO())
 	uninstallCmd.SetArgs(uninstallArgs)
@@ -251,7 +248,7 @@ func runQuickstartUninstall(kubeconfigPath, installNamespace string) error {
 	return nil
 }
 
-func runQuickstartInstall(kubeconfigPath, installNamespace string) error {
+func runQuickstartInstall(config *config.Config) error {
 	const landscaperValues = `
       landscaper:
         registryConfig: # contains optional oci secrets
@@ -277,12 +274,12 @@ func runQuickstartInstall(kubeconfigPath, installNamespace string) error {
 
 	installArgs := []string{
 		"--kubeconfig",
-		kubeconfigPath,
+		config.Kubeconfig,
 		"--landscaper-values",
 		tmpFile.Name(),
 		"--install-oci-registry",
 		"--namespace",
-		installNamespace,
+		config.LandscaperNamespace,
 	}
 	installCmd := quickstart.NewInstallCommand(context.TODO())
 	installCmd.SetArgs(installArgs)
