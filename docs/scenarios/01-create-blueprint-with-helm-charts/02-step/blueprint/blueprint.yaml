@@ -33,11 +33,8 @@ deployExecutions:
           kind: ProviderConfiguration
 
           chart:
-            fromResource: # will fetch the helm chart from component descriptor resource of type helm chart
-              repositoryContext:
-      {{ toYaml (getRepositoryContext .cd) | indent 10 }}
-              componentName: {{ .cd.component.name }}
-              version: {{ .cd.component.version }}
+            fromResource:
+            {{ toYaml .componentDescriptorDef | indent 6 }}
               resourceName: ingress-nginx-chart
 
           updateStrategy: patch

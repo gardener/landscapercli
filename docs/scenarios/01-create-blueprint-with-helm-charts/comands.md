@@ -17,13 +17,16 @@ Result could be found [here](./01-step).
 ### Add helm deploy item from some helm chart repo
 
 In this example the helm chart is located at some external helm chart repo. The helm chart is downloaded 
-for later incorporation into the component descriptor as an OCI blob.
+for later incorporation into the component descriptor as an OCI blob. 
 
 ```
-landscaper-cli blueprint add-deploy-item landscaper.gardener.cloud/helm --name=ingress-nginx  \
+landscaper-cli blueprint add-deploy-item landscaper.gardener.cloud/helm path-to-directory \
+  --name=ingress-nginx  \
   --chart-repo=https://kubernetes.github.io/ingress-nginx \
-  --chart=ingress-nginx:3.20.1 \
-  --target-ns=testnamespace
+  --chart=ingress-nginx:3.20.1 
+  --image=k8s.gcr.io/ingress-nginx/controller:v0.43.0
+  --image=docker.io/jettech/kube-webhook-certgen:v1.5.0
+  --image=k8s.gcr.io/defaultbackend-amd64:1.5
 ```
 
 Missing for adding helm chart:
@@ -40,6 +43,7 @@ Next steps:
 - Command to validate blueprint with input values (there exists already a blueprint validate/render command)
 - Command to generate local installation with input values
 - Command to upload all stuff to OCI registry
+
 
 
 
