@@ -147,6 +147,12 @@ func run(config *config.Config) error {
 		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)
 	}
 
+	// Plug new test cases in here:
+	// 1. Create new file in ./tests directory, which exports a single function for running your test. 
+	//    Your test should perform a cleanup before and after running.
+	//    For an example, see ./tests/test_quickstart_install.go.
+	// 2. Call your new test from here.
+
 	// ############################### </Run Tests> ################################
 	fmt.Println("Test suite finished successfully")
 

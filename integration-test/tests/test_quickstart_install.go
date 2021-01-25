@@ -35,7 +35,7 @@ func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target
 	}
 	err = test.run()
 	if err != nil {
-		// dont cleanup after erroneous test run to keep failed resources on the cluster
+		// do not cleanup after erroneous test run to keep failed resources on the cluster
 		return fmt.Errorf("test failed: %w", err)
 	}
 
