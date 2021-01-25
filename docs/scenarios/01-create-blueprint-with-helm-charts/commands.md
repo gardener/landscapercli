@@ -175,6 +175,9 @@ The result could be found [here](./02e-step)
 Missing for adding helm chart:
 
 - Describe logically what is achieved and not only referencing some strange directories
+- Discuss if staps like adding values, parameters etc. should be done after generation
+  - this makes implementation much more complicated because the deploy items are not valid yaml
+    but strings with template instructions
 
 Next steps:
 - Command to create target resource from kubeconfig
