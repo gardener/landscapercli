@@ -19,7 +19,8 @@ Result could be found [here](./01-step).
 
 ### Step 2a: Add helm deploy item from some helm chart repo
 
-In this example the helm chart is located as an OCI artifact in an OCI registry. 
+In this example the helm chart is located as an OCI artifact in an OCI registry. The downloaded 
+chart could be found [here](../02-create-blueprint-with-local-helm-charts/02-step/chart)
 
 If the resulting blueprint component should be transportable it is recommended to list
 
@@ -133,17 +134,50 @@ landscaper-cli blueprint landscaper.gardener.cloud/helm add-values path-to-direc
 
 The result could be found [here](./02d-step)
 
+## Step 2e: Specify images referenced in the helm chart
+
+The images used by a helm chart must be part of the component descriptor of the blueprint. Only then,
+all used resourced are declared and could be collected during transport. Furthermore, the helm chart
+must explicitly specify all used images in its values.yaml. Images specified somewhere else are hidden
+for transport.
+
+The used images could be specified when adding a helm deploy item as follows:
+
+```
+landscaper-cli blueprint add-deploy-item landscaper.gardener.cloud/helm path-to-directory \
+  --name ingress-nginx \
+  --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
+  --chart-version v0.1.0 \
+  --oci-image=name=oci-ref
+  --oci-image-version=name=someversion
+  --oci-value-path=name=somepath
+```
+
+For our example helm chart we add two images explicitly though there are more specified in its values yaml.
+
+```
+landscaper-cli blueprint add-deploy-item landscaper.gardener.cloud/helm path-to-directory \
+  --name ingress-nginx \
+  --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
+  --chart-version v0.1.0 \
+  --oci-image=controller=k8s.gcr.io/ingress-nginx/controller:v0.43.0
+  --oci-image-version=controller=v0.43.0
+  --oci-value-path=controller=.controller.image
+  --oci-image=certgen=docker.io/jettech/kube-webhook-certgen:v1.5.0
+  --oci-image-version=certgen=v1.5.0
+  --oci-value-path=certgen=.controller.admissionWebhooks.patch.image
+```
+
+The result could be found [here](./02e-step)
+
 ## Todo
 
 Missing for adding helm chart:
 
 - Describe logically what is achieved and not only referencing some strange directories
-- how to add image ref in blueprint and references
-- export values
 
 Next steps:
 - Command to create target resource from kubeconfig
-- Command to create input values
 - Command to validate blueprint with input values (there exists already a blueprint validate/render command)
 - Command to generate local installation with input values
 - Command to upload all stuff to OCI registry
