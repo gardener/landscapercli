@@ -172,6 +172,20 @@ func WaitUntilAllInstallationsAreDeleted(k8sClient client.Client, namespace stri
 }
 
 func DeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
+	namespaceToCheck := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	}
+	err := k8sClient.Get(context.TODO(), client.ObjectKey{Name: namespace}, namespaceToCheck)
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return nil
+		} else {
+			return fmt.Errorf("Error getting namespace %s: %w", namespace, err)
+		}
+	}
+
 	timeout, err := gracefulyDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
 	if err != nil {
 		fmt.Printf("Deleting namespace gracefully failed with error %w, using foce delete...", err)

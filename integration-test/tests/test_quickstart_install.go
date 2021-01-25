@@ -41,6 +41,8 @@ func (t *quickstartInstallTest) run() error {
 
 	defer util.DeleteNamespace(t.k8sClient, testNamespace, sleepTime, maxRetries)
 
+	util.DeleteNamespace(t.k8sClient, testNamespace, sleepTime, maxRetries)
+
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: testNamespace,

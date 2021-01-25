@@ -61,6 +61,14 @@ func main() {
 		fmt.Println("Error while running integration-test:", err)
 		os.Exit(1)
 	}
+
+	fmt.Println("========== Clean Up ==========")
+	// uninstall landscaper
+	err = runQuickstartUninstall(Kubeconfig, LandscaperNamespace)
+	if err != nil {
+		fmt.Println("landscaper-cli quickstart uninstall failed: %w", err)
+	}
+
 	fmt.Println("========== Integration-test finished successfully ==========")
 }
 
@@ -85,22 +93,11 @@ func run() error {
 		return fmt.Errorf("cannot build K8s client: %w", err)
 	}
 
-	defer func() {
-		// Check if everything was cleaned up
-		fmt.Println("Running cleanup check routine")
-	}()
-
 	fmt.Println("Running landscaper-cli quickstart install")
 	runQuickstartInstall(Kubeconfig, LandscaperNamespace)
 	if err != nil {
 		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
 	}
-	defer func() {
-		err = runQuickstartUninstall(Kubeconfig, LandscaperNamespace)
-		if err != nil {
-			fmt.Println("landscaper-cli quickstart uninstall failed: %w", err)
-		}
-	}()
 
 	fmt.Println("Waiting for Landscaper Pods to get ready")
 	timeout, err := util.WaitUntilAllPodsAreReady(k8sClient, LandscaperNamespace, SleepTime, MaxRetries)
