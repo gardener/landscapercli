@@ -88,10 +88,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Solutions for unsolvable problem
-	// Should we remove the "Not found" logic when setting up the OCI registry in quickstart install? --> --setupOCIregistry flag must be removed after initial run
-	// Check before installing the oci registry whether any of the its resources exists on the cluster
-
 	fmt.Println("Waiting for resources to be deleted on the K8s cluster...")
 	time.Sleep(10 * time.Second)
 
