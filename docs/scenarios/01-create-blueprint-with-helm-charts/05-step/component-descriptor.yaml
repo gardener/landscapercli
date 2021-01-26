@@ -5,8 +5,8 @@ component:
   provider: internal
 
   repositoryContexts:
-  - baseUrl: ""
-    type: ociRegistry
+    - baseUrl: ""
+      type: ociRegistry
 
   resources: []
 
@@ -16,4 +16,3 @@ component:
 
 meta:
   schemaVersion: v2
-
