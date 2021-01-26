@@ -3,10 +3,10 @@ package blueprints
 import (
 	"os"
 
+	"github.com/gardener/landscapercli/pkg/util"
+
 	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"sigs.k8s.io/yaml"
-
-	"github.com/gardener/landscapercli/pkg/util"
 )
 
 type ComponentDescriptorWriter struct {
