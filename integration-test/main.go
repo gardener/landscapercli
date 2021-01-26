@@ -52,6 +52,8 @@ func runTestSuite(k8sClient client.Client, config *config.Config, target *landsc
 }
 
 func main() {
+	fmt.Println("========== Starting Integration-test ==========")
+	
 	config := parseConfig()
 
 	log, err := logger.NewCliLogger()
@@ -75,7 +77,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("========== Clean Up Before Test Run ==========")
+	fmt.Println("========== Cleaning Up Before Test Run ==========")
 
 	err = util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
@@ -119,14 +121,14 @@ func main() {
 		// Disable port-forward
 		err = portforwardCmd.Process.Kill()
 		if err != nil {
-			fmt.Println("Cannot kill port-forward process: %w", err)
+			fmt.Println("Cannot kill port-forward process:", err)
 		}
 	}()
 
-	fmt.Println("========== Upload echo-server Helm Chart to OCI registry ==========")
+	fmt.Println("========== Uploading echo-server Helm Chart to OCI registry ==========")
 	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace)
 	if err != nil {
-		fmt.Println("Upload of echo-server Helm Chart failed: %w", err)
+		fmt.Println("Upload of echo-server Helm Chart failed:", err)
 		os.Exit(1)
 	}
 
@@ -144,7 +146,7 @@ func main() {
 	}
 	fmt.Println("========== Test Suite Finished Successfully ==========")
 
-	fmt.Println("========== Clean Up After Test Run ==========")
+	fmt.Println("========== Cleaning Up After Test Run ==========")
 	err = runQuickstartUninstall(config)
 	if err != nil {
 		fmt.Println("landscaper-cli quickstart uninstall failed:", err)
