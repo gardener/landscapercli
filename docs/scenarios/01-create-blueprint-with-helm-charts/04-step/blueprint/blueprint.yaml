@@ -6,9 +6,12 @@ apiVersion: landscaper.gardener.cloud/v1alpha1
 kind: Blueprint
 
 imports:
-  - name: cluster
+  - name: target-cluster
     targetType: landscaper.gardener.cloud/kubernetes-cluster
-  - name: targetnamespace
+  - name: nginx-namespace
+      schema:
+        type: string
+  - name: failurethreshold
       schema:
         type: string
 
@@ -26,8 +29,8 @@ deployExecutions:
       - name: ingress-nginx
         type: landscaper.gardener.cloud/helm
         target:
-          name: {{ .imports.cluster.metadata.name }}
-          namespace: {{ .imports.cluster.metadata.namespace }}
+          name: {{ .imports.target-cluster.metadata.name }}
+          namespace: {{ .imports.target-cluster.metadata.namespace }}
         config:
           apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
           kind: ProviderConfiguration
@@ -38,12 +41,9 @@ deployExecutions:
           updateStrategy: patch
 
           name: ingress-nginx
-          namespace: "{{ .imports.targetnamespace }}"
+          namespace: {{ .imports.nginx-namespace }}
 
           values:
             controller:
-              livenessProbe:
-                failureThreshold: 5
               readinessProbe:
-                failureThreshold: 3
-                initialDelaySeconds: 10
+                failureThreshold: {{ .imports.failurethreshold }}
