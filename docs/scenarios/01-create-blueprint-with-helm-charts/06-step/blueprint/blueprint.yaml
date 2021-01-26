@@ -21,28 +21,4 @@ subinstallations: []
 deployExecutions:
   - name: ingress-nginx
     type: GoTemplate
-    template: |
-      deployItems:
-      - name: ingress-nginx
-        type: landscaper.gardener.cloud/helm
-        target:
-          name: {{ .imports.target-cluster.metadata.name }}
-          namespace: {{ .imports.target-cluster.metadata.namespace }}
-        config:
-          apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
-          kind: ProviderConfiguration
-
-          chart:
-            ref: {{ with (getResource .cd "name" "ingress-nginx-chart") }}{{ .access.imageReference }}{{ end }}
-
-          updateStrategy: patch
-
-          name: ingress-nginx
-          namespace: "{{ .imports.nginx-namespace }}"
-
-          values:
-            controller:
-              image: {{ with (getResource .cd "name" "controller") }}{{ .access.imageReference }}{{ end }}
-              admissionWebhooks:
-                patch:
-                  image {{ with (getResource .cd "name" "certgen") }}{{ .access.imageReference }}{{ end }}
+    file: /ingress-nginx-execution.yaml
