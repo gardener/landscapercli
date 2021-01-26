@@ -205,7 +205,7 @@ func DeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.D
 		return fmt.Errorf("deleting namespace gracefully failed: %w", err)
 	}
 	if timeout {
-		fmt.Printf("Deleting namespace gracefully timed out, using force delete...")
+		fmt.Println("Deleting namespace gracefully timed out, using force delete...")
 		timeout, err = forceDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
 		if err != nil {
 			return fmt.Errorf("deleting namespace forcefully failed: %w", err)

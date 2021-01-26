@@ -19,7 +19,7 @@ func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target
 	// cleanup before
 	err := util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
-		return fmt.Errorf("cannot delete namespace before test run: %w", err)
+		return fmt.Errorf("cannot delete namespace before test: %w", err)
 	}
 
 	test := quickstartInstallTest{
@@ -39,7 +39,7 @@ func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target
 	// cleanup after successful test run
 	err = util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
-		return fmt.Errorf("cannot delete namespace after test run: %w", err)
+		return fmt.Errorf("cannot delete namespace after test: %w", err)
 	}
 
 	return nil

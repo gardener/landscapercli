@@ -52,42 +52,47 @@ func runTestSuite(k8sClient client.Client, config *config.Config, target *landsc
 }
 
 func main() {
-	fmt.Println("========== Starting Integration-test ==========")
-	
+	fmt.Println("========== Starting integration-test ==========")
+
+	err := run()
+	if err != nil {
+		fmt.Println("Integration-test finished with error:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("========== Integration-test finished successfully ==========")
+}
+
+func run() error {
 	config := parseConfig()
 
 	log, err := logger.NewCliLogger()
 	if err != nil {
-		fmt.Println("Cannot create logger:", err)
-		os.Exit(1)
+		return fmt.Errorf("cannot create logger: %w", err)
 	}
 	logger.SetLogger(log)
 
 	cfg, err := clientcmd.BuildConfigFromFlags("", config.Kubeconfig)
 	if err != nil {
-		fmt.Println("Cannot parse K8s config:", err)
-		os.Exit(1)
+		return fmt.Errorf("cannot parse K8s config: %w", err)
 	}
 
 	k8sClient, err := client.New(cfg, client.Options{
 		Scheme: scheme,
 	})
 	if err != nil {
-		fmt.Println("Cannot build K8s client:", err)
-		os.Exit(1)
+		return fmt.Errorf("cannot build K8s client: %w", err)
 	}
 
-	fmt.Println("========== Cleaning Up Before Test Run ==========")
+	fmt.Println("========== Cleaning up before test ==========")
 
 	err = util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
-		fmt.Printf("Cannot delete namespace %s: %s\n", config.TestNamespace, err.Error())
-		os.Exit(1)
+		return fmt.Errorf("cannot delete namespace %s: %w", config.TestNamespace, err)
 	}
 	err = runQuickstartUninstall(config)
 	if err != nil {
-		fmt.Println("landscaper-cli quickstart uninstall failed:", err)
-		os.Exit(1)
+		return fmt.Errorf("landscaper-cli quickstart uninstall failed: %w", err)
 	}
 
 	fmt.Println("Waiting for resources to be deleted on the K8s cluster...")
@@ -96,64 +101,56 @@ func main() {
 	fmt.Println("========== Running landscaper-cli quickstart install ==========")
 	err = runQuickstartInstall(config)
 	if err != nil {
-		fmt.Println("landscaper-cli quickstart install failed: ", err)
-		os.Exit(1)
+		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
 	}
 
-	fmt.Println("Waiting for Landscaper Pods to get ready")
+	fmt.Println("Waiting for Landscaper pods to get ready")
 	timeout, err := util.CheckAndWaitUntilAllPodsAreReady(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
-		fmt.Println("error while waiting for Landscaper Pods:", err)
-		os.Exit(1)
+		return fmt.Errorf("error while waiting for Landscaper pods: %w", err)
 	}
 	if timeout {
-		fmt.Println("timeout while waiting for landscaper pods")
-		os.Exit(1)
+		return fmt.Errorf("timeout while waiting for landscaper pods")
 	}
 
 	fmt.Println("========== Starting port-forward to OCI registry ==========")
 	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, config.LandscaperNamespace, config.Kubeconfig)
 	if err != nil {
-		fmt.Println("port-forward to OCI registry failed:", err)
-		os.Exit(1)
+		return fmt.Errorf("port-forward to OCI registry failed: %w", err)
 	}
 	defer func() {
 		// Disable port-forward
-		err = portforwardCmd.Process.Kill()
-		if err != nil {
-			fmt.Println("Cannot kill port-forward process:", err)
+		killPortforwardErr := portforwardCmd.Process.Kill()
+		if killPortforwardErr != nil {
+			fmt.Println("cannot kill port-forward process:", err)
 		}
 	}()
 
-	fmt.Println("========== Uploading echo-server Helm Chart to OCI registry ==========")
+	fmt.Println("========== Uploading echo-server helm chart to OCI registry ==========")
 	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace)
 	if err != nil {
-		fmt.Println("Upload of echo-server Helm Chart failed:", err)
-		os.Exit(1)
+		return fmt.Errorf("upload of echo-server helm chart failed: %w", err)
 	}
 
 	target, err := buildTarget(config.Kubeconfig)
 	if err != nil {
-		fmt.Println("Cannot build target:", err)
-		os.Exit(1)
+		return fmt.Errorf("cannot build target: %w", err)
 	}
 
-	fmt.Println("========== Starting Test Suite ==========")
+	fmt.Println("========== Starting test suite ==========")
 	err = runTestSuite(k8sClient, config, target, helmChartRef)
 	if err != nil {
-		fmt.Println("runTestSuite failed:", err)
-		os.Exit(1)
+		return fmt.Errorf("runTestSuite() failed: %w", err)
 	}
-	fmt.Println("========== Test Suite Finished Successfully ==========")
+	fmt.Println("========== Test suite finished successfully ==========")
 
-	fmt.Println("========== Cleaning Up After Test Run ==========")
+	fmt.Println("========== Cleaning up after test ==========")
 	err = runQuickstartUninstall(config)
 	if err != nil {
-		fmt.Println("landscaper-cli quickstart uninstall failed:", err)
-		os.Exit(1)
+		return fmt.Errorf("landscaper-cli quickstart uninstall failed: %w", err)
 	}
 
-	fmt.Println("========== Integration-test finished successfully ==========")
+	return nil
 }
 
 func parseConfig() *config.Config {
@@ -226,7 +223,7 @@ func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigP
 	}
 
 	if len(ociRegistryPods.Items) != 1 {
-		return nil, fmt.Errorf("expected 1 OCI registry Pod, found %d", len(ociRegistryPods.Items))
+		return nil, fmt.Errorf("expected 1 OCI registry pod, found %d", len(ociRegistryPods.Items))
 	}
 
 	portforwardCmd, err := util.ExecCommandNonBlocking("kubectl port-forward " + ociRegistryPods.Items[0].Name + " 5000:5000 --kubeconfig " + kubeconfigPath + " --namespace " + namespace)
@@ -245,7 +242,7 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 	defer func() {
 		err = os.Remove("echo-server-1.1.0.tgz")
 		if err != nil {
-			fmt.Printf("Cannot remove echo-server-1.1.0.tgz: %s", err.Error())
+			fmt.Printf("Cannot remove file echo-server-1.1.0.tgz: %s\n", err.Error())
 		}
 	}()
 
