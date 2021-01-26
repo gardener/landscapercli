@@ -7,11 +7,12 @@ import (
 	"time"
 
 	landscaper "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
-	"github.com/gardener/landscapercli/integration-test/config"
-	"github.com/gardener/landscapercli/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gardener/landscapercli/integration-test/config"
+	"github.com/gardener/landscapercli/pkg/util"
 )
 
 func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target, helmChartRef string, config *config.Config) error {

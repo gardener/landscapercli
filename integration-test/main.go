@@ -11,11 +11,6 @@ import (
 	"time"
 
 	landscaper "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
-	"github.com/gardener/landscapercli/cmd/quickstart"
-	"github.com/gardener/landscapercli/integration-test/config"
-	"github.com/gardener/landscapercli/integration-test/tests"
-	"github.com/gardener/landscapercli/pkg/logger"
-	"github.com/gardener/landscapercli/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -23,6 +18,12 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gardener/landscapercli/cmd/quickstart"
+	"github.com/gardener/landscapercli/integration-test/config"
+	"github.com/gardener/landscapercli/integration-test/tests"
+	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/util"
 )
 
 var (
@@ -32,6 +33,22 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = landscaper.AddToScheme(scheme)
+}
+
+func runTestSuite(k8sClient client.Client, config *config.Config, target *landscaper.Target, helmChartRef string) error {
+	fmt.Println("========== RunQuickstartInstallTest() ==========")
+	err := tests.RunQuickstartInstallTest(k8sClient, target, helmChartRef, config)
+	if err != nil {
+		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)
+	}
+
+	// Plug new test cases in here:
+	// 1. Create new file in ./tests directory, which exports a single function for running your test.
+	//    Your test should perform a cleanup before and after running.
+	//    For an example, see ./tests/test_quickstart_install.go.
+	// 2. Call your new test from here.
+
+	return nil
 }
 
 func main() {
@@ -75,15 +92,61 @@ func main() {
 	// Should we remove the "Not found" logic when setting up the OCI registry in quickstart install? --> --setupOCIregistry flag must be removed after initial run
 	// Check before installing the oci registry whether any of the its resources exists on the cluster
 
-	fmt.Println("Waiting for landscaper-cli quickstart uninstall to complete...")
-	time.Sleep(10*time.Second)
+	fmt.Println("Waiting for resources to be deleted on the K8s cluster...")
+	time.Sleep(10 * time.Second)
 
-	fmt.Println("========== Starting integration-test ==========")
-	err = run(k8sClient, config)
+	fmt.Println("========== Running landscaper-cli quickstart install ==========")
+	err = runQuickstartInstall(config)
 	if err != nil {
-		fmt.Println("Error while running integration-test:", err)
+		fmt.Println("landscaper-cli quickstart install failed: ", err)
 		os.Exit(1)
 	}
+
+	fmt.Println("Waiting for Landscaper Pods to get ready")
+	timeout, err := util.CheckAndWaitUntilAllPodsAreReady(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries)
+	if err != nil {
+		fmt.Println("error while waiting for Landscaper Pods:", err)
+		os.Exit(1)
+	}
+	if timeout {
+		fmt.Println("timeout while waiting for landscaper pods")
+		os.Exit(1)
+	}
+
+	fmt.Println("========== Starting port-forward to OCI registry ==========")
+	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, config.LandscaperNamespace, config.Kubeconfig)
+	if err != nil {
+		fmt.Println("port-forward to OCI registry failed:", err)
+		os.Exit(1)
+	}
+	defer func() {
+		// Disable port-forward
+		err = portforwardCmd.Process.Kill()
+		if err != nil {
+			fmt.Println("Cannot kill port-forward process: %w", err)
+		}
+	}()
+
+	fmt.Println("========== Upload echo-server Helm Chart to OCI registry ==========")
+	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace)
+	if err != nil {
+		fmt.Println("Upload of echo-server Helm Chart failed: %w", err)
+		os.Exit(1)
+	}
+
+	target, err := buildTarget(config.Kubeconfig)
+	if err != nil {
+		fmt.Println("Cannot build target:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("========== Starting Test Suite ==========")
+	err = runTestSuite(k8sClient, config, target, helmChartRef)
+	if err != nil {
+		fmt.Println("runTestSuite failed:", err)
+		os.Exit(1)
+	}
+	fmt.Println("========== Test Suite Finished Successfully ==========")
 
 	fmt.Println("========== Clean Up After Test Run ==========")
 	err = runQuickstartUninstall(config)
@@ -101,80 +164,19 @@ func parseConfig() *config.Config {
 
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "path to the kubeconfig of the cluster")
 	flag.StringVar(&landscaperNamespace, "landscaper-namespace", "landscaper", "namespace on the cluster to setup Landscaper")
-	flag.StringVar(&testNamespace, "test-namespace", "ls-cli-inttest", "namespace where the test will be runned")
-	flag.IntVar(&maxRetries, "maxRetries", 6, "max retries (every 5s) for all waiting operations")
+	flag.StringVar(&testNamespace, "test-namespace", "ls-cli-inttest", "namespace where the tests will be runned")
+	flag.IntVar(&maxRetries, "max-retries", 6, "max retries (every 5s) for all waiting operations")
 	flag.Parse()
 
-	config := config.Config {
-		Kubeconfig: kubeconfig,
+	config := config.Config{
+		Kubeconfig:          kubeconfig,
 		LandscaperNamespace: landscaperNamespace,
-		TestNamespace: testNamespace,
-		MaxRetries: maxRetries,
-		SleepTime: 5*time.Second,
+		TestNamespace:       testNamespace,
+		MaxRetries:          maxRetries,
+		SleepTime:           5 * time.Second,
 	}
 
 	return &config
-}
-
-func run(k8sClient client.Client, config *config.Config) error {
-	fmt.Println("Running landscaper-cli quickstart install")
-	err := runQuickstartInstall(config)
-	if err != nil {
-		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
-	}
-
-	fmt.Println("Waiting for Landscaper Pods to get ready")
-	timeout, err := util.CheckAndWaitUntilAllPodsAreReady(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries)
-	if err != nil {
-		return fmt.Errorf("error while waiting for Landscaper Pods: %w", err)
-	}
-	if timeout {
-		return fmt.Errorf("timeout while waiting for landscaper pods")
-	}
-
-	fmt.Println("Starting port-forward to OCI registry")
-	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, config.LandscaperNamespace, config.Kubeconfig)
-	if err != nil {
-		return fmt.Errorf("port-forward to OCI registry failed: %w", err)
-	}
-	defer func() {
-		// Disable port-forward
-		err = portforwardCmd.Process.Kill()
-		if err != nil {
-			fmt.Println("Cannot kill port-forward process: %w", err)
-		}
-	}()
-
-	fmt.Println("Upload echo-server Helm Chart to OCI registry")
-	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace)
-	if err != nil {
-		return fmt.Errorf("upload of echo-server Helm Chart failed: %w", err)
-	}
-
-	fmt.Println("Build target")
-	target, err := buildTarget(config.Kubeconfig)
-	if err != nil {
-		return fmt.Errorf("cannot build target: %w", err)
-	}
-
-	fmt.Println("Running test suite")
-	// ################################ <Run Tests> ################################
-
-	err = tests.RunQuickstartInstallTest(k8sClient, target, helmChartRef, config)
-	if err != nil {
-		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)
-	}
-
-	// Plug new test cases in here:
-	// 1. Create new file in ./tests directory, which exports a single function for running your test. 
-	//    Your test should perform a cleanup before and after running.
-	//    For an example, see ./tests/test_quickstart_install.go.
-	// 2. Call your new test from here.
-
-	// ############################### </Run Tests> ################################
-	fmt.Println("Test suite finished successfully")
-
-	return nil
 }
 
 func buildTarget(kubeconfig string) (*landscaper.Target, error) {
