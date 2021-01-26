@@ -8,10 +8,12 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
+
+	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
 
 	"github.com/gardener/landscapercli/pkg/blueprints"
 	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/util"
 
 	"github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
 	"github.com/go-logr/logr"
@@ -20,18 +22,24 @@ import (
 )
 
 type createOptions struct {
-	// blueprintPath is the path to the directory containing the definition.
-	blueprintPath string
+	// componentPath is the path to the directory containing the componentDescriptor.yaml
+	// and blueprint directory.
+	componentPath    string
+	componentName    string
+	componentVersion string
 }
 
 // NewCreateCommand creates a new blueprint command to create a blueprint
 func NewCreateCommand(ctx context.Context) *cobra.Command {
 	opts := &createOptions{}
 	cmd := &cobra.Command{
-		Use:     "create [path to Blueprint directory]",
-		Args:    cobra.ExactArgs(1),
-		Example: "landscaper-cli blueprints create path/to/blueprint/directory",
-		Short:   "command to create a blueprint template in the specified directory",
+		Use:  "create [component directory path] [component name] [component version]",
+		Args: cobra.ExactArgs(3),
+		Example: "landscaper-cli blueprints create \\\n" +
+			"    . \\\n" +
+			"    github.com/gardener/landscapercli/nginx \\\n" +
+			"    v0.1.0",
+		Short: "command to create a component template in the specified directory",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
@@ -53,7 +61,9 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *createOptions) Complete(args []string) error {
-	o.blueprintPath = args[0]
+	o.componentPath = args[0]
+	o.componentName = args[1]
+	o.componentVersion = args[2]
 	return nil
 }
 
@@ -61,17 +71,28 @@ func (o *createOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 func (o *createOptions) run(ctx context.Context, log logr.Logger) error {
-	exists, err := o.existsBlueprint()
+	err := o.checkPreconditions()
 	if err != nil {
 		return err
 	}
-	if exists {
-		return fmt.Errorf("The blueprint already exists")
+
+	// Create blueprint directory
+	blueprintDirectoryPath := util.BlueprintDirectoryPath(o.componentPath)
+	err = os.Mkdir(blueprintDirectoryPath, os.ModePerm)
+	if err != nil {
+		return err
 	}
 
+	// Create blueprint file
 	blueprint := &v1alpha1.Blueprint{}
+	err = blueprints.NewBlueprintWriter(blueprintDirectoryPath).Write(blueprint)
+	if err != nil {
+		return err
+	}
 
-	err = blueprints.NewBlueprintWriter(o.blueprintPath).Write(blueprint)
+	// Create component-descriptor file
+	componentDescriptor := o.buildInitialComponentDescriptor()
+	err = blueprints.NewComponentDescriptorWriter(o.componentPath).Write(componentDescriptor)
 	if err != nil {
 		return err
 	}
@@ -79,18 +100,43 @@ func (o *createOptions) run(ctx context.Context, log logr.Logger) error {
 	return nil
 }
 
-func (o *createOptions) existsBlueprint() (bool, error) {
-	_, err := os.Stat(o.getBlueprintFilePath())
+func (o *createOptions) checkPreconditions() error {
+	// Check that the component directory exists
+	fileInfo, err := os.Stat(o.componentPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return false, nil
+			return fmt.Errorf("Component directory does not exist")
 		}
-		return false, err
+		return err
 	}
 
-	return true, nil
+	// Check that the path points to a directory
+	if !fileInfo.IsDir() {
+		return fmt.Errorf("Path is not a directory")
+	}
+
+	// Check that the component directory is empty
+	empty, err := util.IsDirectoryEmpty(o.componentPath)
+	if err != nil {
+		return err
+	}
+	if !empty {
+		return fmt.Errorf("Component directory is not empty")
+	}
+
+	return nil
 }
 
-func (o *createOptions) getBlueprintFilePath() string {
-	return filepath.Join(o.blueprintPath, v1alpha1.BlueprintFileName)
+func (o *createOptions) buildInitialComponentDescriptor() *cd.ComponentDescriptor {
+	return &cd.ComponentDescriptor{
+		Metadata: cd.Metadata{
+			Version: "v2",
+		},
+		ComponentSpec: cd.ComponentSpec{
+			ObjectMeta: cd.ObjectMeta{
+				Name:    o.componentName,
+				Version: o.componentVersion,
+			},
+		},
+	}
 }

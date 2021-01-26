@@ -1,15 +1,18 @@
 ## landscaper-cli blueprints create
 
-command to create a blueprint template in the specified directory
+command to create a component template in the specified directory
 
 ```
-landscaper-cli blueprints create [path to Blueprint directory] [flags]
+landscaper-cli blueprints create [component directory path] [component name] [component version] [flags]
 ```
 
 ### Examples
 
 ```
-landscaper-cli blueprints create path/to/blueprint/directory
+landscaper-cli blueprints create \
+    . \
+    github.com/gardener/landscapercli/nginx \
+    v0.1.0
 ```
 
 ### Options
