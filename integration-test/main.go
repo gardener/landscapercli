@@ -37,15 +37,49 @@ func init() {
 func main() {
 	config := parseConfig()
 
+	log, err := logger.NewCliLogger()
+	if err != nil {
+		fmt.Println("Cannot create logger:", err)
+		os.Exit(1)
+	}
+	logger.SetLogger(log)
+
+	cfg, err := clientcmd.BuildConfigFromFlags("", config.Kubeconfig)
+	if err != nil {
+		fmt.Println("Cannot parse K8s config:", err)
+		os.Exit(1)
+	}
+
+	k8sClient, err := client.New(cfg, client.Options{
+		Scheme: scheme,
+	})
+	if err != nil {
+		fmt.Println("Cannot build K8s client:", err)
+		os.Exit(1)
+	}
+
 	fmt.Println("========== Clean Up Before Test Run ==========")
-	err := runQuickstartUninstall(config)
+
+	err = util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries)
+	if err != nil {
+		fmt.Printf("Cannot delete namespace %s: %s\n", config.TestNamespace, err.Error())
+		os.Exit(1)
+	}
+	err = runQuickstartUninstall(config)
 	if err != nil {
 		fmt.Println("landscaper-cli quickstart uninstall failed:", err)
 		os.Exit(1)
 	}
 
+	// Solutions for unsolvable problem
+	// Should we remove the "Not found" logic when setting up the OCI registry in quickstart install? --> --setupOCIregistry flag must be removed after initial run
+	// Check before installing the oci registry whether any of the its resources exists on the cluster
+
+	fmt.Println("Waiting for landscaper-cli quickstart uninstall to complete...")
+	time.Sleep(10*time.Second)
+
 	fmt.Println("========== Starting integration-test ==========")
-	err = run(config)
+	err = run(k8sClient, config)
 	if err != nil {
 		fmt.Println("Error while running integration-test:", err)
 		os.Exit(1)
@@ -62,17 +96,19 @@ func main() {
 }
 
 func parseConfig() *config.Config {
-	var kubeconfig, landscaperNamespace string
+	var kubeconfig, landscaperNamespace, testNamespace string
 	var maxRetries int
 
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "path to the kubeconfig of the cluster")
 	flag.StringVar(&landscaperNamespace, "landscaper-namespace", "landscaper", "namespace on the cluster to setup Landscaper")
+	flag.StringVar(&testNamespace, "test-namespace", "ls-cli-inttest", "namespace where the test will be runned")
 	flag.IntVar(&maxRetries, "maxRetries", 6, "max retries (every 5s) for all waiting operations")
 	flag.Parse()
 
 	config := config.Config {
 		Kubeconfig: kubeconfig,
 		LandscaperNamespace: landscaperNamespace,
+		TestNamespace: testNamespace,
 		MaxRetries: maxRetries,
 		SleepTime: 5*time.Second,
 	}
@@ -80,27 +116,9 @@ func parseConfig() *config.Config {
 	return &config
 }
 
-func run(config *config.Config) error {
-	log, err := logger.NewCliLogger()
-	if err != nil {
-		return fmt.Errorf("cannot create logger: %w", err)
-	}
-	logger.SetLogger(log)
-
-	cfg, err := clientcmd.BuildConfigFromFlags("", config.Kubeconfig)
-	if err != nil {
-		return fmt.Errorf("cannot parse K8s config: %w", err)
-	}
-
-	k8sClient, err := client.New(cfg, client.Options{
-		Scheme: scheme,
-	})
-	if err != nil {
-		return fmt.Errorf("cannot build K8s client: %w", err)
-	}
-
+func run(k8sClient client.Client, config *config.Config) error {
 	fmt.Println("Running landscaper-cli quickstart install")
-	err = runQuickstartInstall(config)
+	err := runQuickstartInstall(config)
 	if err != nil {
 		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
 	}

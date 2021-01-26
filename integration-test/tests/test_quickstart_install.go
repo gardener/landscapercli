@@ -15,12 +15,8 @@ import (
 )
 
 func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target, helmChartRef string, config *config.Config) error {
-	const (
-		namespace = "qs-install-test"
-	)
-
 	// cleanup before
-	err := util.DeleteNamespace(k8sClient, namespace, config.SleepTime, config.MaxRetries)
+	err := util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
 		return fmt.Errorf("cannot delete namespace before test run: %w", err)
 	}
@@ -29,7 +25,7 @@ func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target
 		k8sClient:    k8sClient,
 		target:       target,
 		helmChartRef: helmChartRef,
-		namespace:    namespace,
+		namespace:    config.TestNamespace,
 		sleepTime:    config.SleepTime,
 		maxRetries:   config.MaxRetries,
 	}
@@ -40,7 +36,7 @@ func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target
 	}
 
 	// cleanup after successful test run
-	err = util.DeleteNamespace(k8sClient, namespace, config.SleepTime, config.MaxRetries)
+	err = util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
 		return fmt.Errorf("cannot delete namespace after test run: %w", err)
 	}

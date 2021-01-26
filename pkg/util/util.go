@@ -206,9 +206,12 @@ func DeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.D
 	}
 	if timeout {
 		fmt.Printf("Deleting namespace gracefully timed out, using force delete...")
-		err = forceDeleteNamespace(k8sClient, namespace)
+		timeout, err = forceDeleteNamespace(k8sClient, namespace, sleepTime, maxRetries)
 		if err != nil {
 			return fmt.Errorf("deleting namespace forcefully failed: %w", err)
+		}
+		if timeout {
+			return fmt.Errorf("deleting namespace forcefully timed out")
 		}
 	}
 	return nil
@@ -250,10 +253,18 @@ func gracefullyDeleteNamespace(k8sClient client.Client, namespace string, sleepT
 		return false, fmt.Errorf("cannot delete namespace: %w", err)
 	}
 
+	timeout, err = CheckAndWaitUntilObjectNotExistAnymore(k8sClient, client.ObjectKey{Name: namespace}, ns, sleepTime, maxRetries)
+	if err != nil {
+		return false, fmt.Errorf("error while waiting for namespace to be deleted: %w", err)
+	}
+	if timeout {
+		return true, nil
+	}
+
 	return false, nil
 }
 
-func forceDeleteNamespace(k8sClient client.Client, namespace string) error {
+func forceDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
 	ctx := context.TODO()
 
 	ns := &corev1.Namespace{
@@ -263,15 +274,23 @@ func forceDeleteNamespace(k8sClient client.Client, namespace string) error {
 	}
 	err := k8sClient.Delete(ctx, ns, &client.DeleteOptions{})
 	if err != nil {
-		return fmt.Errorf("cannot delete namespace: %w", err)
+		return false, fmt.Errorf("cannot delete namespace: %w", err)
 	}
 
 	err = removeFinalizersFromLandscaperCRs(k8sClient, namespace)
 	if err != nil {
-		return fmt.Errorf("cannot remove finalizer: %w", err)
+		return false, fmt.Errorf("cannot remove finalizer: %w", err)
 	}
 
-	return nil
+	timeout, err := CheckAndWaitUntilObjectNotExistAnymore(k8sClient, client.ObjectKey{Name: namespace}, ns, sleepTime, maxRetries)
+	if err != nil {
+		return false, fmt.Errorf("error while waiting for namespace to be deleted: %w", err)
+	}
+	if timeout {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // removes the finalizers from all Landscaper CRs in a namespace
