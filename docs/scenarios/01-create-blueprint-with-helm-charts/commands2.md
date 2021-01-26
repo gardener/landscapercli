@@ -34,7 +34,7 @@ As a result we get the following file structure inside the component directory:
 
 The repositoryContext in the component-descriptor is incomplete, because the component-descriptor has not yet been pushed into an oci registry, so that the baseUrl is unknown.
 
-The component descriptor contains a reference to the blueprint. The reference is not yet complete, because the blueprint has not yet been pushed into an oci registry, so that the address is imknown. 
+The component descriptor contains a reference to the blueprint. The reference is not complete, because the blueprint has not yet been pushed into an oci registry, so that the address is unknown. 
 
 ## Add deployitem of type "helm-templating"
 
@@ -115,7 +115,7 @@ Command:
 
 ```
 landscaper-cli blueprint add helm-templating value 
-    .
+    [component directory path]
     [execution name]
     [deployitem name]
     --key [path in the values section of the deployitem]
@@ -139,7 +139,7 @@ Values can also be taken from a file. This variant has the advantage that a deep
 
 ````
 landscaper-cli blueprint add helm-templating value
-    .
+    [component directory path]
     [execution name]
     [deployitem name]
     --file [value]
@@ -149,7 +149,7 @@ A value can also come from an import parameter. If the import parameter is not y
 
 ```
 landscaper-cli blueprint add helm-templating value
-    .
+    [component directory path]
     [execution name]
     [deployitem name]
     --key [path in the values section of the deployitem]
@@ -163,7 +163,7 @@ Command:
 
 ```
 landscaper-cli blueprint add helm-templating image
-    .
+    [component directory path]
     [execution name]
     [deployitem name]
     --key [path in the values section of the deployitem]
