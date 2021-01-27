@@ -1,5 +1,7 @@
 # Todo
 
+- provide a command to remove a deployExecution from a blueprint
+
 - landscaper-cli component create: check if valid version and component name
 
 - alternatives for helm chart handling

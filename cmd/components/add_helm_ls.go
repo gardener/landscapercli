@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package blueprints
+package components
 
 import (
 	"context"
@@ -11,13 +11,13 @@ import (
 )
 
 // NewBlueprintsCommand creates a new blueprints command.
-func NewAddCommand(ctx context.Context) *cobra.Command {
+func NewAddHelmCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add",
-		Short: "command to add parts to a blueprint",
+		Use:   "helm-ls",
+		Short: "command to add parts to a component concerning a helm landscaper deployment",
 	}
 
-	cmd.AddCommand(NewAddExecutionCommand(ctx))
+	cmd.AddCommand(NewAddHelmLSDeployItemCommand(ctx))
 
 	return cmd
 }
