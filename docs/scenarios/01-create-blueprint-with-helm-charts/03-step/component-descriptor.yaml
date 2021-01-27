@@ -1,3 +1,6 @@
+meta:
+  schemaVersion: v2
+
 component:
   name: github.com/gardener/landscapercli/nginx
   version: v0.1.0
@@ -14,5 +17,3 @@ component:
 
   componentReferences: []
 
-meta:
-  schemaVersion: v2

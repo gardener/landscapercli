@@ -33,12 +33,6 @@ func main() {
 	fmt.Printf("Successfully written docs to %s", outputDir)
 }
 
-func printHelp() {
-	fmt.Print(`
-generate-docs [output-dir]
-`)
-}
-
 func check(err error) {
 	if err != nil {
 		fmt.Println(err.Error())

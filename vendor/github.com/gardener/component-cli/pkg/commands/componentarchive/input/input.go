@@ -19,6 +19,15 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
+// MediaTypeTar defines the media type for a tarred file
+const MediaTypeTar = "application/x-tar"
+
+// MediaTypeGZip defines the media type for a gzipped file
+const MediaTypeGZip = "application/gzip"
+
+// MediaTypeOctetStream is the media type for any binary data.
+const MediaTypeOctetStream = "application/octet-stream"
+
 // BlobOutput is the output if read BlobInput.
 type BlobOutput struct {
 	Digest string
@@ -39,6 +48,9 @@ type BlobInput struct {
 	// Type defines the input type of the blob to be added.
 	// Note that a input blob of type "dir" is automatically tarred.
 	Type BlobInputType `json:"type"`
+	// MediaType is the mediatype of the defined file that is also added to the oci layer.
+	// Should be a custom media type in the form of "application/vnd.<mydomain>.<my description>"
+	MediaType string `json:"mediaType,omitempty"`
 	// Path is the path that points to the blob to be added.
 	Path string `json:"path"`
 	// CompressWithGzip defines that the blob should be automatically compressed using gzip.
@@ -53,8 +65,16 @@ func (input BlobInput) Compress() bool {
 	return *input.CompressWithGzip
 }
 
+// SetMediaTypeIfNotDefined sets the media type of the input blob if its not defined
+func (input *BlobInput) SetMediaTypeIfNotDefined(mediaType string) {
+	if len(input.MediaType) != 0 {
+		return
+	}
+	input.MediaType = mediaType
+}
+
 // Read reads the configured blob and returns a reader to the given file.
-func (input BlobInput) Read(fs vfs.FileSystem, inputFilePath string) (*BlobOutput, error) {
+func (input *BlobInput) Read(fs vfs.FileSystem, inputFilePath string) (*BlobOutput, error) {
 	inputPath := input.Path
 	if !filepath.IsAbs(input.Path) {
 		inputPath = filepath.Join(filepath.Dir(inputFilePath), input.Path)
@@ -77,6 +97,7 @@ func (input BlobInput) Read(fs vfs.FileSystem, inputFilePath string) (*BlobOutpu
 			data bytes.Buffer
 		)
 		if input.Compress() {
+			input.SetMediaTypeIfNotDefined(MediaTypeGZip)
 			gw := gzip.NewWriter(&data)
 			if err := TarFileSystem(blobFs, gw); err != nil {
 				return nil, fmt.Errorf("unable to tar input artifact: %w", err)
@@ -85,6 +106,7 @@ func (input BlobInput) Read(fs vfs.FileSystem, inputFilePath string) (*BlobOutpu
 				return nil, fmt.Errorf("unable to close gzip writer: %w", err)
 			}
 		} else {
+			input.SetMediaTypeIfNotDefined(MediaTypeTar)
 			if err := TarFileSystem(blobFs, &data); err != nil {
 				return nil, fmt.Errorf("unable to tar input artifact: %w", err)
 			}
@@ -113,6 +135,7 @@ func (input BlobInput) Read(fs vfs.FileSystem, inputFilePath string) (*BlobOutpu
 		}
 
 		if input.Compress() {
+			input.SetMediaTypeIfNotDefined(MediaTypeGZip)
 			var data bytes.Buffer
 			gw := gzip.NewWriter(&data)
 			if _, err := io.Copy(gw, inputBlob); err != nil {

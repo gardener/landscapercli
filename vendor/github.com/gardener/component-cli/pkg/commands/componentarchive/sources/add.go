@@ -49,7 +49,8 @@ type SourceOptions struct {
 func NewAddCommand(ctx context.Context) *cobra.Command {
 	opts := &Options{}
 	cmd := &cobra.Command{
-		Use:   "add",
+		Use:   "add [component descriptor path]",
+		Args:  cobra.MaximumNArgs(1),
 		Short: "Adds a source to a component descriptor",
 		Long: `
 add adds sources to the defined component descriptor.
@@ -156,6 +157,9 @@ func (o *Options) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) e
 }
 
 func (o *Options) Complete(args []string) error {
+	if len(args) != 0 {
+		o.BuilderOptions.ComponentArchivePath = args[0]
+	}
 	o.BuilderOptions.Default()
 	return o.validate()
 }

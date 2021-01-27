@@ -2,20 +2,22 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package blueprints
+package components
 
 import (
 	"context"
 	"fmt"
+	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	"os"
 
 	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
-
+	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
+	"github.com/gardener/landscapercli/pkg/components"
 	"github.com/gardener/landscapercli/pkg/blueprints"
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
-
 	"github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
+
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -35,7 +37,7 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:  "create [component directory path] [component name] [component version]",
 		Args: cobra.ExactArgs(3),
-		Example: "landscaper-cli blueprints create \\\n" +
+		Example: "landscaper-cli component create \\\n" +
 			"    . \\\n" +
 			"    github.com/gardener/landscapercli/nginx \\\n" +
 			"    v0.1.0",
@@ -92,7 +94,14 @@ func (o *createOptions) run(ctx context.Context, log logr.Logger) error {
 
 	// Create component-descriptor file
 	componentDescriptor := o.buildInitialComponentDescriptor()
-	err = blueprints.NewComponentDescriptorWriter(o.componentPath).Write(componentDescriptor)
+	err = components.NewComponentDescriptorWriter(o.componentPath).Write(componentDescriptor)
+	if err != nil {
+		return err
+	}
+
+	// Create resources.yaml
+	resourceOptions := o.buildInitialResources()
+	err = components.NewResourceWriter(o.componentPath).Write(resourceOptions)
 	if err != nil {
 		return err
 	}
@@ -140,3 +149,27 @@ func (o *createOptions) buildInitialComponentDescriptor() *cd.ComponentDescripto
 		},
 	}
 }
+
+func (o *createOptions) buildInitialResources() []cdresources.ResourceOptions {
+	compress := true
+
+	return []cdresources.ResourceOptions{ 
+		{
+			Resource: cd.Resource{
+				IdentityObjectMeta: cd.IdentityObjectMeta{
+					Name:          o.componentName + "-" + "blueprint",
+					Version:       o.componentVersion,
+					Type:          "blueprint",
+				},
+				Relation:           "local",
+			},
+			Input: &input.BlobInput{
+				Type:             "dir",
+				Path:             "./blueprint",
+				CompressWithGzip: &compress,
+				MediaType: "application/vnd.gardener.landscaper.blueprint.v1+tar+gzip",
+			},
+		},
+	}
+}
+

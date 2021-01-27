@@ -11,10 +11,24 @@ import (
 	"path/filepath"
 
 	"github.com/mandelsoft/vfs/pkg/vfs"
+	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/component-cli/ociclient/cache"
 	"github.com/gardener/component-cli/pkg/commands/constants"
 )
+
+// PrintPrettyYaml prints the given objects as yaml if enabled.
+func PrintPrettyYaml(obj interface{}, enabled bool) {
+	if !enabled {
+		return
+	}
+	data, err := yaml.Marshal(obj)
+	if err != nil {
+		fmt.Printf("unable to serialize object as yaml: %s", err.Error())
+		return
+	}
+	fmt.Println(string(data))
+}
 
 // GetFileType returns the mimetype of a file.
 func GetFileType(fs vfs.FileSystem, path string) (string, error) {

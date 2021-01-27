@@ -1,4 +1,4 @@
-package blueprints
+package components
 
 import (
 	"os"
@@ -36,3 +36,5 @@ func (w *ComponentDescriptorWriter) Write(componentDescriptor *cd.ComponentDescr
 	_, err = f.Write(data)
 	return err
 }
+
+
