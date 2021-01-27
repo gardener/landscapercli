@@ -19,6 +19,7 @@ func NewComponentsCommand(ctx context.Context) *cobra.Command {
 	}
 
 	cmd.AddCommand(NewCreateCommand(ctx))
+	cmd.AddCommand(NewAddCommand(ctx))
 
 	return cmd
 }
