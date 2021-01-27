@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/gardener/landscapercli/cmd/blueprints"
+	"github.com/gardener/landscapercli/cmd/components"
 	"github.com/gardener/landscapercli/cmd/quickstart"
 	"github.com/gardener/landscapercli/cmd/version"
 	"github.com/gardener/landscapercli/pkg/logger"
@@ -38,6 +39,7 @@ func NewLandscaperCliCommand(ctx context.Context) *cobra.Command {
 	logger.InitFlags(cmd.PersistentFlags())
 
 	cmd.AddCommand(version.NewVersionCommand())
+	cmd.AddCommand(components.NewComponentsCommand(ctx))
 	cmd.AddCommand(blueprints.NewBlueprintsCommand(ctx))
 	cmd.AddCommand(componentcli.NewComponentsCliCommand(ctx))
 	cmd.AddCommand(quickstart.NewQuickstartCommand(ctx))

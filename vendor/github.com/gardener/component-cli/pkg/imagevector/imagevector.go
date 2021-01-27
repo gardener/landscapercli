@@ -10,6 +10,8 @@ import (
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/component-spec/bindings-go/apis/v2/cdutils"
 	"k8s.io/apimachinery/pkg/util/yaml"
+
+	"github.com/gardener/component-cli/ociclient"
 )
 
 // ParseImageOptions are options to configure the image vector parsing.
@@ -39,6 +41,10 @@ func ParseImageVector(cd *cdv2.ComponentDescriptor, reader io.Reader, opts *Pars
 			continue
 		}
 		if image.Tag == nil {
+			// check if the image does already exist in the component descriptor
+			if err := addLabelsToInlineResource(cd.Resources, image); err != nil {
+				return err
+			}
 			continue
 		}
 
@@ -68,50 +74,22 @@ func ParseImageVector(cd *cdv2.ComponentDescriptor, reader io.Reader, opts *Pars
 			},
 		}
 		res.Name = image.Name
-		res.Version = *image.Tag
 		res.Type = cdv2.OCIImageType
 		res.Relation = cdv2.ExternalRelation
 
-		var err error
-		res.Labels, err = cdutils.SetLabel(res.Labels, NameLabel, image.Name)
-		if err != nil {
-			return fmt.Errorf("unable to add name label to resource for image %q: %w", image.Name, err)
+		if err := addLabelsToResource(&res, image); err != nil {
+			return err
 		}
 
-		for _, label := range image.Labels {
-			res.Labels = cdutils.SetRawLabel(res.Labels, label.Name, label.Value)
+		var ociImageAccess cdv2.TypedObjectAccessor
+		if ociclient.TagIsDigest(*image.Tag) {
+			res.Version = cd.GetVersion() // default to component descriptor version
+			ociImageAccess = cdv2.NewOCIRegistryAccess(image.Repository + "@" + *image.Tag)
+		} else {
+			res.Version = *image.Tag
+			ociImageAccess = cdv2.NewOCIRegistryAccess(image.Repository + ":" + *image.Tag)
 		}
 
-		if len(image.Repository) != 0 {
-			res.Labels, err = cdutils.SetLabel(res.Labels, RepositoryLabel, image.Repository)
-			if err != nil {
-				return fmt.Errorf("unable to add repository label to resource for image %q: %w", image.Name, err)
-			}
-		}
-		if len(image.SourceRepository) != 0 {
-			res.Labels, err = cdutils.SetLabel(res.Labels, SourceRepositoryLabel, image.SourceRepository)
-			if err != nil {
-				return fmt.Errorf("unable to add source repository label to resource for image %q: %w", image.Name, err)
-			}
-		}
-		if image.TargetVersion != nil {
-			res.Labels, err = cdutils.SetLabel(res.Labels, TargetVersionLabel, image.TargetVersion)
-			if err != nil {
-				return fmt.Errorf("unable to add target version label to resource for image %q: %w", image.Name, err)
-			}
-		}
-		if image.RuntimeVersion != nil {
-			res.Labels, err = cdutils.SetLabel(res.Labels, RuntimeVersionLabel, image.RuntimeVersion)
-			if err != nil {
-				return fmt.Errorf("unable to add target version label to resource for image %q: %w", image.Name, err)
-			}
-		}
-
-		// set the tag as identity
-		cdutils.SetExtraIdentityField(&res.IdentityObjectMeta, TagExtraIdentity, *image.Tag)
-
-		// todo: also consider digests
-		ociImageAccess := cdv2.NewOCIRegistryAccess(image.Repository + ":" + *image.Tag)
 		uObj, err := cdutils.ToUnstructuredTypedObject(cdv2.DefaultJSONTypedObjectCodec, ociImageAccess)
 		if err != nil {
 			return fmt.Errorf("unable to create oci registry access for %q: %w", image.Name, err)
@@ -137,6 +115,84 @@ func ParseImageVector(cd *cdv2.ComponentDescriptor, reader io.Reader, opts *Pars
 			ImagesLabel, genericImageVectorBytes)
 	}
 
+	return nil
+}
+
+// addLabelsToInlineResource adds the image entry labels to the resource that matches the repository
+func addLabelsToInlineResource(resources []cdv2.Resource, imageEntry ImageEntry) error {
+	for i, res := range resources {
+		if res.GetType() != cdv2.OCIImageType {
+			continue
+		}
+		if res.Access.GetType() != cdv2.OCIRegistryType {
+			continue
+		}
+		// resource is a oci image with a registry type
+		data, err := res.Access.GetData()
+		if err != nil {
+			return fmt.Errorf("unable to get data for %q: %w", res.GetName(), err)
+		}
+		ociImageAccess := &cdv2.OCIRegistryAccess{}
+		if err := cdv2.NewDefaultCodec().Decode(data, ociImageAccess); err != nil {
+			return fmt.Errorf("unable to decode resource access into oci registry access for %q: %w", res.GetName(), err)
+		}
+
+		repo, _, err := ociclient.ParseImageRef(ociImageAccess.ImageReference)
+		if err != nil {
+			return fmt.Errorf("unable to parse image reference for %q: %w", res.GetName(), err)
+		}
+		if repo != imageEntry.Repository {
+			continue
+		}
+
+		if err := addLabelsToResource(&resources[i], imageEntry); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// addLabelsToResource adds internal image vector labels to the given resource.
+func addLabelsToResource(res *cdv2.Resource, imageEntry ImageEntry) error {
+	var err error
+	res.Labels, err = cdutils.SetLabel(res.Labels, NameLabel, imageEntry.Name)
+	if err != nil {
+		return fmt.Errorf("unable to add name label to resource for image %q: %w", imageEntry.Name, err)
+	}
+
+	for _, label := range imageEntry.Labels {
+		res.Labels = cdutils.SetRawLabel(res.Labels, label.Name, label.Value)
+	}
+
+	if len(imageEntry.Repository) != 0 {
+		res.Labels, err = cdutils.SetLabel(res.Labels, RepositoryLabel, imageEntry.Repository)
+		if err != nil {
+			return fmt.Errorf("unable to add repository label to resource for image %q: %w", imageEntry.Name, err)
+		}
+	}
+	if len(imageEntry.SourceRepository) != 0 {
+		res.Labels, err = cdutils.SetLabel(res.Labels, SourceRepositoryLabel, imageEntry.SourceRepository)
+		if err != nil {
+			return fmt.Errorf("unable to add source repository label to resource for image %q: %w", imageEntry.Name, err)
+		}
+	}
+	if imageEntry.TargetVersion != nil {
+		res.Labels, err = cdutils.SetLabel(res.Labels, TargetVersionLabel, imageEntry.TargetVersion)
+		if err != nil {
+			return fmt.Errorf("unable to add target version label to resource for image %q: %w", imageEntry.Name, err)
+		}
+	}
+	if imageEntry.RuntimeVersion != nil {
+		res.Labels, err = cdutils.SetLabel(res.Labels, RuntimeVersionLabel, imageEntry.RuntimeVersion)
+		if err != nil {
+			return fmt.Errorf("unable to add target version label to resource for image %q: %w", imageEntry.Name, err)
+		}
+	}
+
+	// set the tag as identity
+	if imageEntry.Tag != nil {
+		cdutils.SetExtraIdentityField(&res.IdentityObjectMeta, TagExtraIdentity, *imageEntry.Tag)
+	}
 	return nil
 }
 

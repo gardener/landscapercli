@@ -1,4 +1,4 @@
-package blueprints
+package components
 
 import (
 	"io/ioutil"

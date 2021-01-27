@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/componentreferences"
+	"github.com/gardener/component-cli/pkg/commands/componentarchive/remote"
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/sources"
 )
@@ -21,6 +22,7 @@ func NewComponentArchiveCommand(ctx context.Context) *cobra.Command {
 		Aliases: []string{"componentarchive", "ca", "archive"},
 	}
 	cmd.AddCommand(NewExportCommand(ctx))
+	cmd.AddCommand(remote.NewRemoteCommand(ctx))
 	cmd.AddCommand(resources.NewResourcesCommand(ctx))
 	cmd.AddCommand(componentreferences.NewCompRefCommand(ctx))
 	cmd.AddCommand(sources.NewSourcesCommand(ctx))

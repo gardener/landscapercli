@@ -13,7 +13,7 @@ later the blueprint is stored as one layer in the OCI artifact uploaded to some 
 Command:
 
 ```
-landscaper-cli blueprint create
+landscaper-cli component create
     [component directory path]
     [component name]
     [component version]
@@ -22,7 +22,7 @@ landscaper-cli blueprint create
 Example:
 
 ```
-landscaper-cli blueprint create
+landscaper-cli component create
     .
     github.com/gardener/landscapercli/nginx
     v0.1.0
@@ -51,7 +51,7 @@ chart could be found [here](../02-create-blueprint-with-local-helm-charts/02-ste
 Command:
 
 ```
-landscaper-cli blueprint add helm-templating deployitem
+landscaper-cli component add helm-templating deployitem
     [component directory path]
     [execution name]
     [deployitem name]
@@ -64,7 +64,7 @@ landscaper-cli blueprint add helm-templating deployitem
 Example:
 
 ```
-landscaper-cli blueprint add helm-templating deployitem
+landscaper-cli component add helm-templating deployitem
     .
     ingress-nginx
     ingress-nginx
@@ -256,7 +256,7 @@ for transport.
 Used images could be specified with the following command:
 
 ```
-landscaper-cli blueprint add helm-templating image
+landscaper-cli component add helm-templating image
     [component directory path]
     [execution name]
     [deployitem name]
@@ -273,7 +273,7 @@ For our example helm chart we add two images explicitly though there are more sp
 Add first image: 
 
 ```
-landscaper-cli blueprint add helm-templating image
+landscaper-cli component add helm-templating image
     .
     ingress-nginx
     ingress-nginx
@@ -286,7 +286,7 @@ landscaper-cli blueprint add helm-templating image
 Add second image:
 
 ```
-landscaper-cli blueprint add helm-templating image
+landscaper-cli component add helm-templating image
     .
     ingress-nginx
     ingress-nginx
