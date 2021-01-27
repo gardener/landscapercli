@@ -28,3 +28,11 @@ func ComponentDescriptorFilePath(componentPath string) string {
 func ResourcesFilePath(componentPath string) string {
 	return filepath.Join(componentPath, ResourcesFileName)
 }
+
+func ExecutionFilePath(componentPath, executionName string) string {
+	return filepath.Join(componentPath, BlueprintDirectoryName, ExecutionFileName(executionName))
+}
+
+func ExecutionFileName(executionName string) string {
+	return "deploy-execution-" + executionName + ".yaml"
+}

@@ -14,7 +14,7 @@ deployItems:
       updateStrategy: patch
 
       name: ingress-nginx
-      namespace: "{{ .imports.nginx-namespace }}"
+      namespace: {{ .imports.nginx-namespace }}
 
       values:
         controller:

@@ -36,5 +36,3 @@ func (w *ComponentDescriptorWriter) Write(componentDescriptor *cd.ComponentDescr
 	_, err = f.Write(data)
 	return err
 }
-
-

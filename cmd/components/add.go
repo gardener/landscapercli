@@ -17,7 +17,7 @@ func NewAddCommand(ctx context.Context) *cobra.Command {
 		Short: "command to add parts to a component",
 	}
 
-	cmd.AddCommand(NewAddExecutionCommand(ctx))
+	cmd.AddCommand(NewAddHelmCommand(ctx))
 
 	return cmd
 }
