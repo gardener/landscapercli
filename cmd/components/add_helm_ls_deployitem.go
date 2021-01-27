@@ -7,6 +7,7 @@ package components
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"os"
 
 	"github.com/gardener/landscapercli/pkg/blueprints"
@@ -146,6 +147,7 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 	}
 
 	o.addExecution(blueprint)
+	o.addImports(blueprint)
 
 	return blueprints.NewBlueprintWriter(blueprintPath).Write(blueprint)
 }
@@ -166,6 +168,47 @@ func (o *addHelmLsDeployItemOptions) addExecution(blueprint *v1alpha1.Blueprint)
 		Name: o.executionName,
 		Type: "GoTemplate",
 		File: "/" + util.ExecutionFileName(o.executionName),
+	})
+}
+
+func (o *addHelmLsDeployItemOptions) addImports(blueprint *v1alpha1.Blueprint) {
+	o.addTargetImport(blueprint, o.clusterParam)
+	o.addStringImport(blueprint, o.targetNsParam)
+}
+
+func (o *addHelmLsDeployItemOptions) addTargetImport(blueprint *v1alpha1.Blueprint, name string) {
+	for i := range blueprint.Imports {
+		if blueprint.Imports[i].Name == name {
+			return
+		}
+	}
+
+	required := true
+
+	blueprint.Imports = append(blueprint.Imports, v1alpha1.ImportDefinition{
+		FieldValueDefinition: v1alpha1.FieldValueDefinition{
+			Name:       name,
+			TargetType: "landscaper.gardener.cloud/kubernetes-cluster",
+		},
+		Required: &required,
+	})
+}
+
+func (o *addHelmLsDeployItemOptions) addStringImport(blueprint *v1alpha1.Blueprint, name string) {
+	for i := range blueprint.Imports {
+		if blueprint.Imports[i].Name == name {
+			return
+		}
+	}
+
+	required := true
+
+	blueprint.Imports = append(blueprint.Imports, v1alpha1.ImportDefinition{
+		FieldValueDefinition: v1alpha1.FieldValueDefinition{
+			Name:   name,
+			Schema: v1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
+		},
+		Required: &required,
 	})
 }
 
@@ -193,7 +236,48 @@ func (o *addHelmLsDeployItemOptions) createExecutionFile() error {
 
 	defer f.Close()
 
-	_, err = f.WriteString("deployItems: []\n")
+	err = o.writeExecution(f)
 
 	return err
+}
+
+const executionTemplate = `deployItems:
+- name: ingress-nginx
+  type: landscaper.gardener.cloud/helm
+  target:
+    name: {{"{{"}} .imports.{{.ClusterParam}}.metadata.name {{"}}"}}
+    namespace: {{"{{"}} .imports.{{.ClusterParam}}.metadata.namespace {{"}}"}}
+  config:
+    apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
+    kind: ProviderConfiguration
+
+    chart:
+      ref: {{"{{"}} with (getResource .cd "name" "ingress-nginx-chart") {{"}}"}} {{"{{"}} .access.imageReference {{"}}"}} {{"{{"}} end {{"}}"}}
+
+    updateStrategy: patch
+
+    name: ingress-nginx
+    namespace: {{"{{"}} .imports.{{.TargetNsParam}} {{"}}"}}
+`
+
+func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
+	t, err := template.New("").Parse(executionTemplate)
+	if err != nil {
+		return err
+	}
+
+	data := struct {
+		ClusterParam  string
+		TargetNsParam string
+	}{
+		o.clusterParam,
+		o.targetNsParam,
+	}
+
+	err = t.Execute(f, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
