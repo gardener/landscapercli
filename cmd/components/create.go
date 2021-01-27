@@ -7,16 +7,18 @@ package components
 import (
 	"context"
 	"fmt"
-	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	"os"
 
-	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
+	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
+
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
-	"github.com/gardener/landscapercli/pkg/components"
+	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
+	"github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
+
 	"github.com/gardener/landscapercli/pkg/blueprints"
+	"github.com/gardener/landscapercli/pkg/components"
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
-	"github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -153,23 +155,22 @@ func (o *createOptions) buildInitialComponentDescriptor() *cd.ComponentDescripto
 func (o *createOptions) buildInitialResources() []cdresources.ResourceOptions {
 	compress := true
 
-	return []cdresources.ResourceOptions{ 
+	return []cdresources.ResourceOptions{
 		{
 			Resource: cd.Resource{
 				IdentityObjectMeta: cd.IdentityObjectMeta{
-					Name:          o.componentName + "-" + "blueprint",
-					Version:       o.componentVersion,
-					Type:          "blueprint",
+					Name:    o.componentName + "-" + "blueprint",
+					Version: o.componentVersion,
+					Type:    "blueprint",
 				},
-				Relation:           "local",
+				Relation: "local",
 			},
 			Input: &input.BlobInput{
 				Type:             "dir",
 				Path:             "./blueprint",
 				CompressWithGzip: &compress,
-				MediaType: "application/vnd.gardener.landscaper.blueprint.v1+tar+gzip",
+				MediaType:        "application/vnd.gardener.landscaper.blueprint.v1+tar+gzip",
 			},
 		},
 	}
 }
-

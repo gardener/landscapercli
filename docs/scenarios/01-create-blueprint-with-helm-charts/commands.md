@@ -51,12 +51,12 @@ chart could be found [here](../02-create-blueprint-with-local-helm-charts/02-ste
 Command:
 
 ```
-landscaper-cli component add helm-templating deployitem
+landscaper-cli component add helm-ls deployitem
     [component directory path]
     [execution name]
     [deployitem name]
-    [oci reference]
-    [chart-version]
+    --oci-reference [oci reference]
+    --chart-version [chart-version]
     --cluster-param [cluster-parameter-name]
     --target-ns-param [target-namespace-parameter-name]
 ```
@@ -64,13 +64,13 @@ landscaper-cli component add helm-templating deployitem
 Example:
 
 ```
-landscaper-cli component add helm-templating deployitem
-    .
-    ingress-nginx
-    ingress-nginx
-    oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0
-    v0.1.0
-    --cluster-param target-cluster
+landscaper-cli component add helm-ls deployitem \
+    . \
+    ingress-nginx \
+    ingress-nginx \
+    --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
+    --chart-version v0.1.0 \
+    --cluster-param target-cluster \
     --target-ns-param nginx-namespace
 ```
 
@@ -94,7 +94,7 @@ The following command adds a single key-value pair to the values section of a de
 Command:
 
 ```
-landscaper-cli blueprint add helm-templating value 
+landscaper-cli blueprint add helm-ls value 
     [component directory path]
     [execution name]
     [deployitem name]
@@ -107,7 +107,7 @@ The values section can have a deep structure. Therefore, a key can be a path.
 Example:
 
 ```
-landscaper-cli blueprint add helm-templating value
+landscaper-cli blueprint add helm-ls value
     .
     ingress-nginx
     ingress-nginx
@@ -118,7 +118,7 @@ landscaper-cli blueprint add helm-templating value
 Values can also be taken from a file. This variant has the advantage that a deep structure can be added with one command.
 
 ```
-landscaper-cli blueprint add helm-templating value
+landscaper-cli blueprint add helm-ls value
     [component directory path]
     [execution name]
     [deployitem name]
@@ -139,7 +139,7 @@ controller:
 And the command: 
 
 ```
-landscaper-cli blueprint add helm-templating value
+landscaper-cli blueprint add helm-ls value
     .
     ingress-nginx
     ingress-nginx
@@ -155,7 +155,7 @@ To allow different users of a blueprint to specify its own values for helm templ
 for the blueprint and connect them with entries in the helm values.yaml. You can achieve this with the following command:
 
 ```
-landscaper-cli blueprint add helm-templating value
+landscaper-cli blueprint add helm-ls value
     [component directory path]
     [execution name]
     [deployitem name]
@@ -169,7 +169,7 @@ By default, the type of a parameter is string. If you want to overwrite this you
 Example:
 
 ```
-landscaper-cli blueprint add helm-templating value
+landscaper-cli blueprint add helm-ls value
     .
     ingress-nginx
     ingress-nginx
@@ -189,7 +189,7 @@ If you want to export values of the values.yaml or of the rendered manifest of a
 the following command:
 
 ```
-landscaper-cli blueprint add helm-templating export
+landscaper-cli blueprint add helm-ls export
     [component directory path]
     [execution name]
     [deployitem name]
@@ -215,7 +215,7 @@ Example:
 The following example creates an export parameter which gets its value from the specified path in the values.yaml:
 
 ```
-landscaper-cli blueprint add helm-templating export
+landscaper-cli blueprint add helm-ls export
     .
     ingress-nginx
     ingress-nginx
@@ -228,7 +228,7 @@ The following example creates an export parameter which gets its value from a re
 flag --resource-namespace is optional. 
 
 ```
-landscaper-cli blueprint add helm-templating export
+landscaper-cli blueprint add helm-ls export
     .
     ingress-nginx
     ingress-nginx
@@ -256,7 +256,7 @@ for transport.
 Used images could be specified with the following command:
 
 ```
-landscaper-cli component add helm-templating image
+landscaper-cli component add helm-ls image
     [component directory path]
     [execution name]
     [deployitem name]
@@ -273,7 +273,7 @@ For our example helm chart we add two images explicitly though there are more sp
 Add first image: 
 
 ```
-landscaper-cli component add helm-templating image
+landscaper-cli component add helm-ls image
     .
     ingress-nginx
     ingress-nginx
@@ -286,7 +286,7 @@ landscaper-cli component add helm-templating image
 Add second image:
 
 ```
-landscaper-cli component add helm-templating image
+landscaper-cli component add helm-ls image
     .
     ingress-nginx
     ingress-nginx

@@ -11,13 +11,13 @@ import (
 )
 
 // NewBlueprintsCommand creates a new blueprints command.
-func NewAddCommand(ctx context.Context) *cobra.Command {
+func NewAddHelmCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "helm-manifest",
-		Short: "command to add items for",
+		Use:   "helm-ls",
+		Short: "command to add parts to a component concerning a helm landscaper deployment",
 	}
 
-	cmd.AddCommand(NewAddExecutionCommand(ctx))
+	cmd.AddCommand(NewAddHelmLSDeployItemCommand(ctx))
 
 	return cmd
 }
