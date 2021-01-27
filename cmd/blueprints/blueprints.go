@@ -6,7 +6,6 @@ package blueprints
 
 import (
 	"context"
-
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +19,6 @@ func NewBlueprintsCommand(ctx context.Context) *cobra.Command {
 
 	cmd.AddCommand(NewPushCommand(ctx))
 	cmd.AddCommand(NewGetCommand(ctx))
-	cmd.AddCommand(NewAddCommand(ctx))
 	cmd.AddCommand(NewValidationCommand(ctx))
 	cmd.AddCommand(NewRenderCommand(ctx))
 

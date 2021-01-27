@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package blueprints
+package components
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 func NewAddCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add",
-		Short: "command to add parts to a blueprint",
+		Short: "command to add parts to a component",
 	}
 
 	cmd.AddCommand(NewAddExecutionCommand(ctx))
