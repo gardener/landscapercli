@@ -5,8 +5,9 @@
 package components
 
 import (
-"context"
-"github.com/spf13/cobra"
+	"context"
+
+	"github.com/spf13/cobra"
 )
 
 // NewComponentsCommand creates a new components command.
@@ -21,4 +22,3 @@ func NewComponentsCommand(ctx context.Context) *cobra.Command {
 
 	return cmd
 }
-

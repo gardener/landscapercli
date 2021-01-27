@@ -2,10 +2,12 @@ package components
 
 import (
 	"fmt"
+	"os"
+
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
+
 	"github.com/gardener/landscapercli/pkg/util"
-	"os"
 )
 
 type ResourceWriter struct {
@@ -30,17 +32,17 @@ func (w *ResourceWriter) Write(resourceOptions []cdresources.ResourceOptions) er
 	infoString := ""
 
 	for i := range resourceOptions {
-        infoString += "---\n" +
-        	"type: " + resourceOptions[i].Type + "\n" +
-        	"name: " + resourceOptions[i].Name + "\n" +
-        	"version: " + resourceOptions[i].Version + "\n" +
+		infoString += "---\n" +
+			"type: " + resourceOptions[i].Type + "\n" +
+			"name: " + resourceOptions[i].Name + "\n" +
+			"version: " + resourceOptions[i].Version + "\n" +
 			"relation: " + string(resourceOptions[i].Relation) + "\n"
 
 		if resourceOptions[i].Input != nil {
 			infoString += "input: \n" +
-				"  type: " + string(resourceOptions[i].Input.Type)+ "\n" +
+				"  type: " + string(resourceOptions[i].Input.Type) + "\n" +
 				"  path: " + resourceOptions[i].Input.Path + "\n" +
-			    "  mediaType: " + resourceOptions[i].Input.MediaType + "\n"
+				"  mediaType: " + resourceOptions[i].Input.MediaType + "\n"
 
 		} else if resourceOptions[i].Access != nil {
 			data, err := resourceOptions[i].Access.GetData()
@@ -53,8 +55,8 @@ func (w *ResourceWriter) Write(resourceOptions []cdresources.ResourceOptions) er
 			}
 
 			infoString += "access: \n" +
-				"  type: " + ociImageAccess.Type+ "\n" +
-			    "  imageReference: " + ociImageAccess.ImageReference + "\n"
+				"  type: " + ociImageAccess.Type + "\n" +
+				"  imageReference: " + ociImageAccess.ImageReference + "\n"
 		}
 
 		infoString += "...\n"
