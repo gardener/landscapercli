@@ -1,11 +1,11 @@
-## landscaper-cli components-cli
+## landscaper-cli components
 
-components cli
+command to interact with components based on blueprints
 
 ### Options
 
 ```
-  -h, --help   help for components-cli
+  -h, --help   help for components
 ```
 
 ### Options inherited from parent commands
@@ -22,8 +22,6 @@ components cli
 ### SEE ALSO
 
 * [landscaper-cli](landscaper-cli.md)	 - landscaper cli
-* [landscaper-cli components-cli component-archive](landscaper-cli_components-cli_component-archive.md)	 - 
-* [landscaper-cli components-cli ctf](landscaper-cli_components-cli_ctf.md)	 - 
-* [landscaper-cli components-cli image-vector](landscaper-cli_components-cli_image-vector.md)	 - command to add resource from a image vector and retrieve from a component descriptor
-* [landscaper-cli components-cli version](landscaper-cli_components-cli_version.md)	 - displays the version
+* [landscaper-cli components add](landscaper-cli_components_add.md)	 - command to add parts to a component
+* [landscaper-cli components create](landscaper-cli_components_create.md)	 - command to create a component template in the specified directory
 
