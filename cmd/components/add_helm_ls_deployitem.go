@@ -8,9 +8,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	"html/template"
 	"os"
+
+	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
@@ -49,7 +50,7 @@ type addHelmLsDeployItemOptions struct {
 	executionName  string
 	deployItemName string
 
-	ociReference string
+	ociReference       string
 	chartDirectoryPath string
 
 	chartVersion string
@@ -119,11 +120,11 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 func (o *addHelmLsDeployItemOptions) validate() error {
-	if o.ociReference == "" && o.chartDirectoryPath == ""{
+	if o.ociReference == "" && o.chartDirectoryPath == "" {
 		return fmt.Errorf("oci-reference and chart-directory not set, exactly one needs to be specified")
 	}
 
-	if o.ociReference != "" && o.chartDirectoryPath != ""{
+	if o.ociReference != "" && o.chartDirectoryPath != "" {
 		return fmt.Errorf("both oci-reference and chart-directory are set, exactly one needs to be specified")
 	}
 
@@ -310,12 +311,12 @@ func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
 	}
 
 	data := struct {
-		ClusterParam  string
-		TargetNsParam string
+		ClusterParam   string
+		TargetNsParam  string
 		DeployItemName string
 	}{
-		ClusterParam: o.clusterParam,
-		TargetNsParam: o.targetNsParam,
+		ClusterParam:   o.clusterParam,
+		TargetNsParam:  o.targetNsParam,
 		DeployItemName: o.deployItemName,
 	}
 
@@ -330,7 +331,7 @@ func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
 func (o *addHelmLsDeployItemOptions) createResources() (*cdresources.ResourceOptions, error) {
 
 	if o.ociReference != "" {
-		return o.createOciResource();
+		return o.createOciResource()
 	}
 
 	return o.createDirectoryResource()
@@ -339,7 +340,7 @@ func (o *addHelmLsDeployItemOptions) createResources() (*cdresources.ResourceOpt
 
 func (o *addHelmLsDeployItemOptions) createOciResource() (*cdresources.ResourceOptions, error) {
 	ociRegistryRef := cd.OCIRegistryAccess{
-		ObjectType: cd.ObjectType{"ociRegistry"},
+		ObjectType:     cd.ObjectType{Type: "ociRegistry"},
 		ImageReference: o.ociReference,
 	}
 
@@ -348,7 +349,7 @@ func (o *addHelmLsDeployItemOptions) createOciResource() (*cdresources.ResourceO
 		return nil, err
 	}
 
-	resource:=  &cdresources.ResourceOptions{
+	resource := &cdresources.ResourceOptions{
 
 		Resource: cd.Resource{
 			IdentityObjectMeta: cd.IdentityObjectMeta{
@@ -370,7 +371,7 @@ func (o *addHelmLsDeployItemOptions) createOciResource() (*cdresources.ResourceO
 
 func (o *addHelmLsDeployItemOptions) createDirectoryResource() (*cdresources.ResourceOptions, error) {
 	compress := true
-	resource:=  &cdresources.ResourceOptions{
+	resource := &cdresources.ResourceOptions{
 		Resource: cd.Resource{
 			IdentityObjectMeta: cd.IdentityObjectMeta{
 				Name:    o.deployItemName + "-" + "chart",
@@ -378,7 +379,6 @@ func (o *addHelmLsDeployItemOptions) createDirectoryResource() (*cdresources.Res
 				Type:    "helm",
 			},
 			Relation: "external",
-
 		},
 
 		Input: &input.BlobInput{
