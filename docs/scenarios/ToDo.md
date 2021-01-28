@@ -1,6 +1,6 @@
 # Todo
 
-- provide a command to remove a deployExecution from a blueprint
+- error handling unique concept etc.
 
 - landscaper-cli component create: check if valid version and component name
 

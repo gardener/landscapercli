@@ -45,10 +45,8 @@ func (w *ResourceWriter) Write(resourceOptions []cdresources.ResourceOptions) er
 				"  mediaType: " + resourceOptions[i].Input.MediaType + "\n"
 
 		} else if resourceOptions[i].Access != nil {
-			data, err := resourceOptions[i].Access.GetData()
-			if err != nil {
-				return fmt.Errorf("unable to get data for %q: %w", resourceOptions[i].GetName(), err)
-			}
+			data := resourceOptions[i].Access.Raw
+
 			ociImageAccess := &cd.OCIRegistryAccess{}
 			if err := cd.NewDefaultCodec().Decode(data, ociImageAccess); err != nil {
 				return fmt.Errorf("unable to decode resource access into oci registry access for %q: %w", resourceOptions[i].GetName(), err)
