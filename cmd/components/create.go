@@ -148,6 +148,16 @@ func (o *createOptions) buildInitialComponentDescriptor() *cd.ComponentDescripto
 				Name:    o.componentName,
 				Version: o.componentVersion,
 			},
+			RepositoryContexts: []cd.RepositoryContext{
+				{
+					Type:    "ociRegistry",
+					BaseURL: "",
+				},
+			},
+			Provider:            "internal",
+			Sources:             []cd.Source{},
+			ComponentReferences: []cd.ComponentReference{},
+			Resources:           []cd.Resource{},
 		},
 	}
 }
@@ -159,7 +169,7 @@ func (o *createOptions) buildInitialResources() []cdresources.ResourceOptions {
 		{
 			Resource: cd.Resource{
 				IdentityObjectMeta: cd.IdentityObjectMeta{
-					Name:    o.componentName + "-" + "blueprint",
+					Name:    "blueprint",
 					Version: o.componentVersion,
 					Type:    "blueprint",
 				},
