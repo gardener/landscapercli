@@ -6,9 +6,15 @@ package components
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"os"
+
+	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
+	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
+
+	"github.com/gardener/landscapercli/pkg/components"
 
 	"github.com/gardener/landscapercli/pkg/blueprints"
 	"github.com/gardener/landscapercli/pkg/logger"
@@ -149,7 +155,33 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 	o.addExecution(blueprint)
 	o.addImports(blueprint)
 
+	err = o.addResource()
+	if err != nil {
+		return err
+	}
+
 	return blueprints.NewBlueprintWriter(blueprintPath).Write(blueprint)
+}
+
+func (o *addHelmLsDeployItemOptions) addResource() error {
+	resourceReader := components.NewResourceReader(o.componentPath)
+
+	resources, err := resourceReader.Read()
+	if err != nil {
+		return err
+	}
+
+	resource, err := o.createResources()
+	if err != nil {
+		return err
+	}
+
+	resources = append(resources, *resource)
+
+	resourceWriter := components.NewResourceWriter(o.componentPath)
+	err = resourceWriter.Write(resources)
+
+	return err
 }
 
 func (o *addHelmLsDeployItemOptions) existsExecution(blueprint *v1alpha1.Blueprint) bool {
@@ -242,7 +274,7 @@ func (o *addHelmLsDeployItemOptions) createExecutionFile() error {
 }
 
 const executionTemplate = `deployItems:
-- name: ingress-nginx
+- name: {{.DeployItemName}}
   type: landscaper.gardener.cloud/helm
   target:
     name: {{"{{"}} .imports.{{.ClusterParam}}.metadata.name {{"}}"}}
@@ -252,11 +284,11 @@ const executionTemplate = `deployItems:
     kind: ProviderConfiguration
 
     chart:
-      ref: {{"{{"}} with (getResource .cd "name" "ingress-nginx-chart") {{"}}"}} {{"{{"}} .access.imageReference {{"}}"}} {{"{{"}} end {{"}}"}}
+      ref: {{"{{"}} with (getResource .cd "name" "{{.DeployItemName}}-chart") {{"}}"}} {{"{{"}} .access.imageReference {{"}}"}} {{"{{"}} end {{"}}"}}
 
     updateStrategy: patch
 
-    name: ingress-nginx
+    name: {{.DeployItemName}}
     namespace: {{"{{"}} .imports.{{.TargetNsParam}} {{"}}"}}
 `
 
@@ -269,9 +301,11 @@ func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
 	data := struct {
 		ClusterParam  string
 		TargetNsParam string
+		DeployItemName string
 	}{
-		o.clusterParam,
-		o.targetNsParam,
+		ClusterParam: o.clusterParam,
+		TargetNsParam: o.targetNsParam,
+		DeployItemName: o.deployItemName,
 	}
 
 	err = t.Execute(f, data)
@@ -280,4 +314,36 @@ func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
 	}
 
 	return nil
+}
+
+func (o *addHelmLsDeployItemOptions) createResources() (*cdresources.ResourceOptions, error) {
+
+	ociRegistryRef := cd.OCIRegistryAccess{
+		ObjectType: cd.ObjectType{"ociRegistry"},
+		ImageReference: o.ociReference,
+	}
+
+	data, err := json.Marshal(&ociRegistryRef)
+	if err != nil {
+		return nil, err
+	}
+
+	resource:=  &cdresources.ResourceOptions{
+
+		Resource: cd.Resource{
+			IdentityObjectMeta: cd.IdentityObjectMeta{
+				Name:    o.deployItemName + "-" + "chart",
+				Version: o.chartVersion,
+				Type:    "helm",
+			},
+			Relation: "external",
+			Access: &cd.UnstructuredAccessType{
+
+				ObjectType: cd.ObjectType{Type: "ociRegistry"},
+				Raw:        data,
+			},
+		},
+	}
+
+	return resource, nil
 }
