@@ -41,8 +41,11 @@ func (w *ResourceWriter) Write(resourceOptions []cdresources.ResourceOptions) er
 		if resourceOptions[i].Input != nil {
 			infoString += "input: \n" +
 				"  type: " + string(resourceOptions[i].Input.Type) + "\n" +
-				"  path: " + resourceOptions[i].Input.Path + "\n" +
-				"  mediaType: " + resourceOptions[i].Input.MediaType + "\n"
+				"  path: " + resourceOptions[i].Input.Path + "\n"
+
+			if resourceOptions[i].Input.MediaType != "" {
+				infoString += "  mediaType: " + resourceOptions[i].Input.MediaType + "\n"
+			}
 
 		} else if resourceOptions[i].Access != nil {
 			data := resourceOptions[i].Access.Raw

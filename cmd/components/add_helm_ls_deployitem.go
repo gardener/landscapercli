@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	"html/template"
 	"os"
 
@@ -49,6 +50,8 @@ type addHelmLsDeployItemOptions struct {
 	deployItemName string
 
 	ociReference string
+	chartDirectoryPath string
+
 	chartVersion string
 
 	clusterParam  string
@@ -97,6 +100,10 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 		"oci-reference",
 		"",
 		"reference to oci artifact containing the helm chart")
+	fs.StringVar(&o.chartDirectoryPath,
+		"chart-directory",
+		"",
+		"path to chart directory")
 	fs.StringVar(&o.chartVersion,
 		"chart-version",
 		"",
@@ -112,8 +119,12 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 func (o *addHelmLsDeployItemOptions) validate() error {
-	if o.ociReference == "" {
-		return fmt.Errorf("oci-reference is missing")
+	if o.ociReference == "" && o.chartDirectoryPath == ""{
+		return fmt.Errorf("oci-reference and chart-directory not set, exactly one needs to be specified")
+	}
+
+	if o.ociReference != "" && o.chartDirectoryPath != ""{
+		return fmt.Errorf("both oci-reference and chart-directory are set, exactly one needs to be specified")
 	}
 
 	if o.chartVersion == "" {
@@ -152,13 +163,13 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 		return err
 	}
 
-	o.addExecution(blueprint)
-	o.addImports(blueprint)
-
 	err = o.addResource()
 	if err != nil {
 		return err
 	}
+
+	o.addExecution(blueprint)
+	o.addImports(blueprint)
 
 	return blueprints.NewBlueprintWriter(blueprintPath).Write(blueprint)
 }
@@ -318,6 +329,15 @@ func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
 
 func (o *addHelmLsDeployItemOptions) createResources() (*cdresources.ResourceOptions, error) {
 
+	if o.ociReference != "" {
+		return o.createOciResource();
+	}
+
+	return o.createDirectoryResource()
+
+}
+
+func (o *addHelmLsDeployItemOptions) createOciResource() (*cdresources.ResourceOptions, error) {
 	ociRegistryRef := cd.OCIRegistryAccess{
 		ObjectType: cd.ObjectType{"ociRegistry"},
 		ImageReference: o.ociReference,
@@ -342,6 +362,29 @@ func (o *addHelmLsDeployItemOptions) createResources() (*cdresources.ResourceOpt
 				ObjectType: cd.ObjectType{Type: "ociRegistry"},
 				Raw:        data,
 			},
+		},
+	}
+
+	return resource, nil
+}
+
+func (o *addHelmLsDeployItemOptions) createDirectoryResource() (*cdresources.ResourceOptions, error) {
+	compress := true
+	resource:=  &cdresources.ResourceOptions{
+		Resource: cd.Resource{
+			IdentityObjectMeta: cd.IdentityObjectMeta{
+				Name:    o.deployItemName + "-" + "chart",
+				Version: o.chartVersion,
+				Type:    "helm",
+			},
+			Relation: "external",
+
+		},
+
+		Input: &input.BlobInput{
+			Type:             "dir",
+			Path:             o.chartDirectoryPath,
+			CompressWithGzip: &compress,
 		},
 	}
 
