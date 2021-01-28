@@ -40,7 +40,7 @@ input:
 
 
 ```
-landscaper-cli components-cli component-archive sources add [flags]
+landscaper-cli components-cli component-archive sources add [component descriptor path] [flags]
 ```
 
 ### Options
