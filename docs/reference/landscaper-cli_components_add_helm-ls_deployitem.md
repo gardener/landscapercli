@@ -26,6 +26,7 @@ landscaper-cli component add helm-ls deployitem \
 ### Options
 
 ```
+      --chart-directory string   path to chart directory
       --chart-version string     helm chart version
       --cluster-param string     target cluster (default "targetCluster")
   -h, --help                     help for deployitem
