@@ -1,4 +1,4 @@
-# Echo Server Example Component Desciptor
+# Echo Server Example Component Descriptor
 
 This examples contains an installation with an inline blueprint.
 ## Steps

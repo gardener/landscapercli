@@ -27,7 +27,7 @@ version: 'v0.0.2'
 
 
 ```
-landscaper-cli components-cli component-archive component-references add [flags]
+landscaper-cli components-cli component-archive component-references add [component descriptor path] [flags]
 ```
 
 ### Options

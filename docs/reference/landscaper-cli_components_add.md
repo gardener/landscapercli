@@ -1,8 +1,14 @@
-## landscaper-cli
+## landscaper-cli components add
 
-landscaper cli
+command to add parts to a component
 
 ### Options
+
+```
+  -h, --help   help for add
+```
+
+### Options inherited from parent commands
 
 ```
       --cli                  logger runs as cli logger. enables cli logging
@@ -10,15 +16,11 @@ landscaper cli
       --disable-caller       disable the caller of logs (default true)
       --disable-stacktrace   disable the stacktrace of error logs (default true)
       --disable-timestamp    disable timestamp output (default true)
-  -h, --help                 help for landscaper-cli
   -v, --verbosity int        number for the log level verbosity (default 1)
 ```
 
 ### SEE ALSO
 
-* [landscaper-cli blueprints](landscaper-cli_blueprints.md)	 - command to interact with blueprints stored in an oci registry
 * [landscaper-cli components](landscaper-cli_components.md)	 - command to interact with components based on blueprints
-* [landscaper-cli components-cli](landscaper-cli_components-cli.md)	 - components cli
-* [landscaper-cli quickstart](landscaper-cli_quickstart.md)	 - useful commands for getting quickly up and running with the landscaper
-* [landscaper-cli version](landscaper-cli_version.md)	 - displays the version
+* [landscaper-cli components add helm-ls](landscaper-cli_components_add_helm-ls.md)	 - command to add parts to a component concerning a helm landscaper deployment
 
