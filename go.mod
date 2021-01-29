@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
-	github.com/gardener/component-cli v0.7.0
+	github.com/gardener/component-cli v0.8.0
 	github.com/gardener/component-spec/bindings-go v0.0.31
 	github.com/gardener/landscaper v0.4.1
 	github.com/go-logr/logr v0.3.0
