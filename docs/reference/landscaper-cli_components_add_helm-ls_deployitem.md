@@ -6,7 +6,6 @@ Command to add a deploy item skeleton to the blueprint of a component
 ```
 landscaper-cli components add helm-ls deployitem \
     [component directory path] \
-    [execution name] \
     [deployitem name] \
     [flags]
 ```
@@ -17,7 +16,6 @@ landscaper-cli components add helm-ls deployitem \
 
 landscaper-cli component add helm-ls deployitem \
   . \
-  nginx \
   nginx \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
   --chart-version v0.1.0
