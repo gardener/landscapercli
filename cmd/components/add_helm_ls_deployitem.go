@@ -16,6 +16,7 @@ import (
 
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
+
 	"github.com/gardener/landscapercli/pkg/components"
 
 	"github.com/gardener/landscapercli/pkg/blueprints"
@@ -338,7 +339,7 @@ func (o *addHelmLsDeployItemOptions) createResources() (*cdresources.ResourceOpt
 
 	resource, err := o.createDirectoryResource()
 
-    return resource, err
+	return resource, err
 }
 
 func (o *addHelmLsDeployItemOptions) createOciResource() (*cdresources.ResourceOptions, error) {
