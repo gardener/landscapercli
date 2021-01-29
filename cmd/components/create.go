@@ -141,7 +141,7 @@ func (o *createOptions) checkPreconditions() error {
 func (o *createOptions) buildInitialComponentDescriptor() *cd.ComponentDescriptor {
 	return &cd.ComponentDescriptor{
 		Metadata: cd.Metadata{
-			Version: "v2",
+			Version: cd.SchemaVersion,
 		},
 		ComponentSpec: cd.ComponentSpec{
 			ObjectMeta: cd.ObjectMeta{
@@ -150,11 +150,11 @@ func (o *createOptions) buildInitialComponentDescriptor() *cd.ComponentDescripto
 			},
 			RepositoryContexts: []cd.RepositoryContext{
 				{
-					Type:    "ociRegistry",
+					Type:    cd.OCIRegistryType,
 					BaseURL: "",
 				},
 			},
-			Provider:            "internal",
+			Provider:            cd.InternalProvider,
 			Sources:             []cd.Source{},
 			ComponentReferences: []cd.ComponentReference{},
 			Resources:           []cd.Resource{},
@@ -171,15 +171,15 @@ func (o *createOptions) buildInitialResources() []cdresources.ResourceOptions {
 				IdentityObjectMeta: cd.IdentityObjectMeta{
 					Name:    "blueprint",
 					Version: o.componentVersion,
-					Type:    "blueprint",
+					Type:    v1alpha1.BlueprintResourceType,
 				},
 				Relation: "local",
 			},
 			Input: &input.BlobInput{
-				Type:             "dir",
+				Type:             input.DirInputType,
 				Path:             "./blueprint",
 				CompressWithGzip: &compress,
-				MediaType:        "application/vnd.gardener.landscaper.blueprint.v1+tar+gzip",
+				MediaType:        v1alpha1.BlueprintArtifactsMediaType,
 			},
 		},
 	}

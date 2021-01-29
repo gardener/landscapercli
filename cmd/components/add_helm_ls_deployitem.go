@@ -13,20 +13,18 @@ import (
 	"regexp"
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
-
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
-
-	"github.com/gardener/landscapercli/pkg/components"
-
-	"github.com/gardener/landscapercli/pkg/blueprints"
-	"github.com/gardener/landscapercli/pkg/logger"
-	"github.com/gardener/landscapercli/pkg/util"
-
 	"github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
+
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.com/gardener/landscapercli/pkg/blueprints"
+	"github.com/gardener/landscapercli/pkg/components"
+	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/util"
 )
 
 const addHelmLSDeployItemUse = `deployitem \
@@ -43,6 +41,8 @@ landscaper-cli component add helm-ls deployitem \
 
 const addHelmLSDeployItemShort = `
 Command to add a deploy item skeleton to the blueprint of a component`
+
+const helm = "helm"
 
 var identityKeyValidationRegexp = regexp.MustCompile("^[a-z0-9]([-_+a-z0-9]*[a-z0-9])?$")
 
@@ -214,7 +214,7 @@ func (o *addHelmLsDeployItemOptions) existsExecution(blueprint *v1alpha1.Bluepri
 func (o *addHelmLsDeployItemOptions) addExecution(blueprint *v1alpha1.Blueprint) {
 	blueprint.DeployExecutions = append(blueprint.DeployExecutions, v1alpha1.TemplateExecutor{
 		Name: o.deployItemName,
-		Type: "GoTemplate",
+		Type: v1alpha1.GOTemplateType,
 		File: "/" + util.ExecutionFileName(o.deployItemName),
 	})
 }
@@ -236,7 +236,7 @@ func (o *addHelmLsDeployItemOptions) addTargetImport(blueprint *v1alpha1.Bluepri
 	blueprint.Imports = append(blueprint.Imports, v1alpha1.ImportDefinition{
 		FieldValueDefinition: v1alpha1.FieldValueDefinition{
 			Name:       name,
-			TargetType: "landscaper.gardener.cloud/kubernetes-cluster",
+			TargetType: string(v1alpha1.KubernetesClusterTargetType),
 		},
 		Required: &required,
 	})
@@ -344,7 +344,7 @@ func (o *addHelmLsDeployItemOptions) createResources() (*cdresources.ResourceOpt
 
 func (o *addHelmLsDeployItemOptions) createOciResource() (*cdresources.ResourceOptions, error) {
 	ociRegistryRef := cd.OCIRegistryAccess{
-		ObjectType:     cd.ObjectType{Type: "ociRegistry"},
+		ObjectType:     cd.ObjectType{Type: cd.OCIRegistryType},
 		ImageReference: o.ociReference,
 	}
 
@@ -359,12 +359,11 @@ func (o *addHelmLsDeployItemOptions) createOciResource() (*cdresources.ResourceO
 			IdentityObjectMeta: cd.IdentityObjectMeta{
 				Name:    o.deployItemName + "-" + "chart",
 				Version: o.chartVersion,
-				Type:    "helm",
+				Type:    helm,
 			},
-			Relation: "external",
+			Relation: cd.ExternalRelation,
 			Access: &cd.UnstructuredAccessType{
-
-				ObjectType: cd.ObjectType{Type: "ociRegistry"},
+				ObjectType: cd.ObjectType{Type: cd.OCIRegistryType},
 				Raw:        data,
 			},
 		},
@@ -380,13 +379,13 @@ func (o *addHelmLsDeployItemOptions) createDirectoryResource() (*cdresources.Res
 			IdentityObjectMeta: cd.IdentityObjectMeta{
 				Name:    o.deployItemName + "-" + "chart",
 				Version: o.chartVersion,
-				Type:    "helm",
+				Type:    helm,
 			},
-			Relation: "external",
+			Relation: cd.ExternalRelation,
 		},
 
 		Input: &input.BlobInput{
-			Type:             "dir",
+			Type:             input.DirInputType,
 			Path:             o.chartDirectoryPath,
 			CompressWithGzip: &compress,
 		},
