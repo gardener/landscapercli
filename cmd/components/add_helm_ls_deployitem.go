@@ -10,12 +10,12 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"regexp"
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
-
 	"github.com/gardener/landscapercli/pkg/components"
 
 	"github.com/gardener/landscapercli/pkg/blueprints"
@@ -30,7 +30,6 @@ import (
 
 const addHelmLSDeployItemUse = `deployitem \
     [component directory path] \
-    [execution name] \
     [deployitem name] \
    `
 
@@ -38,16 +37,16 @@ const addHelmLSDeployItemExample = `
 landscaper-cli component add helm-ls deployitem \
   . \
   nginx \
-  nginx \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
   --chart-version v0.1.0`
 
 const addHelmLSDeployItemShort = `
 Command to add a deploy item skeleton to the blueprint of a component`
 
+var identityKeyValidationRegexp = regexp.MustCompile("^[a-z0-9]([-_+a-z0-9]*[a-z0-9])?$")
+
 type addHelmLsDeployItemOptions struct {
 	componentPath  string
-	executionName  string
 	deployItemName string
 
 	ociReference       string
@@ -66,7 +65,7 @@ func NewAddHelmLSDeployItemCommand(ctx context.Context) *cobra.Command {
 		Use:     addHelmLSDeployItemUse,
 		Example: addHelmLSDeployItemExample,
 		Short:   addHelmLSDeployItemShort,
-		Args:    cobra.ExactArgs(3),
+		Args:    cobra.ExactArgs(2),
 
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -90,8 +89,7 @@ func NewAddHelmLSDeployItemCommand(ctx context.Context) *cobra.Command {
 
 func (o *addHelmLsDeployItemOptions) Complete(args []string) error {
 	o.componentPath = args[0]
-	o.executionName = args[1]
-	o.deployItemName = args[2]
+	o.deployItemName = args[1]
 
 	return o.validate()
 }
@@ -120,6 +118,11 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 func (o *addHelmLsDeployItemOptions) validate() error {
+	if !identityKeyValidationRegexp.Match([]byte(o.deployItemName)) {
+		return fmt.Errorf("the deploy item name must consist of lower case alphanumeric characters, '-', '_' " +
+			"or '+', and must start and end with an alphanumeric character")
+	}
+
 	if o.ociReference == "" && o.chartDirectoryPath == "" {
 		return fmt.Errorf("oci-reference and chart-directory not set, exactly one needs to be specified")
 	}
@@ -146,8 +149,13 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 		return err
 	}
 
+	err = o.addResource()
+	if err != nil {
+		return err
+	}
+
 	if o.existsExecution(blueprint) {
-		return fmt.Errorf("The blueprint already contains a deploy execution %s\n", o.executionName)
+		return fmt.Errorf("The blueprint already contains a deploy item %s\n", o.deployItemName)
 	}
 
 	exists, err := o.existsExecutionFile()
@@ -156,15 +164,10 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 	}
 
 	if exists {
-		return fmt.Errorf("Deploy execution file %s already exists\n", util.ExecutionFilePath(o.componentPath, o.executionName))
+		return fmt.Errorf("Deploy execution file %s already exists\n", util.ExecutionFilePath(o.componentPath, o.deployItemName))
 	}
 
 	err = o.createExecutionFile()
-	if err != nil {
-		return err
-	}
-
-	err = o.addResource()
 	if err != nil {
 		return err
 	}
@@ -199,7 +202,7 @@ func (o *addHelmLsDeployItemOptions) addResource() error {
 func (o *addHelmLsDeployItemOptions) existsExecution(blueprint *v1alpha1.Blueprint) bool {
 	for i := range blueprint.DeployExecutions {
 		execution := &blueprint.DeployExecutions[i]
-		if execution.Name == o.executionName {
+		if execution.Name == o.deployItemName {
 			return true
 		}
 	}
@@ -209,9 +212,9 @@ func (o *addHelmLsDeployItemOptions) existsExecution(blueprint *v1alpha1.Bluepri
 
 func (o *addHelmLsDeployItemOptions) addExecution(blueprint *v1alpha1.Blueprint) {
 	blueprint.DeployExecutions = append(blueprint.DeployExecutions, v1alpha1.TemplateExecutor{
-		Name: o.executionName,
+		Name: o.deployItemName,
 		Type: "GoTemplate",
-		File: "/" + util.ExecutionFileName(o.executionName),
+		File: "/" + util.ExecutionFileName(o.deployItemName),
 	})
 }
 
@@ -257,7 +260,7 @@ func (o *addHelmLsDeployItemOptions) addStringImport(blueprint *v1alpha1.Bluepri
 }
 
 func (o *addHelmLsDeployItemOptions) existsExecutionFile() (bool, error) {
-	fileInfo, err := os.Stat(util.ExecutionFilePath(o.componentPath, o.executionName))
+	fileInfo, err := os.Stat(util.ExecutionFilePath(o.componentPath, o.deployItemName))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
@@ -266,14 +269,14 @@ func (o *addHelmLsDeployItemOptions) existsExecutionFile() (bool, error) {
 	}
 
 	if fileInfo.IsDir() {
-		return false, fmt.Errorf("There already exists a directory %s\n", util.ExecutionFileName(o.executionName))
+		return false, fmt.Errorf("There already exists a directory %s\n", util.ExecutionFileName(o.deployItemName))
 	}
 
 	return true, nil
 }
 
 func (o *addHelmLsDeployItemOptions) createExecutionFile() error {
-	f, err := os.Create(util.ExecutionFilePath(o.componentPath, o.executionName))
+	f, err := os.Create(util.ExecutionFilePath(o.componentPath, o.deployItemName))
 	if err != nil {
 		return err
 	}
@@ -329,13 +332,13 @@ func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
 }
 
 func (o *addHelmLsDeployItemOptions) createResources() (*cdresources.ResourceOptions, error) {
-
 	if o.ociReference != "" {
 		return o.createOciResource()
 	}
 
-	return o.createDirectoryResource()
+	resource, err := o.createDirectoryResource()
 
+    return resource, err
 }
 
 func (o *addHelmLsDeployItemOptions) createOciResource() (*cdresources.ResourceOptions, error) {
