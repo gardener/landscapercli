@@ -15,7 +15,7 @@ import (
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
-	"github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/apis/core/v1alpha1"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"

@@ -26,9 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/yaml"
 
-	"github.com/gardener/landscaper/pkg/apis/core"
-	lsv1alpha1 "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
-	"github.com/gardener/landscaper/pkg/apis/core/validation"
+	"github.com/gardener/landscaper/apis/core"
+	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/apis/core/validation"
 	"github.com/gardener/landscaper/pkg/kubernetes"
 	"github.com/gardener/landscaper/pkg/landscaper/blueprints"
 	"github.com/gardener/landscaper/pkg/landscaper/execution"
@@ -189,7 +189,7 @@ func (o *renderOptions) run(_ context.Context, log logr.Logger) error {
 				Exports:            subInstTmpl.Exports,
 				ExportDataMappings: subInstTmpl.ExportDataMappings,
 			}
-			subBlueprint, err := subinstallations.GetBlueprintDefinitionFromInstallationTemplate(
+			subBlueprint, _, err := subinstallations.GetBlueprintDefinitionFromInstallationTemplate(
 				dummyInst,
 				subInstTmpl,
 				o.componentDescriptor,
