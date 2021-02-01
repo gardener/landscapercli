@@ -2,14 +2,18 @@
 
 validates a local blueprint filesystem
 
+### Synopsis
+
+The validate command validates a Blueprint in a local directory. The blueprint directory must contain a file with name blueprint.yaml.
+
 ```
-landscaper-cli blueprints validate [flags]
+landscaper-cli blueprints validate [path to Blueprint directory] [flags]
 ```
 
 ### Examples
 
 ```
-landscapercli blueprints validate [path to Blueprint directory]
+landscaper-cli blueprints validate path/to/blueprint/directory
 ```
 
 ### Options

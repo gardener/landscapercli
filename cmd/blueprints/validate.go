@@ -16,9 +16,9 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
-	"github.com/gardener/landscaper/pkg/apis/core"
-	lsv1alpha1 "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
-	"github.com/gardener/landscaper/pkg/apis/core/validation"
+	"github.com/gardener/landscaper/apis/core"
+	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/apis/core/validation"
 	"github.com/gardener/landscaper/pkg/kubernetes"
 )
 
@@ -31,10 +31,12 @@ type validationOptions struct {
 func NewValidationCommand(_ context.Context) *cobra.Command {
 	opts := &validationOptions{}
 	cmd := &cobra.Command{
-		Use:     "validate",
-		Args:    cobra.ExactArgs(2),
-		Example: "landscapercli blueprints validate [path to Blueprint directory]",
+		Use:     "validate [path to Blueprint directory]",
+		Args:    cobra.ExactArgs(1),
+		Example: "landscaper-cli blueprints validate path/to/blueprint/directory",
 		Short:   "validates a local blueprint filesystem",
+		Long: "The validate command validates a Blueprint in a local directory. " +
+			"The blueprint directory must contain a file with name blueprint.yaml.",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())

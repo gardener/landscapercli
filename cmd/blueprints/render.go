@@ -26,9 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/yaml"
 
-	"github.com/gardener/landscaper/pkg/apis/core"
-	lsv1alpha1 "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
-	"github.com/gardener/landscaper/pkg/apis/core/validation"
+	"github.com/gardener/landscaper/apis/core"
+	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/apis/core/validation"
 	"github.com/gardener/landscaper/pkg/kubernetes"
 	"github.com/gardener/landscaper/pkg/landscaper/blueprints"
 	"github.com/gardener/landscaper/pkg/landscaper/execution"
@@ -58,11 +58,11 @@ const (
 type renderOptions struct {
 	// blueprintPath is the path to the directory containing the definition.
 	blueprintPath string
-	// componentDescriptorPath is the path tot he component descriptor to be used
+	// componentDescriptorPath is the path to the component descriptor to be used
 	componentDescriptorPath string
-	// componentDescriptorPath is the path tot he component descriptor to be used
+	// additionalComponentDescriptorPath is the path to the component descriptor to be used
 	additionalComponentDescriptorPath []string
-	// valueFiles is a list of filepaths to value yaml files.
+	// valueFiles is a list of file paths to value yaml files.
 	valueFiles []string
 	// outputFormat defines the format of the output
 	outputFormat string
@@ -83,7 +83,7 @@ func NewRenderCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "render",
 		Args:    cobra.RangeArgs(1, 2),
-		Example: "landscapercli blueprints render [path to Blueprint directory] [all,deployitems,subinstallations]",
+		Example: "landscaper-cli blueprints render [path to Blueprint directory] [all,deployitems,subinstallations]",
 		Short:   "renders the given blueprint",
 		Long: fmt.Sprintf(`
 Renders the blueprint with the given values files.
@@ -189,7 +189,7 @@ func (o *renderOptions) run(_ context.Context, log logr.Logger) error {
 				Exports:            subInstTmpl.Exports,
 				ExportDataMappings: subInstTmpl.ExportDataMappings,
 			}
-			subBlueprint, err := subinstallations.GetBlueprintDefinitionFromInstallationTemplate(
+			subBlueprint, _, err := subinstallations.GetBlueprintDefinitionFromInstallationTemplate(
 				dummyInst,
 				subInstTmpl,
 				o.componentDescriptor,

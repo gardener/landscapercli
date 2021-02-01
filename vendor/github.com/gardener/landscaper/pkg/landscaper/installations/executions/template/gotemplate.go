@@ -22,7 +22,7 @@ import (
 	"github.com/mandelsoft/vfs/pkg/vfs"
 	"sigs.k8s.io/yaml"
 
-	lsv1alpha1 "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
+	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/pkg/landscaper/blueprints"
 )
 
@@ -197,11 +197,11 @@ func LandscaperTplFuncMap(fs vfs.FileSystem, cd *cdv2.ComponentDescriptor, cdLis
 		"ociRefRepo":    getOCIReferenceRepository,
 		"ociRefVersion": getOCIReferenceVersion,
 		"resolve":       resolveArtifactFunc(blobResolver),
-	}
-	if cd != nil {
-		funcs["getResource"] = getResourceGoFunc(cd)
-		funcs["getResources"] = getResourcesGoFunc(cd)
-		funcs["getComponent"] = getComponentGoFunc(cd, cdList)
+
+		"getResource":          getResourceGoFunc(cd),
+		"getResources":         getResourcesGoFunc(cd),
+		"getComponent":         getComponentGoFunc(cd, cdList),
+		"getRepositoryContext": getEffectiveRepositoryContextGoFunc,
 	}
 	return funcs
 }
@@ -282,6 +282,9 @@ func resolveArtifactFunc(blobResolver ctf.BlobResolver) func(access map[string]i
 
 func getResourcesGoFunc(cd *cdv2.ComponentDescriptor) func(...interface{}) []map[string]interface{} {
 	return func(args ...interface{}) []map[string]interface{} {
+		if cd == nil {
+			panic("Unable to search for a resource as no ComponentDescriptor is defined.")
+		}
 		resources, err := resolveResources(cd, args)
 		if err != nil {
 			panic(err)
@@ -302,6 +305,9 @@ func getResourcesGoFunc(cd *cdv2.ComponentDescriptor) func(...interface{}) []map
 
 func getResourceGoFunc(cd *cdv2.ComponentDescriptor) func(args ...interface{}) map[string]interface{} {
 	return func(args ...interface{}) map[string]interface{} {
+		if cd == nil {
+			panic("Unable to search for a resource as no ComponentDescriptor is defined.")
+		}
 		resources, err := resolveResources(cd, args)
 		if err != nil {
 			panic(err)
@@ -319,6 +325,36 @@ func getResourceGoFunc(cd *cdv2.ComponentDescriptor) func(args ...interface{}) m
 		}
 		return parsedResource
 	}
+}
+
+func getEffectiveRepositoryContextGoFunc(arg interface{}) map[string]interface{} {
+	if arg == nil {
+		panic("Unable to get effective component descriptor as no ComponentDescriptor is defined.")
+	}
+
+	cdMap, ok := arg.(map[string]interface{})
+	if !ok {
+		panic("invalid component descriptor")
+	}
+	data, err := json.Marshal(cdMap)
+	if err != nil {
+		panic(fmt.Sprintf("invalid component descriptor: %s", err.Error()))
+	}
+	cd := &cdv2.ComponentDescriptor{}
+	if err := codec.Decode(data, cd); err != nil {
+		panic(fmt.Sprintf("invalid component descriptor: %s", err.Error()))
+	}
+
+	data, err = json.Marshal(cd.GetEffectiveRepositoryContext())
+	if err != nil {
+		panic(fmt.Sprintf("unable to serialize repository context: %s", err.Error()))
+	}
+
+	parsedRepoCtx := map[string]interface{}{}
+	if err := json.Unmarshal(data, &parsedRepoCtx); err != nil {
+		panic(fmt.Sprintf("unable to deserialize repository context: %s", err.Error()))
+	}
+	return parsedRepoCtx
 }
 
 func resolveResources(defaultCD *cdv2.ComponentDescriptor, args []interface{}) ([]cdv2.Resource, error) {
@@ -368,6 +404,9 @@ func resolveResources(defaultCD *cdv2.ComponentDescriptor, args []interface{}) (
 
 func getComponentGoFunc(cd *cdv2.ComponentDescriptor, list *cdv2.ComponentDescriptorList) func(args ...interface{}) map[string]interface{} {
 	return func(args ...interface{}) map[string]interface{} {
+		if cd == nil {
+			panic("Unable to search for a component as no ComponentDescriptor is defined.")
+		}
 		components, err := resolveComponents(cd, list, args)
 		if err != nil {
 			panic(err)

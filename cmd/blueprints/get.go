@@ -12,6 +12,8 @@ import (
 	"os"
 	"path/filepath"
 
+	lsv1alpha1 "github.com/gardener/landscaper/apis/core"
+
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
 	"github.com/mandelsoft/vfs/pkg/vfs"
@@ -23,7 +25,7 @@ import (
 	"github.com/gardener/component-cli/ociclient"
 	"github.com/gardener/component-cli/ociclient/cache"
 
-	lsv1alpha1 "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
+	lsinstall "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/pkg/kubernetes"
 	"github.com/gardener/landscaper/pkg/utils"
 
@@ -46,10 +48,12 @@ type showOptions struct {
 func NewGetCommand(ctx context.Context) *cobra.Command {
 	opts := &showOptions{}
 	cmd := &cobra.Command{
-		Use:     "get",
+		Use:     "get [ref to OCI artifact]",
 		Args:    cobra.MinimumNArgs(1),
-		Example: "landscapercli blueprints get [ref]",
-		Short:   "command to interact with definitions of an oci registry",
+		Example: "landscaper-cli blueprints get my-registry/my-repository:v1.0.0",
+		Short:   "command to download a blueprint from an oci registry",
+		Long: "The get command downloads a Blueprint from an OCI registry. The reference to the OCI artifact " +
+			"consists of the base URL of the OCI registry, the repository (namespace), and the tag.",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
@@ -94,7 +98,7 @@ func (o *showOptions) run(ctx context.Context, log logr.Logger) error {
 		return err
 	}
 
-	defData, err := vfs.ReadFile(memFS, lsv1alpha1.BlueprintFileName)
+	defData, err := vfs.ReadFile(memFS, lsinstall.BlueprintFileName)
 	if err != nil {
 		return err
 	}

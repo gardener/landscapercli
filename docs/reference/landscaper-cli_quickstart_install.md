@@ -1,6 +1,6 @@
 ## landscaper-cli quickstart install
 
-command to install the landscaper (and optionally an OCI registry) into a target cluster
+command to install the landscaper (and optionally an OCI registry) in a target cluster
 
 ```
 landscaper-cli quickstart install [flags]
@@ -18,9 +18,9 @@ landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-val
   -h, --help                              help for install
       --install-oci-registry              install an internal OCI registry in the target cluster
       --kubeconfig string                 path to the kubeconfig of the target cluster
-      --landscaper-chart-version string   use custom landscaper chart version
-      --landscaper-values string          path to values.yaml for the Landscaper Helm installation
-      --namespace string                  namespace where landscaper and OCI registry are installed (default: landscaper) (default "landscaper")
+      --landscaper-chart-version string   use a custom landscaper chart version (default "v0.4.2")
+      --landscaper-values string          path to values.yaml for the landscaper Helm installation
+      --namespace string                  namespace where the landscaper and the OCI registry are installed (default "landscaper")
 ```
 
 ### Options inherited from parent commands
@@ -36,5 +36,5 @@ landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-val
 
 ### SEE ALSO
 
-* [landscaper-cli quickstart](landscaper-cli_quickstart.md)	 - 
+* [landscaper-cli quickstart](landscaper-cli_quickstart.md)	 - useful commands for getting quickly up and running with the landscaper
 

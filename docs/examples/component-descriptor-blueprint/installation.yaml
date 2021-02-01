@@ -9,7 +9,7 @@ spec:
       repositoryContext:
         type: ociRegistry
         baseUrl: <base url oci registry>:5000/components
-      componentName: echo-server-cd
+      componentName: github.com/gardener/echo-server-cd
       version: v0.1.0
       resourceName: echo-server-blueprint
 
