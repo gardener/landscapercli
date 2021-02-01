@@ -38,7 +38,7 @@ type OCIKeyring interface {
 type AuthConfigGetter func(address string) (dockerconfigtypes.AuthConfig, error)
 
 // DefaultAuthConfigGetter describes a default getter method for a authentication method
-func DefaultAuthConfigGetter(config dockerconfigtypes.AuthConfig) func(address string) (dockerconfigtypes.AuthConfig, error) {
+func DefaultAuthConfigGetter(config dockerconfigtypes.AuthConfig) AuthConfigGetter {
 	return func(_ string) (dockerconfigtypes.AuthConfig, error) {
 		return config, nil
 	}

@@ -122,4 +122,6 @@ func (o *showOptions) Complete(args []string) error {
 	return nil
 }
 
-func (o *showOptions) AddFlags(fs *pflag.FlagSet) {}
+func (o *showOptions) AddFlags(fs *pflag.FlagSet) {
+	o.OciOptions.AddFlags(fs)
+}
