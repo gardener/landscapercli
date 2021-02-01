@@ -16,6 +16,9 @@ func NewVersionCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			v := version.Get()
 			fmt.Printf("%#v", v)
+			fmt.Printf("\nCompatible Landscaper Version: %s", version.LandscaperVersion)
+			fmt.Printf("\nCompatible and included Component-Cli Version: %s", version.ComponentCliVersion)
+			fmt.Printf("\n")
 		},
 	}
 }
