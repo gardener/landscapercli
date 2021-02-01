@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
-	"strings"
 
 	"github.com/gardener/landscapercli/pkg/version"
 
@@ -165,7 +163,7 @@ func (o *installOptions) AddFlags(fs *pflag.FlagSet) {
 func installLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperValues string, landscaperChartVersion string) error {
 	landscaperChartURI := fmt.Sprintf("eu.gcr.io/gardener-project/landscaper/charts/landscaper-controller:%s", landscaperChartVersion)
 	pullCmd := fmt.Sprintf("helm chart pull %s", landscaperChartURI)
-	err := execute(pullCmd)
+	err := util.ExecCommandBlocking(pullCmd)
 	if err != nil {
 		return err
 	}
@@ -179,7 +177,7 @@ func installLandscaper(ctx context.Context, kubeconfigPath, namespace, landscape
 	}()
 
 	exportCmd := fmt.Sprintf("helm chart export %s -d %s", landscaperChartURI, tempDir)
-	err = execute(exportCmd)
+	err = util.ExecCommandBlocking(exportCmd)
 	if err != nil {
 		return err
 	}
@@ -195,7 +193,7 @@ func installLandscaper(ctx context.Context, kubeconfigPath, namespace, landscape
 
 	chartPath := path.Join(tempDir, fileInfos[0].Name())
 
-	err = execute(fmt.Sprintf("helm upgrade --install --namespace %s landscaper %s -f %s --kubeconfig %s", namespace, chartPath, landscaperValues, kubeconfigPath))
+	err = util.ExecCommandBlocking(fmt.Sprintf("helm upgrade --install --namespace %s landscaper %s -f %s --kubeconfig %s", namespace, chartPath, landscaperValues, kubeconfigPath))
 	if err != nil {
 		return err
 	}
@@ -206,22 +204,4 @@ func installLandscaper(ctx context.Context, kubeconfigPath, namespace, landscape
 func installOCIRegistry(ctx context.Context, namespace string, k8sClient kubernetes.Interface) error {
 	ociRegistry := NewOCIRegistry(namespace, k8sClient)
 	return ociRegistry.install(ctx)
-}
-
-func execute(command string) error {
-	fmt.Printf("Executing: %s\n", command)
-
-	arr := strings.Split(command, " ")
-
-	cmd := exec.Command(arr[0], arr[1:]...)
-	cmd.Env = []string{"HELM_EXPERIMENTAL_OCI=1", "HOME=" + os.Getenv("HOME"), "PATH=" + os.Getenv("PATH")}
-	out, err := cmd.CombinedOutput()
-
-	if err != nil {
-		fmt.Printf("Failed with error: %s:\n%s\n", err, string(out))
-		return err
-	}
-	fmt.Println("Executed sucessfully!")
-
-	return nil
 }
