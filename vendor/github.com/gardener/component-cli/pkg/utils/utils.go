@@ -9,10 +9,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/mandelsoft/vfs/pkg/vfs"
-	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/component-cli/ociclient/cache"
@@ -65,16 +63,4 @@ func CacheDir() (string, error) {
 	}
 
 	return cacheDir, nil
-}
-
-// CleanMarkdownUsageFunc removes markdown tags from the long usage of the command.
-// With this func it is possible to generate the markdown docs but still have readable commandline help func.
-// Note: currently only "<pre>" tags are removed
-func CleanMarkdownUsageFunc(cmd *cobra.Command) {
-	defaultHelpFunc := cmd.HelpFunc()
-	cmd.SetHelpFunc(func(cmd *cobra.Command, s []string) {
-		cmd.Long = strings.ReplaceAll(cmd.Long, "<pre>", "")
-		cmd.Long = strings.ReplaceAll(cmd.Long, "</pre>", "")
-		defaultHelpFunc(cmd, s)
-	})
 }

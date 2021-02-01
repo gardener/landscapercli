@@ -25,7 +25,6 @@ import (
 	"github.com/gardener/component-cli/pkg/components"
 	"github.com/gardener/component-cli/pkg/imagevector"
 	"github.com/gardener/component-cli/pkg/logger"
-	"github.com/gardener/component-cli/pkg/utils"
 )
 
 // GenerateOverwriteOptions defines the options that are used to generate a image vector from component descriptors
@@ -87,6 +86,7 @@ Images can be defined in a component descriptor in 3 different ways:
    It is expected that the resource contains the following labels to be identified as image vector image.
    The resulting image overwrite will contain the repository and the tag/digest from the access method.
 <pre>
+
 resources:
 - name: pause-container
   version: "3.1"
@@ -106,6 +106,7 @@ resources:
   access:
     type: ociRegistry
     imageReference: gcr.io/google_containers/pause-amd64:3.1
+
 </pre>
 
 2. as component reference: The images are defined in a label "imagevector.gardener.cloud/images".
@@ -115,6 +116,7 @@ resources:
    Note: The images from the label are matched to the resources using their name and version. The original image reference do not exit anymore.
 
 <pre>
+
 componentReferences:
 - name: cluster-autoscaler-abc
   componentName: github.com/gardener/autoscaler
@@ -126,6 +128,7 @@ componentReferences:
       - name: cluster-autoscaler
         repository: eu.gcr.io/gardener-project/gardener/autoscaler/cluster-autoscaler
         tag: "v0.10.1"
+
 </pre>
 
 3. as generic images from the component descriptor labels.
@@ -134,6 +137,7 @@ componentReferences:
    The other component descriptor MUST have the "imagevector.gardener.cloud/name" label in order to be matched.
 
 <pre>
+
 meta:
   schemaVersion: 'v2'
 component:
@@ -144,9 +148,11 @@ component:
       - name: hyperkube
         repository: k8s.gcr.io/hyperkube
         targetVersion: "< 1.19"
+
 </pre>
 
 <pre>
+
 meta:
   schemaVersion: 'v2'
 component:
@@ -164,6 +170,7 @@ component:
     access:
 	  type: ociRegistry
 	  imageReference: my-registry/hyperkube:v1.19.4
+
 </pre>
 
 `,
@@ -181,7 +188,7 @@ component:
 	}
 
 	opts.AddFlags(cmd.Flags())
-	utils.CleanMarkdownUsageFunc(cmd)
+
 	return cmd
 }
 

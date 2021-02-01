@@ -5,6 +5,7 @@
 package credentials
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
@@ -15,8 +16,12 @@ import (
 	dockerreference "github.com/containerd/containerd/reference/docker"
 	"github.com/containerd/containerd/remotes"
 	"github.com/containerd/containerd/remotes/docker"
+	dockerconfig "github.com/docker/cli/cli/config"
 	dockercreds "github.com/docker/cli/cli/config/credentials"
 	dockerconfigtypes "github.com/docker/cli/cli/config/types"
+	"github.com/mandelsoft/vfs/pkg/osfs"
+	"github.com/mandelsoft/vfs/pkg/vfs"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // to find a suitable secret for images on Docker Hub, we need its two domains to do matching
@@ -34,33 +39,76 @@ type OCIKeyring interface {
 	Resolver(ctx context.Context, ref string, client *http.Client, plainHTTP bool) (remotes.Resolver, error)
 }
 
-// AuthConfigGetter is a function that returns a auth config for a given host name
-type AuthConfigGetter func(address string) (dockerconfigtypes.AuthConfig, error)
-
-// DefaultAuthConfigGetter describes a default getter method for a authentication method
-func DefaultAuthConfigGetter(config dockerconfigtypes.AuthConfig) func(address string) (dockerconfigtypes.AuthConfig, error) {
-	return func(_ string) (dockerconfigtypes.AuthConfig, error) {
-		return config, nil
+// CreateOCIRegistryKeyringFromFilesystem creates a new OCI registry keyring from a given file system.
+func CreateOCIRegistryKeyringFromFilesystem(pullSecrets []corev1.Secret, configFiles []string, fs vfs.FileSystem) (*GeneralOciKeyring, error) {
+	store := &GeneralOciKeyring{
+		index: &IndexNode{},
+		store: map[string]dockerconfigtypes.AuthConfig{},
 	}
+	for _, secret := range pullSecrets {
+		if secret.Type != corev1.SecretTypeDockerConfigJson {
+			continue
+		}
+		dockerConfigBytes, ok := secret.Data[corev1.DockerConfigJsonKey]
+		if !ok {
+			continue
+		}
+
+		dockerConfig, err := dockerconfig.LoadFromReader(bytes.NewBuffer(dockerConfigBytes))
+		if err != nil {
+			return nil, err
+		}
+
+		// currently only support the default credential store.
+		credStore := dockerConfig.GetCredentialsStore("")
+		if err := store.Add(credStore); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, configFile := range configFiles {
+		dockerConfigBytes, err := vfs.ReadFile(fs, configFile)
+		if err != nil {
+			return nil, err
+		}
+
+		dockerConfig, err := dockerconfig.LoadFromReader(bytes.NewBuffer(dockerConfigBytes))
+		if err != nil {
+			return nil, err
+		}
+
+		// currently only support the default credential store.
+		credStore := dockerConfig.GetCredentialsStore("")
+		if err := store.Add(credStore); err != nil {
+			return nil, err
+		}
+	}
+
+	return store, nil
+}
+
+// CreateOCIRegistryKeyring creates a new OCI registry keyring.
+func CreateOCIRegistryKeyring(pullSecrets []corev1.Secret, configFiles []string) (*GeneralOciKeyring, error) {
+	return CreateOCIRegistryKeyringFromFilesystem(pullSecrets, configFiles, osfs.New())
 }
 
 // GeneralOciKeyring is general implementation of a oci keyring that can be extended with other credentials.
 type GeneralOciKeyring struct {
 	// index is an additional index structure that also contains multi
 	index *IndexNode
-	store map[string][]AuthConfigGetter
+	store map[string]dockerconfigtypes.AuthConfig
 }
 
 type IndexNode struct {
-	Segment   string
-	Addresses []string
-	Children  []*IndexNode
+	Segment  string
+	Address  string
+	Children []*IndexNode
 }
 
-func (n *IndexNode) Set(path string, addresses ...string) {
+func (n *IndexNode) Set(path, address string) {
 	splitPath := strings.Split(path, "/")
 	if len(splitPath) == 0 || (len(splitPath) == 1 && len(splitPath[0]) == 0) {
-		n.Addresses = append(n.Addresses, addresses...)
+		n.Address = address
 		return
 	}
 	child := n.FindSegment(splitPath[0])
@@ -70,7 +118,7 @@ func (n *IndexNode) Set(path string, addresses ...string) {
 		}
 		n.Children = append(n.Children, child)
 	}
-	child.Set(strings.Join(splitPath[1:], "/"), addresses...)
+	child.Set(strings.Join(splitPath[1:], "/"), address)
 }
 
 func (n *IndexNode) FindSegment(segment string) *IndexNode {
@@ -82,15 +130,15 @@ func (n *IndexNode) FindSegment(segment string) *IndexNode {
 	return nil
 }
 
-func (n *IndexNode) Find(path string) ([]string, bool) {
+func (n *IndexNode) Find(path string) (string, bool) {
 	splitPath := strings.Split(path, "/")
 	if len(splitPath) == 0 || (len(splitPath) == 1 && len(splitPath[0]) == 0) {
-		return n.Addresses, true
+		return n.Address, true
 	}
 	child := n.FindSegment(splitPath[0])
 	if child == nil {
 		// returns the current address if no more specific auth config is defined
-		return n.Addresses, true
+		return n.Address, true
 	}
 	return child.Find(strings.Join(splitPath[1:], "/"))
 }
@@ -99,7 +147,7 @@ func (n *IndexNode) Find(path string) ([]string, bool) {
 func New() *GeneralOciKeyring {
 	return &GeneralOciKeyring{
 		index: &IndexNode{},
-		store: make(map[string][]AuthConfigGetter),
+		store: make(map[string]dockerconfigtypes.AuthConfig),
 	}
 }
 
@@ -130,28 +178,12 @@ func (o GeneralOciKeyring) Get(resourceURl string) (dockerconfigtypes.AuthConfig
 }
 
 func (o GeneralOciKeyring) get(url string) (dockerconfigtypes.AuthConfig, bool) {
-	addresses, ok := o.index.Find(url)
+	address, ok := o.index.Find(url)
 	if !ok {
 		return dockerconfigtypes.AuthConfig{}, false
 	}
-	for _, address := range addresses {
-		authGetters, ok := o.store[address]
-		if !ok {
-			continue
-		}
-		for _, authGetter := range authGetters {
-			auth, err := authGetter(url)
-			if err != nil {
-				// todo: add logger
-				continue
-			}
-			if IsEmptyAuthConfig(auth) {
-				// try another config if the current one is emtpy
-				continue
-			}
-			return auth, true
-		}
-
+	if auth, ok := o.store[address]; ok {
+		return auth, ok
 	}
 	return dockerconfigtypes.AuthConfig{}, false
 }
@@ -174,18 +206,13 @@ func (o *GeneralOciKeyring) GetCredentials(hostname string) (username, password 
 
 // AddAuthConfig adds a auth config for a address
 func (o *GeneralOciKeyring) AddAuthConfig(address string, auth dockerconfigtypes.AuthConfig) error {
-	return o.AddAuthConfigGetter(address, DefaultAuthConfigGetter(auth))
-}
-
-// AddAuthConfig adds a auth config for a address
-func (o *GeneralOciKeyring) AddAuthConfigGetter(address string, getter AuthConfigGetter) error {
 	// normalize host name
 	var err error
 	address, err = normalizeHost(address)
 	if err != nil {
 		return err
 	}
-	o.store[address] = append(o.store[address], getter)
+	o.store[address] = auth
 	o.index.Set(address, address)
 	return nil
 }
@@ -204,7 +231,7 @@ func (o *GeneralOciKeyring) Add(store dockercreds.Store) error {
 	return nil
 }
 
-func (o *GeneralOciKeyring) Resolver(_ context.Context, ref string, client *http.Client, plainHTTP bool) (remotes.Resolver, error) {
+func (o *GeneralOciKeyring) Resolver(ctx context.Context, ref string, client *http.Client, plainHTTP bool) (remotes.Resolver, error) {
 	if ref == "" {
 		return docker.NewResolver(docker.ResolverOptions{
 			Credentials: o.GetCredentials,
@@ -240,28 +267,4 @@ func normalizeHost(u string) (string, error) {
 		return "", err
 	}
 	return path.Join(host.Host, host.Path), nil
-}
-
-// Adds all authentication options from keyring 1 and 2.
-// Keyring 2 overwrites authentication from keyring 1 on clashes.
-func Merge(k1, k2 *GeneralOciKeyring) error {
-	for address, getters := range k2.store {
-		for _, getter := range getters {
-			if err := k1.AddAuthConfigGetter(address, getter); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-// IsEmptyAuthConfig validates if the resulting auth config contains credentails
-func IsEmptyAuthConfig(auth dockerconfigtypes.AuthConfig) bool {
-	if len(auth.Auth) != 0 {
-		return false
-	}
-	if len(auth.Username) != 0 {
-		return false
-	}
-	return true
 }
