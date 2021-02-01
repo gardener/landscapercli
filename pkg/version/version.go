@@ -13,10 +13,9 @@ import (
 )
 
 var (
-	gitVersion   = "0.0.1-dev"
 	gitCommit    string
 	gitTreeState string
-	buildDate    = "2020-12-14T00:00:00Z"
+	buildDate    = ""
 )
 
 // GetInterface returns the overall codebase version. It's for detecting
@@ -25,7 +24,7 @@ var (
 // their absence fallback to the settings in pkg/version/base.go
 func Get() apimachineryversion.Info {
 	var (
-		version  = strings.Split(gitVersion, ".")
+		version  = strings.Split(LandscaperCliVersion, ".")
 		gitMajor string
 		gitMinor string
 	)
@@ -38,7 +37,7 @@ func Get() apimachineryversion.Info {
 	return apimachineryversion.Info{
 		Major:        gitMajor,
 		Minor:        gitMinor,
-		GitVersion:   gitVersion,
+		GitVersion:   LandscaperCliVersion,
 		GitCommit:    gitCommit,
 		GitTreeState: gitTreeState,
 		BuildDate:    buildDate,

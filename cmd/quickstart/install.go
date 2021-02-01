@@ -8,6 +8,8 @@ import (
 	"os"
 	"path"
 
+	"github.com/gardener/landscapercli/pkg/version"
+
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -23,8 +25,7 @@ import (
 )
 
 const (
-	defaultNamespace              = "landscaper"
-	defaultLandscaperChartVersion = "v0.5.2"
+	defaultNamespace = "landscaper"
 )
 
 type installOptions struct {
@@ -156,7 +157,7 @@ func (o *installOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where the landscaper and the OCI registry are installed")
 	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the landscaper Helm installation")
 	fs.BoolVar(&o.installOCIRegistry, "install-oci-registry", false, "install an internal OCI registry in the target cluster")
-	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", defaultLandscaperChartVersion, "use a custom landscaper chart version")
+	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", version.LandscaperVersion, "use a custom landscaper chart version")
 }
 
 func installLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperValues string, landscaperChartVersion string) error {
