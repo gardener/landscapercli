@@ -19,10 +19,10 @@ require (
 	github.com/spf13/pflag v1.0.5
 	go.uber.org/zap v1.16.0
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
-	sigs.k8s.io/controller-runtime v0.6.0
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.20.2
+	sigs.k8s.io/controller-runtime v0.8.1
 	sigs.k8s.io/yaml v1.2.0
 )
 

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	landscaper "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
+	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -15,7 +15,7 @@ import (
 	"github.com/gardener/landscapercli/pkg/util"
 )
 
-func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target, helmChartRef string, config *config.Config) error {
+func RunQuickstartInstallTest(k8sClient client.Client, target *lsv1alpha1.Target, helmChartRef string, config *config.Config) error {
 	// cleanup before
 	err := util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
@@ -47,7 +47,7 @@ func RunQuickstartInstallTest(k8sClient client.Client, target *landscaper.Target
 
 type quickstartInstallTest struct {
 	k8sClient    client.Client
-	target       *landscaper.Target
+	target       *lsv1alpha1.Target
 	helmChartRef string
 	namespace    string
 	sleepTime    time.Duration
@@ -101,7 +101,7 @@ func (t *quickstartInstallTest) run() error {
 	return nil
 }
 
-func buildHelmInstallation(name string, target *landscaper.Target, helmChartRef, appNamespace string) (*landscaper.Installation, error) {
+func buildHelmInstallation(name string, target *lsv1alpha1.Target, helmChartRef, appNamespace string) (*lsv1alpha1.Installation, error) {
 	inlineBlueprint := fmt.Sprintf(`
         apiVersion: landscaper.gardener.cloud/v1alpha1
         kind: Blueprint
@@ -150,19 +150,19 @@ func buildHelmInstallation(name string, target *landscaper.Target, helmChartRef,
 		return nil, fmt.Errorf("cannot marshall inline blueprint: %w", err)
 	}
 
-	obj := &landscaper.Installation{
+	obj := &lsv1alpha1.Installation{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: target.Namespace,
 		},
-		Spec: landscaper.InstallationSpec{
-			Blueprint: landscaper.BlueprintDefinition{
-				Inline: &landscaper.InlineBlueprint{
+		Spec: lsv1alpha1.InstallationSpec{
+			Blueprint: lsv1alpha1.BlueprintDefinition{
+				Inline: &lsv1alpha1.InlineBlueprint{
 					Filesystem: marshalledFilesystem,
 				},
 			},
-			Imports: landscaper.InstallationImports{
-				Targets: []landscaper.TargetImportExport{
+			Imports: lsv1alpha1.InstallationImports{
+				Targets: []lsv1alpha1.TargetImportExport{
 					{
 						Name:   "cluster",
 						Target: "#" + target.Name,

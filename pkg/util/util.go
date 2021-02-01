@@ -8,11 +8,10 @@ import (
 	"strings"
 	"time"
 
-	landscaper "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
+	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -137,13 +136,13 @@ func CheckAndWaitUntilAllPodsAreReady(k8sClient client.Client, namespace string,
 // or if timeout (sleepTime and maxRetries is reached). Returns a boolean indicating if the installation succeeded.
 func CheckAndWaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, key types.NamespacedName, sleepTime time.Duration, maxRetries int) (bool, error) {
 	conditionFunc := func() (bool, error) {
-		inst := &landscaper.Installation{}
+		inst := &lsv1alpha1.Installation{}
 		err := k8sClient.Get(context.TODO(), key, inst)
 		if err != nil {
 			return false, fmt.Errorf("cannot get installation: %w", err)
 		}
 
-		return inst.Status.Phase == landscaper.ComponentPhaseSucceeded, nil
+		return inst.Status.Phase == lsv1alpha1.ComponentPhaseSucceeded, nil
 	}
 
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
@@ -151,7 +150,7 @@ func CheckAndWaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, k
 
 // CheckAndWaitUntilObjectNotExistAnymore periodically checks and wait until the object does not exist anymore. Returns an error on failure
 // or if timeout (sleepTime and maxRetries is reached). Returns a boolean indicating if the object remains on return.
-func CheckAndWaitUntilObjectNotExistAnymore(k8sClient client.Client, objKey types.NamespacedName, obj runtime.Object, sleepTime time.Duration, maxRetries int) (bool, error) {
+func CheckAndWaitUntilObjectNotExistAnymore(k8sClient client.Client, objKey types.NamespacedName, obj client.Object, sleepTime time.Duration, maxRetries int) (bool, error) {
 	conditionFunc := func() (bool, error) {
 		err := k8sClient.Get(context.TODO(), objKey, obj)
 		if err != nil {
@@ -172,7 +171,7 @@ func CheckAndWaitUntilNoInstallationsInNamespaceExists(k8sClient client.Client, 
 	conditionFunc := func() (bool, error) {
 		ctx := context.TODO()
 
-		installationList := &landscaper.InstallationList{}
+		installationList := &lsv1alpha1.InstallationList{}
 		err := k8sClient.List(ctx, installationList, &client.ListOptions{Namespace: namespace})
 		if err != nil {
 			return false, err
@@ -221,7 +220,7 @@ func DeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.D
 func gracefullyDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (bool, error) {
 	ctx := context.TODO()
 
-	installationList := landscaper.InstallationList{}
+	installationList := lsv1alpha1.InstallationList{}
 	err := k8sClient.List(ctx, &installationList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
 		return false, err
@@ -297,7 +296,7 @@ func forceDeleteNamespace(k8sClient client.Client, namespace string, sleepTime t
 func removeFinalizersFromLandscaperCRs(k8sClient client.Client, namespace string) error {
 	ctx := context.TODO()
 
-	installationList := landscaper.InstallationList{}
+	installationList := lsv1alpha1.InstallationList{}
 	err := k8sClient.List(ctx, &installationList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
 		return fmt.Errorf("cannot list installations: %w", err)
@@ -309,7 +308,7 @@ func removeFinalizersFromLandscaperCRs(k8sClient client.Client, namespace string
 		}
 	}
 
-	executionList := &landscaper.ExecutionList{}
+	executionList := &lsv1alpha1.ExecutionList{}
 	err = k8sClient.List(ctx, executionList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
 		return fmt.Errorf("cannot list executions: %w", err)
@@ -321,7 +320,7 @@ func removeFinalizersFromLandscaperCRs(k8sClient client.Client, namespace string
 		}
 	}
 
-	deployItemList := &landscaper.DeployItemList{}
+	deployItemList := &lsv1alpha1.DeployItemList{}
 	err = k8sClient.List(ctx, deployItemList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
 		return fmt.Errorf("cannot list deployitems: %w", err)
@@ -341,5 +340,5 @@ func removeFinalizers(ctx context.Context, k8sClient client.Client, object metav
 		return nil
 	}
 	object.SetFinalizers([]string{})
-	return k8sClient.Update(ctx, object.(runtime.Object))
+	return k8sClient.Update(ctx, object.(client.Object))
 }

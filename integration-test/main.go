@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"time"
 
-	landscaper "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
+	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -32,10 +32,10 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = landscaper.AddToScheme(scheme)
+	_ = lsv1alpha1.AddToScheme(scheme)
 }
 
-func runTestSuite(k8sClient client.Client, config *config.Config, target *landscaper.Target, helmChartRef string) error {
+func runTestSuite(k8sClient client.Client, config *config.Config, target *lsv1alpha1.Target, helmChartRef string) error {
 	fmt.Println("========== RunQuickstartInstallTest() ==========")
 	err := tests.RunQuickstartInstallTest(k8sClient, target, helmChartRef, config)
 	if err != nil {
@@ -160,7 +160,7 @@ func parseConfig() *config.Config {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "path to the kubeconfig of the cluster")
 	flag.StringVar(&landscaperNamespace, "landscaper-namespace", "landscaper", "namespace on the cluster to setup Landscaper")
 	flag.StringVar(&testNamespace, "test-namespace", "ls-cli-inttest", "namespace where the tests will be runned")
-	flag.IntVar(&maxRetries, "max-retries", 6, "max retries (every 5s) for all waiting operations")
+	flag.IntVar(&maxRetries, "max-retries", 10, "max retries (every 5s) for all waiting operations")
 	flag.Parse()
 
 	config := config.Config{
@@ -174,7 +174,7 @@ func parseConfig() *config.Config {
 	return &config
 }
 
-func buildTarget(kubeconfig string) (*landscaper.Target, error) {
+func buildTarget(kubeconfig string) (*lsv1alpha1.Target, error) {
 	kubeconfigContent, err := ioutil.ReadFile(kubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read kubeconfig: %w", err)
@@ -189,12 +189,12 @@ func buildTarget(kubeconfig string) (*landscaper.Target, error) {
 		return nil, fmt.Errorf("%w", err)
 	}
 
-	target := &landscaper.Target{
+	target := &lsv1alpha1.Target{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-target",
 		},
-		Spec: landscaper.TargetSpec{
-			Type:          landscaper.KubernetesClusterTargetType,
+		Spec: lsv1alpha1.TargetSpec{
+			Type:          lsv1alpha1.KubernetesClusterTargetType,
 			Configuration: marshalledConfig,
 		},
 	}
