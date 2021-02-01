@@ -12,6 +12,8 @@ import (
 	"os"
 	"path/filepath"
 
+	lsv1alpha1 "github.com/gardener/landscaper/apis/core"
+
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
 	"github.com/mandelsoft/vfs/pkg/vfs"
@@ -23,7 +25,7 @@ import (
 	"github.com/gardener/component-cli/ociclient"
 	"github.com/gardener/component-cli/ociclient/cache"
 
-	lsv1alpha1 "github.com/gardener/landscaper/pkg/apis/core/v1alpha1"
+	lsinstall "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/pkg/kubernetes"
 	"github.com/gardener/landscaper/pkg/utils"
 
@@ -96,7 +98,7 @@ func (o *showOptions) run(ctx context.Context, log logr.Logger) error {
 		return err
 	}
 
-	defData, err := vfs.ReadFile(memFS, lsv1alpha1.BlueprintFileName)
+	defData, err := vfs.ReadFile(memFS, lsinstall.BlueprintFileName)
 	if err != nil {
 		return err
 	}
