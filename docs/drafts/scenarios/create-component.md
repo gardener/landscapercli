@@ -25,7 +25,6 @@ It is assumed that the helm chart is already stored as artifact in an oci regist
 landscaper-cli component add helm-ls deployitem \ 
     ./example-component \
     nginx1 \
-    nginx1 \
     --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
     --chart-version v0.1.0 \
     --cluster-param cluster \
@@ -38,7 +37,6 @@ It is assumed that the helm chart is already stored in the local file system.
 ```shell script
 landscaper-cli component add helm-ls deployitem \
     ./example-component \
-    nginx2 \
     nginx2 \
     --chart-directory ./chart/ingress-nginx \
     --chart-version v0.1.0 \
