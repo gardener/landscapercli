@@ -151,9 +151,10 @@ func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem
 
 	_, specValueNode := findNode(reallyOut.Content[0].Content, "spec")
 	_, importsValueNode := findNode(specValueNode.Content, "imports")
-	_, dataValueNode := findNode(importsValueNode.Content, "data")
+	_, importDataValueNode := findNode(importsValueNode.Content, "data")
+	_, targetsValueNode := findNode(importsValueNode.Content, "targets")
 
-	for _, dataImportNode := range dataValueNode.Content {
+	for _, dataImportNode := range importDataValueNode.Content {
 		n1,n2 := findNode(dataImportNode.Content, "name")
 		importName := n2.Value
 
@@ -171,21 +172,64 @@ func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem
 		n1.HeadComment = "JSON Schema\n" + string(prettySchema)
 	}
 
-	fmt.Println(dataValueNode)
+	for _, targetImportNode := range targetsValueNode.Content {
+		n1,n2 := findNode(targetImportNode.Content, "name")
+		targetName := n2.Value
 
-	// reallyOut
+		var impdef lsv1alpha1.ImportDefinition
+		for _, bpimp := range blueprint.Imports {
+			if bpimp.Name == targetName {
+				impdef = bpimp
+				break
+			}
+		}
+		n1.HeadComment = "target type: " + impdef.TargetType
+	}
 
-	// for _, imp := blueprint.Imports {
+	_, exportsValueNode := findNode(specValueNode.Content, "exports")
+	_, exportsDataValueNode := findNode(exportsValueNode.Content, "data")
+	_, exportTargetsValueNode := findNode(exportsValueNode.Content, "targets")
 
-	// }
+	for _, dataImportNode := range exportsDataValueNode.Content {
+		n1,n2 := findNode(dataImportNode.Content, "name")
+		exportName := n2.Value
 
-	reallyOut.Content[0].Content[5].Content[0].HeadComment = "This is my comment.\nPlease indent correct."
-	reallyOut.Content[0].Content[5].Content[1].HeadComment = "We are the greatest devs ever.\nbuy gamestonk!"
-	reallyOutMarshalled, err := yamlv3.Marshal(&reallyOut)
+		var expdef lsv1alpha1.ExportDefinition
+		for _, bpexp := range blueprint.Exports {
+			if bpexp.Name == exportName {
+				expdef = bpexp
+				break
+			}
+		}
+		prettySchema, err := json.MarshalIndent(expdef.Schema, "", "  ")
+		if err != nil {
+			return err
+		}
+		n1.HeadComment = "JSON Schema\n" + string(prettySchema)
+	}
+
+	for _, targetExportNode := range exportTargetsValueNode.Content {
+		n1,n2 := findNode(targetExportNode.Content, "name")
+		targetName := n2.Value
+
+		var expdef lsv1alpha1.ExportDefinition
+		for _, bpexp := range blueprint.Exports {
+			if bpexp.Name == targetName {
+				expdef = bpexp
+				break
+			}
+		}
+		n1.HeadComment = "target type: " + expdef.TargetType
+	}
+
+	buf := bytes.Buffer{}
+	enc := yamlv3.NewEncoder(&buf)
+	enc.SetIndent(2)
+	err = enc.Encode(&reallyOut)
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(reallyOutMarshalled))
+	fmt.Println(string(buf.Bytes()))
 
 	return nil
 }
