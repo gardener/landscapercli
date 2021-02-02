@@ -111,7 +111,7 @@ func (o *addManifestDeployItemOptions) Complete(args []string) error {
 			o.importDefinitions = append(o.importDefinitions, *importDefinition)
 
 			if _, ok := o.replacement[importDefinition.Name]; !ok {
-				fmt.Errorf("import parameter %s occurs more than once", importDefinition.Name)
+				return fmt.Errorf("import parameter %s occurs more than once", importDefinition.Name)
 			}
 
 			o.replacement[importDefinition.Name] = string(uuid.NewUUID())
@@ -330,14 +330,24 @@ func (o *addManifestDeployItemOptions) existsExecutionFile() (bool, error) {
 }
 
 func (o *addManifestDeployItemOptions) createExecutionFile() error {
-	f, err := os.Create(util.ExecutionFilePath(o.componentPath, o.deployItemName))
+	err := o.writeExecution()
+	if err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(util.ExecutionFilePath(o.componentPath, o.deployItemName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 
 	defer f.Close()
 
-	err = o.writeExecution(f)
+	manifests, err := o.getManifests()
+	if err != nil {
+		return err
+	}
+
+	_, err = f.WriteString(manifests)
 
 	return err
 }
@@ -352,27 +362,17 @@ const manifestExecutionTemplate = `deployItems:
     apiVersion: manifest.deployer.landscaper.gardener.cloud/v1alpha2
     kind: ProviderConfiguration
     updateStrategy: {{.UpdateStrategy}}
-    {{- getManifests }}
 `
 
-func (o *addManifestDeployItemOptions) writeExecution(f *os.File) error {
-	funcs := map[string]interface{}{
-		"getManifests": func() (string, error) {
-			data, err := o.getManifestsYaml()
-			if err != nil {
-				return "", err
-			}
-
-			data, err = indentLines(data, 4)
-			if err != nil {
-				return "", err
-			}
-
-			return string(data), nil
-		},
+func (o *addManifestDeployItemOptions) writeExecution() error {
+	f, err := os.Create(util.ExecutionFilePath(o.componentPath, o.deployItemName))
+	if err != nil {
+		return err
 	}
 
-	t, err := template.New("").Funcs(funcs).Parse(manifestExecutionTemplate)
+	defer f.Close()
+
+	t, err := template.New("").Parse(manifestExecutionTemplate)
 	if err != nil {
 		return err
 	}
@@ -395,6 +395,20 @@ func (o *addManifestDeployItemOptions) writeExecution(f *os.File) error {
 	}
 
 	return nil
+}
+
+func (o *addManifestDeployItemOptions) getManifests() (string, error) {
+	data, err := o.getManifestsYaml()
+	if err != nil {
+		return "", err
+	}
+
+	data, err = indentLines(data, 4)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
 }
 
 func indentLines(data []byte, n int) ([]byte, error) {
@@ -490,13 +504,13 @@ func (o *addManifestDeployItemOptions) readManifest(filename string) (*manifest.
 func (o *addManifestDeployItemOptions) replaceParamsByUUIDs(in interface{}) interface{} {
 	switch m := in.(type) {
 	case map[string]interface{}:
-		for k, _ := range m {
+		for k := range m {
 			m[k] = o.replaceParamsByUUIDs(m[k])
 		}
 		return m
 
 	case []interface{}:
-		for k, _ := range m {
+		for k := range m {
 			m[k] = o.replaceParamsByUUIDs(m[k])
 		}
 		return m
