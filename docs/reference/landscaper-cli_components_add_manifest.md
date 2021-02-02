@@ -1,11 +1,11 @@
-## landscaper-cli components add
+## landscaper-cli components add manifest
 
-command to add parts to a component
+command to add parts to a component concerning a manifest deployment
 
 ### Options
 
 ```
-  -h, --help   help for add
+  -h, --help   help for manifest
 ```
 
 ### Options inherited from parent commands
@@ -21,7 +21,7 @@ command to add parts to a component
 
 ### SEE ALSO
 
-* [landscaper-cli components](landscaper-cli_components.md)	 - command to interact with components based on blueprints
-* [landscaper-cli components add helm-ls](landscaper-cli_components_add_helm-ls.md)	 - command to add parts to a component concerning a helm landscaper deployment
-* [landscaper-cli components add manifest](landscaper-cli_components_add_manifest.md)	 - command to add parts to a component concerning a manifest deployment
+* [landscaper-cli components add](landscaper-cli_components_add.md)	 - command to add parts to a component
+* [landscaper-cli components add manifest deployitem](landscaper-cli_components_add_manifest_deployitem.md)	 - 
+Command to add a deploy item skeleton to the blueprint of a component
 

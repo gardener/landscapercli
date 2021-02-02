@@ -15,13 +15,13 @@ import (
 	"os"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/util/uuid"
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/apis/deployer/manifest"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscapercli/pkg/blueprints"
@@ -52,9 +52,10 @@ type addManifestDeployItemOptions struct {
 	componentPath  string
 	deployItemName string
 
-	files        *[]string
-	importParams *[]string
+	files             *[]string
+	importParams      *[]string
 	importDefinitions []v1alpha1.ImportDefinition
+	replacement       map[string]string
 
 	updateStrategy string
 	policy         string
@@ -97,6 +98,7 @@ func (o *addManifestDeployItemOptions) Complete(args []string) error {
 	o.deployItemName = args[1]
 
 	o.importDefinitions = []v1alpha1.ImportDefinition{}
+	o.replacement = map[string]string{}
 	if o.importParams != nil {
 		for _, p := range *o.importParams {
 			importDefinition, err := o.parseImportDefinition(p)
@@ -105,6 +107,12 @@ func (o *addManifestDeployItemOptions) Complete(args []string) error {
 			}
 
 			o.importDefinitions = append(o.importDefinitions, *importDefinition)
+
+			if _, ok := o.replacement[importDefinition.Name]; !ok {
+				fmt.Errorf("import parameter %s occurs more than once", importDefinition.Name)
+			}
+
+			o.replacement[importDefinition.Name] = string(uuid.NewUUID())
 		}
 	}
 
@@ -409,9 +417,7 @@ func indentLines(data []byte, n int) ([]byte, error) {
 }
 
 func (o *addManifestDeployItemOptions) getManifestsYaml() ([]byte, error) {
-	replacement := o.createReplacement()
-
-	manifests, err := o.readManifests(replacement)
+	manifests, err := o.readManifests()
 	if err != nil {
 		return nil, err
 	}
@@ -425,12 +431,12 @@ func (o *addManifestDeployItemOptions) getManifestsYaml() ([]byte, error) {
 		return nil, err
 	}
 
-	data = o.replaceUUIDsByImportTemplates(data, replacement)
+	data = o.replaceUUIDsByImportTemplates(data)
 
 	return data, nil
 }
 
-func (o *addManifestDeployItemOptions) readManifests(replacement map[string]string) ([]manifest.Manifest, error) {
+func (o *addManifestDeployItemOptions) readManifests() ([]manifest.Manifest, error) {
 	manifests := []manifest.Manifest{}
 
 	if o.files == nil {
@@ -438,7 +444,7 @@ func (o *addManifestDeployItemOptions) readManifests(replacement map[string]stri
 	}
 
 	for _, filename := range *o.files {
-		m, err := o.readManifest(filename, replacement)
+		m, err := o.readManifest(filename)
 		if err != nil {
 			return manifests, err
 		}
@@ -449,7 +455,7 @@ func (o *addManifestDeployItemOptions) readManifests(replacement map[string]stri
 	return manifests, nil
 }
 
-func (o *addManifestDeployItemOptions) readManifest(filename string, replacement map[string]string) (*manifest.Manifest, error) {
+func (o *addManifestDeployItemOptions) readManifest(filename string) (*manifest.Manifest, error) {
 	yamlData, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -461,7 +467,7 @@ func (o *addManifestDeployItemOptions) readManifest(filename string, replacement
 		return nil, err
 	}
 
-	m = o.replaceParamsByUUIDs(m, replacement)
+	m = o.replaceParamsByUUIDs(m)
 
 	// render to string
 	uuidData, err := json.Marshal(m)
@@ -479,32 +485,22 @@ func (o *addManifestDeployItemOptions) readManifest(filename string, replacement
 	return m2, nil
 }
 
-func (o *addManifestDeployItemOptions) createReplacement() map[string]string {
-	replacement := map[string]string{}
-
-	for _, importDef := range o.importDefinitions {
-		replacement[importDef.Name] = string(uuid.NewUUID())
-	}
-
-	return replacement
-}
-
-func (o *addManifestDeployItemOptions) replaceParamsByUUIDs(in interface{}, replacement map[string]string) interface{} {
+func (o *addManifestDeployItemOptions) replaceParamsByUUIDs(in interface{}) interface{} {
 	switch m := in.(type) {
 	case map[string]interface{}:
 		for k, _ := range m {
-			m[k] = o.replaceParamsByUUIDs(m[k], replacement)
+			m[k] = o.replaceParamsByUUIDs(m[k])
 		}
 		return m
 
 	case []interface{}:
 		for k, _ := range m {
-			m[k] = o.replaceParamsByUUIDs(m[k], replacement)
+			m[k] = o.replaceParamsByUUIDs(m[k])
 		}
 		return m
 
 	case string:
-		newValue, ok := replacement[m]
+		newValue, ok := o.replacement[m]
 		if ok {
 			return newValue
 		}
@@ -515,10 +511,10 @@ func (o *addManifestDeployItemOptions) replaceParamsByUUIDs(in interface{}, repl
 	}
 }
 
-func (o *addManifestDeployItemOptions) replaceUUIDsByImportTemplates(data []byte, replacement map[string]string) []byte {
+func (o *addManifestDeployItemOptions) replaceUUIDsByImportTemplates(data []byte) []byte {
 	s := string(data)
 
-	for paramName, uuid := range replacement {
+	for paramName, uuid := range o.replacement {
 		newValue := fmt.Sprintf("{{ .imports.%s }}", paramName)
 		s = strings.ReplaceAll(s, uuid, newValue)
 	}
