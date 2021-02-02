@@ -8,12 +8,14 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"os"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/apis/deployer/manifest"
 	"github.com/go-logr/logr"
@@ -52,6 +54,7 @@ type addManifestDeployItemOptions struct {
 
 	files        *[]string
 	importParams *[]string
+	importDefinitions []v1alpha1.ImportDefinition
 
 	updateStrategy string
 	policy         string
@@ -92,6 +95,18 @@ func NewAddManifestDeployItemCommand(ctx context.Context) *cobra.Command {
 func (o *addManifestDeployItemOptions) Complete(args []string) error {
 	o.componentPath = args[0]
 	o.deployItemName = args[1]
+
+	o.importDefinitions = []v1alpha1.ImportDefinition{}
+	if o.importParams != nil {
+		for _, p := range *o.importParams {
+			importDefinition, err := o.parseImportDefinition(p)
+			if err != nil {
+				return err
+			}
+
+			o.importDefinitions = append(o.importDefinitions, *importDefinition)
+		}
+	}
 
 	return o.validate()
 }
@@ -197,8 +212,8 @@ func (o *addManifestDeployItemOptions) addImports(blueprint *v1alpha1.Blueprint)
 	o.addTargetImport(blueprint, o.clusterParam)
 	o.addStringImport(blueprint, o.targetNsParam)
 
-	for _, p := range *o.importParams {
-		err := o.addImport(blueprint, p)
+	for _, importDefinition := range o.importDefinitions {
+		err := o.addImport(blueprint, &importDefinition)
 		if err != nil {
 			return err
 		}
@@ -243,12 +258,7 @@ func (o *addManifestDeployItemOptions) addStringImport(blueprint *v1alpha1.Bluep
 	})
 }
 
-func (o *addManifestDeployItemOptions) addImport(blueprint *v1alpha1.Blueprint, paramDef string) error {
-	importDefinition, err := o.parseImportDefinition(paramDef)
-	if err != nil {
-		return err
-	}
-
+func (o *addManifestDeployItemOptions) addImport(blueprint *v1alpha1.Blueprint, importDefinition *v1alpha1.ImportDefinition) error {
 	for i := range blueprint.Imports {
 		if blueprint.Imports[i].Name == importDefinition.Name {
 			// todo: check that the type has not changed
@@ -399,7 +409,9 @@ func indentLines(data []byte, n int) ([]byte, error) {
 }
 
 func (o *addManifestDeployItemOptions) getManifestsYaml() ([]byte, error) {
-	manifests, err := o.readManifests()
+	replacement := o.createReplacement()
+
+	manifests, err := o.readManifests(replacement)
 	if err != nil {
 		return nil, err
 	}
@@ -413,10 +425,12 @@ func (o *addManifestDeployItemOptions) getManifestsYaml() ([]byte, error) {
 		return nil, err
 	}
 
+	data = o.replaceUUIDsByImportTemplates(data, replacement)
+
 	return data, nil
 }
 
-func (o *addManifestDeployItemOptions) readManifests() ([]manifest.Manifest, error) {
+func (o *addManifestDeployItemOptions) readManifests(replacement map[string]string) ([]manifest.Manifest, error) {
 	manifests := []manifest.Manifest{}
 
 	if o.files == nil {
@@ -424,7 +438,7 @@ func (o *addManifestDeployItemOptions) readManifests() ([]manifest.Manifest, err
 	}
 
 	for _, filename := range *o.files {
-		m, err := o.readManifest(filename)
+		m, err := o.readManifest(filename, replacement)
 		if err != nil {
 			return manifests, err
 		}
@@ -435,21 +449,79 @@ func (o *addManifestDeployItemOptions) readManifests() ([]manifest.Manifest, err
 	return manifests, nil
 }
 
-func (o *addManifestDeployItemOptions) readManifest(filename string) (*manifest.Manifest, error) {
+func (o *addManifestDeployItemOptions) readManifest(filename string, replacement map[string]string) (*manifest.Manifest, error) {
 	yamlData, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	jsonData, err := yaml.YAMLToJSON(yamlData)
+	var m interface{}
+	err = yaml.Unmarshal(yamlData, &m)
 	if err != nil {
 		return nil, err
 	}
 
-	return &manifest.Manifest{
+	m = o.replaceParamsByUUIDs(m, replacement)
+
+	// render to string
+	uuidData, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+
+	m2 := &manifest.Manifest{
 		Policy: manifest.ManifestPolicy(o.policy),
 		Manifest: &runtime.RawExtension{
-			Raw: jsonData,
+			Raw: uuidData,
 		},
-	}, nil
+	}
+
+	return m2, nil
+}
+
+func (o *addManifestDeployItemOptions) createReplacement() map[string]string {
+	replacement := map[string]string{}
+
+	for _, importDef := range o.importDefinitions {
+		replacement[importDef.Name] = string(uuid.NewUUID())
+	}
+
+	return replacement
+}
+
+func (o *addManifestDeployItemOptions) replaceParamsByUUIDs(in interface{}, replacement map[string]string) interface{} {
+	switch m := in.(type) {
+	case map[string]interface{}:
+		for k, _ := range m {
+			m[k] = o.replaceParamsByUUIDs(m[k], replacement)
+		}
+		return m
+
+	case []interface{}:
+		for k, _ := range m {
+			m[k] = o.replaceParamsByUUIDs(m[k], replacement)
+		}
+		return m
+
+	case string:
+		newValue, ok := replacement[m]
+		if ok {
+			return newValue
+		}
+		return m
+
+	default:
+		return m
+	}
+}
+
+func (o *addManifestDeployItemOptions) replaceUUIDsByImportTemplates(data []byte, replacement map[string]string) []byte {
+	s := string(data)
+
+	for paramName, uuid := range replacement {
+		newValue := fmt.Sprintf("{{ .imports.%s }}", paramName)
+		s = strings.ReplaceAll(s, uuid, newValue)
+	}
+
+	return []byte(s)
 }
