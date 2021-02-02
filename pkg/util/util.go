@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	yamlv3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -342,4 +344,15 @@ func removeFinalizers(ctx context.Context, k8sClient client.Client, object metav
 	}
 	object.SetFinalizers([]string{})
 	return k8sClient.Update(ctx, object.(runtime.Object))
+}
+
+func MarshalYaml(node *yamlv3.Node) ([]byte, error) {
+	buf := bytes.Buffer{}
+	enc := yamlv3.NewEncoder(&buf)
+	enc.SetIndent(2)
+	err := enc.Encode(node)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }

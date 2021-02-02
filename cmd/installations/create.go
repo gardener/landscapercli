@@ -8,15 +8,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	ociopts "github.com/gardener/component-cli/ociclient/options"
 	"github.com/gardener/component-cli/pkg/commands/constants"
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	cdoci "github.com/gardener/component-spec/bindings-go/oci"
-	yamlv3 "gopkg.in/yaml.v3"
-
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
-	//lsv1alpha1 "github.com/gardener/landscaper/apis/core"
 	"github.com/gardener/landscaper/pkg/kubernetes"
 	"github.com/gardener/landscaper/pkg/utils"
 	"github.com/go-logr/logr"
@@ -25,11 +23,13 @@ import (
 	"github.com/mandelsoft/vfs/pkg/vfs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	yamlv3 "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/util"
 )
 
 type createOpts struct {
@@ -142,10 +142,11 @@ func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem
 		return err
 	}
 
-	err = printInstallationYamlToStdOut(commentedOutputYaml)
+	yaml, err := util.MarshalYaml(commentedOutputYaml)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot marshal yaml: %w", err)
 	}
+	fmt.Println(string(yaml))
 
 	return nil
 }
@@ -177,67 +178,37 @@ func (o *createOpts) Complete(args []string) error {
 	return nil
 }
 
-
-
 func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installation, blueprint *lsv1alpha1.Blueprint) (*yamlv3.Node, error) {
 	out, err := yaml.Marshal(installation)
 	if err != nil {
 		return nil, err
 	}
 
-	commentedInstallationYaml := yamlv3.Node{}
-	err = yamlv3.Unmarshal(out, &commentedInstallationYaml)
+	commentedInstallationYaml := &yamlv3.Node{}
+	err = yamlv3.Unmarshal(out, commentedInstallationYaml)
 	if err != nil {
 		return nil, err
 	}
 
-	//imports TODO extract to better düdel method
-	_, specValueNode := findNode(commentedInstallationYaml.Content[0].Content, "spec")
-	_, importsValueNode := findNode(specValueNode.Content, "imports")
-	_, importDataValueNode := findNode(importsValueNode.Content, "data")
-	_, targetsValueNode := findNode(importsValueNode.Content, "targets")
-
-	for _, dataImportNode := range importDataValueNode.Content {
-		n1, n2 := findNode(dataImportNode.Content, "name")
-		importName := n2.Value
-
-		var impdef lsv1alpha1.ImportDefinition
-		for _, bpimp := range blueprint.Imports {
-			if bpimp.Name == importName {
-				impdef = bpimp
-				break
-			}
-		}
-		prettySchema, err := json.MarshalIndent(impdef.Schema, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-		n1.HeadComment = "JSON Schema\n" + string(prettySchema)
+	err = addImportSchemaComments(commentedInstallationYaml, blueprint)
+	if err != nil {
+		return nil, fmt.Errorf("cannot add import schema comments: %w", err)
 	}
 
-	for _, targetImportNode := range targetsValueNode.Content {
-		n1, n2 := findNode(targetImportNode.Content, "name")
-		targetName := n2.Value
+	err = addExportSchemaComments(commentedInstallationYaml, blueprint)
+	if err != nil {
+		return nil, fmt.Errorf("cannot add export schema comments: %w", err)
+	}	
 
-		var impdef lsv1alpha1.ImportDefinition
-		for _, bpimp := range blueprint.Imports {
-			if bpimp.Name == targetName {
-				impdef = bpimp
-				break
-			}
-		}
-		n1.HeadComment = "target type: " + impdef.TargetType
-	}
+	return commentedInstallationYaml, nil
+}
 
-	//exports TODO refactor as above
-	_, exportsValueNode := findNode(specValueNode.Content, "exports")
-	_, exportsDataValueNode := findNode(exportsValueNode.Content, "data")
-	_, exportTargetsValueNode := findNode(exportsValueNode.Content, "targets")
-
+func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint) error {
+	_, exportsDataValueNode := findNodeByPath(commentedInstallationYaml, "spec.exports.data")
 	for _, dataImportNode := range exportsDataValueNode.Content {
 		n1, n2 := findNode(dataImportNode.Content, "name")
 		exportName := n2.Value
-
+		
 		var expdef lsv1alpha1.ExportDefinition
 		for _, bpexp := range blueprint.Exports {
 			if bpexp.Name == exportName {
@@ -247,11 +218,12 @@ func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installatio
 		}
 		prettySchema, err := json.MarshalIndent(expdef.Schema, "", "  ")
 		if err != nil {
-			return nil, err
+			return fmt.Errorf("cannot marshal JSON schema: %w", err)
 		}
 		n1.HeadComment = "JSON Schema\n" + string(prettySchema)
 	}
-
+	
+	_, exportTargetsValueNode := findNodeByPath(commentedInstallationYaml, "spec.exports.targets")
 	for _, targetExportNode := range exportTargetsValueNode.Content {
 		n1, n2 := findNode(targetExportNode.Content, "name")
 		targetName := n2.Value
@@ -266,7 +238,64 @@ func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installatio
 		n1.HeadComment = "target type: " + expdef.TargetType
 	}
 
-	return &commentedInstallationYaml, nil
+	return nil
+}
+
+func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint) error {
+	_, importDataValueNode := findNodeByPath(commentedInstallationYaml, "spec.imports.data")
+	for _, dataImportNode := range importDataValueNode.Content {
+		n1, n2 := findNode(dataImportNode.Content, "name")
+		importName := n2.Value
+		
+		var impdef lsv1alpha1.ImportDefinition
+		for _, bpimp := range blueprint.Imports {
+			if bpimp.Name == importName {
+				impdef = bpimp
+				break
+			}
+		}
+		prettySchema, err := json.MarshalIndent(impdef.Schema, "", "  ")
+		if err != nil {
+			return fmt.Errorf("cannot marshal JSON schema: %w", err)
+		}
+		n1.HeadComment = "JSON Schema\n" + string(prettySchema)
+	}
+	
+	_, targetsValueNode := findNodeByPath(commentedInstallationYaml, "spec.imports.targets")
+	for _, targetImportNode := range targetsValueNode.Content {
+		n1, n2 := findNode(targetImportNode.Content, "name")
+		targetName := n2.Value
+
+		var impdef lsv1alpha1.ImportDefinition
+		for _, bpimp := range blueprint.Imports {
+			if bpimp.Name == targetName {
+				impdef = bpimp
+				break
+			}
+		}
+		n1.HeadComment = "target type: " + impdef.TargetType
+	}
+
+	return nil
+}
+
+func findNodeByPath(node *yamlv3.Node, path string) (*yamlv3.Node, *yamlv3.Node) {
+	var keyNode, valueNode *yamlv3.Node
+	if node.Kind == yamlv3.DocumentNode {
+		valueNode = node.Content[0]
+	} else {
+		valueNode = node
+	}
+	splittedPath := strings.Split(path, ".")
+
+	for _, p := range splittedPath {
+		keyNode, valueNode = findNode(valueNode.Content, p)
+		if keyNode == nil && valueNode == nil {
+			break
+		}
+	}
+
+	return keyNode, valueNode
 }
 
 func findNode(nodes []*yamlv3.Node, name string) (*yamlv3.Node, *yamlv3.Node) {
@@ -286,20 +315,6 @@ func findNode(nodes []*yamlv3.Node, name string) (*yamlv3.Node, *yamlv3.Node) {
 
 	return keyNode, valueNode
 }
-
-func printInstallationYamlToStdOut(commentedOutputYaml *yamlv3.Node) error {
-	buf := bytes.Buffer{}
-	enc := yamlv3.NewEncoder(&buf)
-	enc.SetIndent(2)
-	err := enc.Encode(commentedOutputYaml)
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(buf.Bytes()))
-	return nil
-}
-
-
 
 func (o *createOpts) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "my-installation", "name of the generated installation")
