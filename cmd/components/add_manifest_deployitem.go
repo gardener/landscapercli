@@ -51,18 +51,28 @@ Command to add a deploy item skeleton to the blueprint of a component`
 //var identityKeyValidationRegexp = regexp.MustCompile("^[a-z0-9]([-_+a-z0-9]*[a-z0-9])?$")
 
 type addManifestDeployItemOptions struct {
-	componentPath  string
+	componentPath string
+
 	deployItemName string
 
-	files             *[]string
-	importParams      *[]string
+	// names of manifest files
+	files *[]string
+
+	// import parameter definitions in the format "name:type"
+	importParams *[]string
+
+	// parsed import parameter definitions
 	importDefinitions []v1alpha1.ImportDefinition
-	replacement       map[string]string
+
+	// a map that assigns with each import parameter name a uuid
+	replacement map[string]string
 
 	updateStrategy string
-	policy         string
 
-	clusterParam  string
+	policy string
+
+	clusterParam string
+
 	targetNsParam string
 }
 
@@ -110,7 +120,7 @@ func (o *addManifestDeployItemOptions) Complete(args []string) error {
 
 			o.importDefinitions = append(o.importDefinitions, *importDefinition)
 
-			if _, ok := o.replacement[importDefinition.Name]; !ok {
+			if _, ok := o.replacement[importDefinition.Name]; ok {
 				return fmt.Errorf("import parameter %s occurs more than once", importDefinition.Name)
 			}
 
