@@ -157,7 +157,8 @@ func (o *installOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where the landscaper and the OCI registry are installed")
 	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the landscaper Helm installation")
 	fs.BoolVar(&o.installOCIRegistry, "install-oci-registry", false, "install an internal OCI registry in the target cluster")
-	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", version.LandscaperVersion, "use a custom landscaper chart version")
+	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", version.LandscaperVersion,
+		"use a custom landscaper chart version (corresponds to landscaper github release with the same version number)")
 }
 
 func installLandscaper(ctx context.Context, kubeconfigPath, namespace, landscaperValues string, landscaperChartVersion string) error {

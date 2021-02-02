@@ -11,14 +11,13 @@ import (
 )
 
 // NewBlueprintsCommand creates a new blueprints command.
-func NewAddCommand(ctx context.Context) *cobra.Command {
+func NewAddManifestCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add",
-		Short: "command to add parts to a component",
+		Use:   "manifest",
+		Short: "command to add parts to a component concerning a manifest deployment",
 	}
 
-	cmd.AddCommand(NewAddHelmCommand(ctx))
-	cmd.AddCommand(NewAddManifestCommand(ctx))
+	cmd.AddCommand(NewAddManifestDeployItemCommand(ctx))
 
 	return cmd
 }
