@@ -116,7 +116,7 @@ func (o *addManifestDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.clusterParam,
 		"cluster-param",
 		"targetCluster",
-		"target cluster")
+		"import parameter name for the target resource containing the access data of the target cluster")
 	fs.StringVar(&o.targetNsParam,
 		"target-ns-param",
 		"",
@@ -127,6 +127,10 @@ func (o *addManifestDeployItemOptions) validate() error {
 	if !identityKeyValidationRegexp.Match([]byte(o.deployItemName)) {
 		return fmt.Errorf("the deploy item name must consist of lower case alphanumeric characters, '-', '_' " +
 			"or '+', and must start and end with an alphanumeric character")
+	}
+
+	if o.clusterParam == "" {
+		return fmt.Errorf("cluster-param is missing")
 	}
 
 	if o.targetNsParam == "" {

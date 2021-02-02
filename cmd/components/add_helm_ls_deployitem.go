@@ -111,7 +111,7 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.clusterParam,
 		"cluster-param",
 		"targetCluster",
-		"target cluster")
+		"import parameter name for the target resource containing the access data of the target cluster")
 	fs.StringVar(&o.targetNsParam,
 		"target-ns-param",
 		"",
@@ -134,6 +134,10 @@ func (o *addHelmLsDeployItemOptions) validate() error {
 
 	if o.chartVersion == "" {
 		return fmt.Errorf("chart-version is missing")
+	}
+
+	if o.clusterParam == "" {
+		return fmt.Errorf("cluster-param is missing")
 	}
 
 	if o.targetNsParam == "" {
