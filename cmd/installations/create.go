@@ -1,0 +1,309 @@
+package installations
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	ociopts "github.com/gardener/component-cli/ociclient/options"
+	"github.com/gardener/component-cli/pkg/commands/constants"
+	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	cdoci "github.com/gardener/component-spec/bindings-go/oci"
+	yamlv3 "gopkg.in/yaml.v3"
+
+	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	//lsv1alpha1 "github.com/gardener/landscaper/apis/core"
+	"github.com/gardener/landscaper/pkg/kubernetes"
+	"github.com/gardener/landscaper/pkg/utils"
+	"github.com/go-logr/logr"
+	"github.com/mandelsoft/vfs/pkg/memoryfs"
+	"github.com/mandelsoft/vfs/pkg/osfs"
+	"github.com/mandelsoft/vfs/pkg/vfs"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/yaml"
+
+	"github.com/gardener/landscapercli/pkg/logger"
+)
+
+type createOpts struct {
+	// baseUrl is the oci registry where the component is stored.
+	baseUrl string
+	// componentName is the unique name of the component in the registry.
+	componentName string
+	// version is the component version in the oci registry.
+	version string
+	// OciOptions contains all exposed options to configure the oci client.
+	OciOptions ociopts.Options
+
+	name string
+}
+
+func NewCreateCommand(ctx context.Context) *cobra.Command {
+	opts := &createOpts{}
+	cmd := &cobra.Command{
+		Use:     "create",
+		Aliases: []string{"c"},
+		Short:   "",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := opts.Complete(args); err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
+			if err := opts.run(ctx, logger.Log, osfs.New()); err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+		},
+	}
+
+	opts.AddFlags(cmd.Flags())
+
+	return cmd
+}
+
+func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
+	repoCtx := cdv2.RepositoryContext{
+		Type:    cdv2.OCIRegistryType,
+		BaseURL: o.baseUrl,
+	}
+	ociRef, err := cdoci.OCIRef(repoCtx, o.componentName, o.version)
+	if err != nil {
+		return fmt.Errorf("invalid component reference: %w", err)
+	}
+
+	ociClient, _, err := o.OciOptions.Build(log, fs)
+	if err != nil {
+		return fmt.Errorf("unable to build oci client: %s", err.Error())
+	}
+
+	cdresolver := cdoci.NewResolver().WithOCIClient(ociClient).WithRepositoryContext(repoCtx)
+	cd, blobResolver, err := cdresolver.Resolve(ctx, o.componentName, o.version)
+	if err != nil {
+		return fmt.Errorf("unable to to fetch component descriptor %s: %w", ociRef, err)
+	}
+
+	var blueprintRes cdv2.Resource
+	for _, resource := range cd.ComponentSpec.Resources {
+		if resource.IdentityObjectMeta.Type == lsv1alpha1.BlueprintResourceType || resource.IdentityObjectMeta.Type == lsv1alpha1.OldBlueprintType {
+			blueprintRes = resource
+		}
+	}
+
+	var data bytes.Buffer
+	if blueprintRes.Access.GetType() == cdv2.OCIRegistryType {
+		ref, ok := blueprintRes.Access.Object["imageReference"].(string)
+		if !ok {
+			return fmt.Errorf("")
+		}
+
+		manifest, err := ociClient.GetManifest(ctx, ref)
+		if err != nil {
+			return err
+		}
+
+		err = ociClient.Fetch(ctx, ref, manifest.Layers[0], &data)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = blobResolver.Resolve(ctx, blueprintRes, &data)
+		if err != nil {
+			return fmt.Errorf("unable to to resolve blob of blueprint resource: %w", err)
+		}
+	}
+
+	memFS := memoryfs.New()
+	if err := utils.ExtractTarGzip(&data, memFS, "/"); err != nil {
+		return err
+	}
+
+	blueprintData, err := vfs.ReadFile(memFS, lsv1alpha1.BlueprintFileName)
+	if err != nil {
+		return err
+	}
+
+	blueprint := &lsv1alpha1.Blueprint{}
+	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(blueprintData, nil, blueprint); err != nil {
+		return err
+	}
+
+	installation := buildInstallation(o.name, cd, blueprintRes, blueprint, &repoCtx)
+
+	out, err := yaml.Marshal(installation)
+	if err != nil {
+		return err
+	}
+	//fmt.Println(string(out))
+	
+	reallyOut := yamlv3.Node{}
+	err = yamlv3.Unmarshal(out, &reallyOut)
+	if err != nil {
+		return err
+	}
+
+	_, specValueNode := findNode(reallyOut.Content[0].Content, "spec")
+	_, importsValueNode := findNode(specValueNode.Content, "imports")
+	_, dataValueNode := findNode(importsValueNode.Content, "data")
+
+	for _, dataImportNode := range dataValueNode.Content {
+		n1,n2 := findNode(dataImportNode.Content, "name")
+		importName := n2.Value
+
+		var impdef lsv1alpha1.ImportDefinition
+		for _, bpimp := range blueprint.Imports {
+			if bpimp.Name == importName {
+				impdef = bpimp
+				break
+			}
+		}
+		prettySchema, err := json.MarshalIndent(impdef.Schema, "", "  ")
+		if err != nil {
+			return err
+		}
+		n1.HeadComment = "JSON Schema\n" + string(prettySchema)
+	}
+
+	fmt.Println(dataValueNode)
+
+	// reallyOut
+
+	// for _, imp := blueprint.Imports {
+
+	// }
+
+	reallyOut.Content[0].Content[5].Content[0].HeadComment = "This is my comment.\nPlease indent correct."
+	reallyOut.Content[0].Content[5].Content[1].HeadComment = "We are the greatest devs ever.\nbuy gamestonk!"
+	reallyOutMarshalled, err := yamlv3.Marshal(&reallyOut)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(reallyOutMarshalled))
+
+	return nil
+}
+
+func findNode(nodes []*yamlv3.Node, name string) (*yamlv3.Node, *yamlv3.Node) {
+	if nodes == nil {
+		return nil, nil
+	}
+
+	var keyNode, valueNode *yamlv3.Node
+	for i, node := range nodes {
+		if node.Value == name {
+			keyNode = node
+			if i < len(nodes)-1 {
+				valueNode = nodes[i+1]
+			}
+		}
+	}
+
+	return keyNode, valueNode
+}
+
+func (o *createOpts) Complete(args []string) error {
+	// todo: validate args
+	o.baseUrl = args[0]
+	o.componentName = args[1]
+	o.version = args[2]
+
+	cliHomeDir, err := constants.CliHomeDir()
+	if err != nil {
+		return err
+	}
+	o.OciOptions.CacheDir = filepath.Join(cliHomeDir, "components")
+	if err := os.MkdirAll(o.OciOptions.CacheDir, os.ModePerm); err != nil {
+		return fmt.Errorf("unable to create cache directory %s: %w", o.OciOptions.CacheDir, err)
+	}
+
+	if len(o.baseUrl) == 0 {
+		return errors.New("the base url must be defined")
+	}
+	if len(o.componentName) == 0 {
+		return errors.New("a component name must be defined")
+	}
+	if len(o.version) == 0 {
+		return errors.New("a component's Version must be defined")
+	}
+	return nil
+}
+
+func (o *createOpts) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.name, "name", "my-installation", "name of the generated installation")
+	o.OciOptions.AddFlags(fs)
+}
+
+func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes cdv2.Resource, blueprint *lsv1alpha1.Blueprint, repoCtx *cdv2.RepositoryContext) *lsv1alpha1.Installation {
+	dataImports := []lsv1alpha1.DataImport{}
+	targetImports := []lsv1alpha1.TargetImportExport{}
+	for _, imp := range blueprint.Imports {
+		if imp.TargetType != "" {
+			targetImport := lsv1alpha1.TargetImportExport{
+				Name: imp.Name,
+			}
+			targetImports = append(targetImports, targetImport)
+		} else {
+			dataImport := lsv1alpha1.DataImport{
+				Name: imp.Name,
+			}
+			dataImports = append(dataImports, dataImport)
+		}
+	}
+
+	dataExports := []lsv1alpha1.DataExport{}
+	targetExports := []lsv1alpha1.TargetImportExport{}
+	for _, exp := range blueprint.Exports {
+		if exp.TargetType != "" {
+			targetExport := lsv1alpha1.TargetImportExport{
+				Name: exp.Name,
+			}
+			targetExports = append(targetExports, targetExport)
+		} else {
+			dataExport := lsv1alpha1.DataExport{
+				Name: exp.Name,
+			}
+			dataExports = append(dataExports, dataExport)
+		}
+	}
+
+	obj := &lsv1alpha1.Installation{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: lsv1alpha1.SchemeGroupVersion.String(),
+			Kind:       "Installation",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: lsv1alpha1.InstallationSpec{
+			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
+				Reference: &lsv1alpha1.ComponentDescriptorReference{
+					RepositoryContext: repoCtx,
+					ComponentName:     cd.ObjectMeta.Name,
+					Version:           cd.ObjectMeta.Version,
+				},
+			},
+			Blueprint: lsv1alpha1.BlueprintDefinition{
+				Reference: &lsv1alpha1.RemoteBlueprintReference{
+					ResourceName: blueprintRes.Name,
+				},
+			},
+			Imports: lsv1alpha1.InstallationImports{
+				Data:    dataImports,
+				Targets: targetImports,
+			},
+			Exports: lsv1alpha1.InstallationExports{
+				Data:    dataExports,
+				Targets: targetExports,
+			},
+		},
+	}
+
+	return obj
+}
