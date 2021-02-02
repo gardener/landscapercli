@@ -37,7 +37,10 @@ landscaper-cli component add helm-ls deployitem \
   . \
   nginx \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
-  --chart-version v0.1.0`
+  --chart-version v0.1.0
+  --cluster-param target-cluster
+  --target-ns-param target-namespace
+`
 
 const addHelmLSDeployItemShort = `
 Command to add a deploy item skeleton to the blueprint of a component`
