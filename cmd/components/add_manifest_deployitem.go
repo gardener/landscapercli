@@ -5,8 +5,6 @@
 package components
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -413,33 +411,14 @@ func (o *addManifestDeployItemOptions) getManifests() (string, error) {
 		return "", err
 	}
 
-	data, err = indentLines(data, 4)
-	if err != nil {
-		return "", err
-	}
-
-	return string(data), nil
+	stringData := string(data)
+	stringData = indentLines(stringData, 4)
+	return stringData, nil
 }
 
-func indentLines(data []byte, n int) ([]byte, error) {
-	prefix := strings.Repeat(" ", n)
-
-	writer := bytes.Buffer{}
-
-	reader := bytes.NewReader(data)
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(bufio.ScanLines)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		writer.WriteString("\n" + prefix + line)
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	return writer.Bytes(), nil
+func indentLines(data string, n int) string {
+	indent := strings.Repeat(" ", n)
+	return indent + strings.ReplaceAll(data, "\n", "\n"+indent)
 }
 
 func (o *addManifestDeployItemOptions) getManifestsYaml() ([]byte, error) {
