@@ -41,6 +41,8 @@ landscaper-cli component add manifest deployitem \
   --file ./deployment.yaml \
   --file ./service.yaml \
   --import-param replicas:integer
+  --cluster-param target-cluster
+  --target-ns-param target-namespace
 `
 
 const addManifestDeployItemShort = `
