@@ -126,13 +126,31 @@ func (o *createOptions) checkPreconditions() error {
 		return fmt.Errorf("Path is not a directory")
 	}
 
-	// Check that the component directory is empty
-	empty, err := util.IsDirectoryEmpty(o.componentPath)
+	_, err = os.Stat(util.BlueprintDirectoryPath(o.componentPath))
 	if err != nil {
-		return err
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		return fmt.Errorf("blueprint file or folder already exists in %s ", util.BlueprintDirectoryPath(o.componentPath))
 	}
-	if !empty {
-		return fmt.Errorf("Component directory is not empty")
+
+	_, err = os.Stat(util.ResourcesFilePath(o.componentPath))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		return fmt.Errorf("resources.yaml file already exists in %s ", util.ResourcesFilePath(o.componentPath))
+	}
+
+	_, err = os.Stat(util.ComponentDescriptorFilePath(o.componentPath))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		return fmt.Errorf("resources.yaml file already exists in %s ", util.ResourcesFilePath(o.componentPath))
 	}
 
 	return nil
