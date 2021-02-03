@@ -5,9 +5,8 @@
 package components
 
 import (
-	"bufio"
-	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -20,6 +19,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscapercli/pkg/blueprints"
@@ -39,6 +39,8 @@ landscaper-cli component add manifest deployitem \
   --file ./deployment.yaml \
   --file ./service.yaml \
   --import-param replicas:integer
+  --cluster-param target-cluster
+  --target-ns-param target-namespace
 `
 
 const addManifestDeployItemShort = `
@@ -47,16 +49,28 @@ Command to add a deploy item skeleton to the blueprint of a component`
 //var identityKeyValidationRegexp = regexp.MustCompile("^[a-z0-9]([-_+a-z0-9]*[a-z0-9])?$")
 
 type addManifestDeployItemOptions struct {
-	componentPath  string
+	componentPath string
+
 	deployItemName string
 
-	files        *[]string
+	// names of manifest files
+	files *[]string
+
+	// import parameter definitions in the format "name:type"
 	importParams *[]string
 
-	updateStrategy string
-	policy         string
+	// parsed import parameter definitions
+	importDefinitions []v1alpha1.ImportDefinition
 
-	clusterParam  string
+	// a map that assigns with each import parameter name a uuid
+	replacement map[string]string
+
+	updateStrategy string
+
+	policy string
+
+	clusterParam string
+
 	targetNsParam string
 }
 
@@ -93,6 +107,25 @@ func (o *addManifestDeployItemOptions) Complete(args []string) error {
 	o.componentPath = args[0]
 	o.deployItemName = args[1]
 
+	o.importDefinitions = []v1alpha1.ImportDefinition{}
+	o.replacement = map[string]string{}
+	if o.importParams != nil {
+		for _, p := range *o.importParams {
+			importDefinition, err := o.parseImportDefinition(p)
+			if err != nil {
+				return err
+			}
+
+			o.importDefinitions = append(o.importDefinitions, *importDefinition)
+
+			if _, ok := o.replacement[importDefinition.Name]; ok {
+				return fmt.Errorf("import parameter %s occurs more than once", importDefinition.Name)
+			}
+
+			o.replacement[importDefinition.Name] = string(uuid.NewUUID())
+		}
+	}
+
 	return o.validate()
 }
 
@@ -116,7 +149,7 @@ func (o *addManifestDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.clusterParam,
 		"cluster-param",
 		"targetCluster",
-		"target cluster")
+		"import parameter name for the target resource containing the access data of the target cluster")
 	fs.StringVar(&o.targetNsParam,
 		"target-ns-param",
 		"",
@@ -127,6 +160,10 @@ func (o *addManifestDeployItemOptions) validate() error {
 	if !identityKeyValidationRegexp.Match([]byte(o.deployItemName)) {
 		return fmt.Errorf("the deploy item name must consist of lower case alphanumeric characters, '-', '_' " +
 			"or '+', and must start and end with an alphanumeric character")
+	}
+
+	if o.clusterParam == "" {
+		return fmt.Errorf("cluster-param is missing")
 	}
 
 	if o.targetNsParam == "" {
@@ -193,8 +230,8 @@ func (o *addManifestDeployItemOptions) addImports(blueprint *v1alpha1.Blueprint)
 	o.addTargetImport(blueprint, o.clusterParam)
 	o.addStringImport(blueprint, o.targetNsParam)
 
-	for _, p := range *o.importParams {
-		err := o.addImport(blueprint, p)
+	for _, importDefinition := range o.importDefinitions {
+		err := o.addImport(blueprint, &importDefinition)
 		if err != nil {
 			return err
 		}
@@ -239,12 +276,7 @@ func (o *addManifestDeployItemOptions) addStringImport(blueprint *v1alpha1.Bluep
 	})
 }
 
-func (o *addManifestDeployItemOptions) addImport(blueprint *v1alpha1.Blueprint, paramDef string) error {
-	importDefinition, err := o.parseImportDefinition(paramDef)
-	if err != nil {
-		return err
-	}
-
+func (o *addManifestDeployItemOptions) addImport(blueprint *v1alpha1.Blueprint, importDefinition *v1alpha1.ImportDefinition) error {
 	for i := range blueprint.Imports {
 		if blueprint.Imports[i].Name == importDefinition.Name {
 			// todo: check that the type has not changed
@@ -306,14 +338,24 @@ func (o *addManifestDeployItemOptions) existsExecutionFile() (bool, error) {
 }
 
 func (o *addManifestDeployItemOptions) createExecutionFile() error {
-	f, err := os.Create(util.ExecutionFilePath(o.componentPath, o.deployItemName))
+	err := o.writeExecution()
+	if err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(util.ExecutionFilePath(o.componentPath, o.deployItemName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 
 	defer f.Close()
 
-	err = o.writeExecution(f)
+	manifests, err := o.getManifests()
+	if err != nil {
+		return err
+	}
+
+	_, err = f.WriteString(manifests)
 
 	return err
 }
@@ -328,27 +370,17 @@ const manifestExecutionTemplate = `deployItems:
     apiVersion: manifest.deployer.landscaper.gardener.cloud/v1alpha2
     kind: ProviderConfiguration
     updateStrategy: {{.UpdateStrategy}}
-    {{- getManifests }}
 `
 
-func (o *addManifestDeployItemOptions) writeExecution(f *os.File) error {
-	funcs := map[string]interface{}{
-		"getManifests": func() (string, error) {
-			data, err := o.getManifestsYaml()
-			if err != nil {
-				return "", err
-			}
-
-			data, err = indentLines(data, 4)
-			if err != nil {
-				return "", err
-			}
-
-			return string(data), nil
-		},
+func (o *addManifestDeployItemOptions) writeExecution() error {
+	f, err := os.Create(util.ExecutionFilePath(o.componentPath, o.deployItemName))
+	if err != nil {
+		return err
 	}
 
-	t, err := template.New("").Funcs(funcs).Parse(manifestExecutionTemplate)
+	defer f.Close()
+
+	t, err := template.New("").Parse(manifestExecutionTemplate)
 	if err != nil {
 		return err
 	}
@@ -373,25 +405,20 @@ func (o *addManifestDeployItemOptions) writeExecution(f *os.File) error {
 	return nil
 }
 
-func indentLines(data []byte, n int) ([]byte, error) {
-	prefix := strings.Repeat(" ", n)
-
-	writer := bytes.Buffer{}
-
-	reader := bytes.NewReader(data)
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(bufio.ScanLines)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		writer.WriteString("\n" + prefix + line)
+func (o *addManifestDeployItemOptions) getManifests() (string, error) {
+	data, err := o.getManifestsYaml()
+	if err != nil {
+		return "", err
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
+	stringData := string(data)
+	stringData = indentLines(stringData, 4)
+	return stringData, nil
+}
 
-	return writer.Bytes(), nil
+func indentLines(data string, n int) string {
+	indent := strings.Repeat(" ", n)
+	return indent + strings.ReplaceAll(data, "\n", "\n"+indent)
 }
 
 func (o *addManifestDeployItemOptions) getManifestsYaml() ([]byte, error) {
@@ -408,6 +435,8 @@ func (o *addManifestDeployItemOptions) getManifestsYaml() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	data = o.replaceUUIDsByImportTemplates(data)
 
 	return data, nil
 }
@@ -437,15 +466,63 @@ func (o *addManifestDeployItemOptions) readManifest(filename string) (*manifest.
 		return nil, err
 	}
 
-	jsonData, err := yaml.YAMLToJSON(yamlData)
+	var m interface{}
+	err = yaml.Unmarshal(yamlData, &m)
 	if err != nil {
 		return nil, err
 	}
 
-	return &manifest.Manifest{
+	m = o.replaceParamsByUUIDs(m)
+
+	// render to string
+	uuidData, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+
+	m2 := &manifest.Manifest{
 		Policy: manifest.ManifestPolicy(o.policy),
 		Manifest: &runtime.RawExtension{
-			Raw: jsonData,
+			Raw: uuidData,
 		},
-	}, nil
+	}
+
+	return m2, nil
+}
+
+func (o *addManifestDeployItemOptions) replaceParamsByUUIDs(in interface{}) interface{} {
+	switch m := in.(type) {
+	case map[string]interface{}:
+		for k := range m {
+			m[k] = o.replaceParamsByUUIDs(m[k])
+		}
+		return m
+
+	case []interface{}:
+		for k := range m {
+			m[k] = o.replaceParamsByUUIDs(m[k])
+		}
+		return m
+
+	case string:
+		newValue, ok := o.replacement[m]
+		if ok {
+			return newValue
+		}
+		return m
+
+	default:
+		return m
+	}
+}
+
+func (o *addManifestDeployItemOptions) replaceUUIDsByImportTemplates(data []byte) []byte {
+	s := string(data)
+
+	for paramName, uuid := range o.replacement {
+		newValue := fmt.Sprintf("{{ .imports.%s }}", paramName)
+		s = strings.ReplaceAll(s, uuid, newValue)
+	}
+
+	return []byte(s)
 }

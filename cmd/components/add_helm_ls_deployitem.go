@@ -37,7 +37,10 @@ landscaper-cli component add helm-ls deployitem \
   . \
   nginx \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
-  --chart-version v0.1.0`
+  --chart-version v0.1.0
+  --cluster-param target-cluster
+  --target-ns-param target-namespace
+`
 
 const addHelmLSDeployItemShort = `
 Command to add a deploy item skeleton to the blueprint of a component`
@@ -111,7 +114,7 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.clusterParam,
 		"cluster-param",
 		"targetCluster",
-		"target cluster")
+		"import parameter name for the target resource containing the access data of the target cluster")
 	fs.StringVar(&o.targetNsParam,
 		"target-ns-param",
 		"",
@@ -134,6 +137,10 @@ func (o *addHelmLsDeployItemOptions) validate() error {
 
 	if o.chartVersion == "" {
 		return fmt.Errorf("chart-version is missing")
+	}
+
+	if o.clusterParam == "" {
+		return fmt.Errorf("cluster-param is missing")
 	}
 
 	if o.targetNsParam == "" {
