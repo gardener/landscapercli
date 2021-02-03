@@ -38,12 +38,12 @@ type createOptions struct {
 func NewCreateCommand(ctx context.Context) *cobra.Command {
 	opts := &createOptions{}
 	cmd := &cobra.Command{
-		Use:  "create [component directory path] [component name] [component version]",
-		Args: cobra.ExactArgs(3),
+		Use:  "create [component name] [component version]",
+		Args: cobra.ExactArgs(2),
 		Example: "landscaper-cli component create \\\n" +
-			"    . \\\n" +
 			"    github.com/gardener/landscapercli/nginx \\\n" +
-			"    v0.1.0",
+			"    v0.1.0 \\\n" +
+			"    --component-path ~/myComponent",
 		Short: "command to create a component template in the specified directory",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -66,9 +66,8 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *createOptions) Complete(args []string) error {
-	o.componentPath = args[0]
-	o.componentName = args[1]
-	o.componentVersion = args[2]
+	o.componentName = args[0]
+	o.componentVersion = args[1]
 
 	return o.validate()
 }
@@ -83,6 +82,10 @@ func (o *createOptions) validate() error {
 }
 
 func (o *createOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.componentPath,
+		"component-path",
+		".",
+		"path to component directory")
 }
 
 func (o *createOptions) run(ctx context.Context, log logr.Logger) error {

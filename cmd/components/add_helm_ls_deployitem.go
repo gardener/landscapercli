@@ -28,14 +28,13 @@ import (
 )
 
 const addHelmLSDeployItemUse = `deployitem \
-    [component directory path] \
     [deployitem name] \
    `
 
 const addHelmLSDeployItemExample = `
 landscaper-cli component add helm-ls deployitem \
-  . \
   nginx \
+  --component-path ~/myComponent \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
   --chart-version v0.1.0
   --cluster-param target-cluster
@@ -69,7 +68,7 @@ func NewAddHelmLSDeployItemCommand(ctx context.Context) *cobra.Command {
 		Use:     addHelmLSDeployItemUse,
 		Example: addHelmLSDeployItemExample,
 		Short:   addHelmLSDeployItemShort,
-		Args:    cobra.ExactArgs(2),
+		Args:    cobra.ExactArgs(1),
 
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -92,13 +91,16 @@ func NewAddHelmLSDeployItemCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *addHelmLsDeployItemOptions) Complete(args []string) error {
-	o.componentPath = args[0]
-	o.deployItemName = args[1]
+	o.deployItemName = args[0]
 
 	return o.validate()
 }
 
 func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.componentPath,
+		"component-path",
+		".",
+		"path to component directory")
 	fs.StringVar(&o.ociReference,
 		"oci-reference",
 		"",
