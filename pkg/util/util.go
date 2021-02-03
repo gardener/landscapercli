@@ -358,6 +358,10 @@ func MarshalYaml(node *yamlv3.Node) ([]byte, error) {
 }
 
 func FindNodeByPath(node *yamlv3.Node, path string) (*yamlv3.Node, *yamlv3.Node) {
+	if node == nil || path == "" {
+		return nil, nil
+	}
+
 	var keyNode, valueNode *yamlv3.Node
 	if node.Kind == yamlv3.DocumentNode {
 		valueNode = node.Content[0]
