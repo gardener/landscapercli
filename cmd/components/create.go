@@ -82,7 +82,7 @@ func (o *createOptions) run(ctx context.Context, log logr.Logger) error {
 
 	// Create blueprint directory
 	blueprintDirectoryPath := util.BlueprintDirectoryPath(o.componentPath)
-	err = os.Mkdir(blueprintDirectoryPath, os.ModePerm)
+	err = os.Mkdir(blueprintDirectoryPath, 0755)
 	if err != nil {
 		return err
 	}
@@ -116,9 +116,19 @@ func (o *createOptions) checkPreconditions() error {
 	fileInfo, err := os.Stat(o.componentPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("Component directory does not exist")
+			err = os.MkdirAll(o.componentPath, 0755)
+			if err != nil {
+				return err
+			}
+
+			fileInfo, err = os.Stat(o.componentPath)
+			if err != nil {
+				return err
+			}
+
+		} else {
+			return err
 		}
-		return err
 	}
 
 	// Check that the path points to a directory
