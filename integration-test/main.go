@@ -42,6 +42,12 @@ func runTestSuite(k8sClient client.Client, config *config.Config, target *lsv1al
 		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)
 	}
 
+	fmt.Println("========== RunInstallationCreateTest() ==========")
+	err = tests.RunInstallationCreateTest()
+	if err != nil {
+		return fmt.Errorf("RunInstallationCreateTest() failed: %w", err)
+	}
+
 	// Plug new test cases in here:
 	// 1. Create new file in ./tests directory, which exports a single function for running your test.
 	//    Your test should perform a cleanup before and after running.
