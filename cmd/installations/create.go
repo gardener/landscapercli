@@ -50,7 +50,7 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "create",
 		Aliases: []string{"c"},
-		Short:   "",
+		Short:   "create an installation template for a component in an OCI registry",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
