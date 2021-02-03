@@ -229,44 +229,9 @@ func (o *addHelmLsDeployItemOptions) addExecution(blueprint *v1alpha1.Blueprint)
 }
 
 func (o *addHelmLsDeployItemOptions) addImports(blueprint *v1alpha1.Blueprint) {
-	o.addTargetImport(blueprint, o.clusterParam)
-	o.addStringImport(blueprint, o.targetNsParam)
-}
-
-func (o *addHelmLsDeployItemOptions) addTargetImport(blueprint *v1alpha1.Blueprint, name string) {
-	for i := range blueprint.Imports {
-		if blueprint.Imports[i].Name == name {
-			return
-		}
-	}
-
-	required := true
-
-	blueprint.Imports = append(blueprint.Imports, v1alpha1.ImportDefinition{
-		FieldValueDefinition: v1alpha1.FieldValueDefinition{
-			Name:       name,
-			TargetType: string(v1alpha1.KubernetesClusterTargetType),
-		},
-		Required: &required,
-	})
-}
-
-func (o *addHelmLsDeployItemOptions) addStringImport(blueprint *v1alpha1.Blueprint, name string) {
-	for i := range blueprint.Imports {
-		if blueprint.Imports[i].Name == name {
-			return
-		}
-	}
-
-	required := true
-
-	blueprint.Imports = append(blueprint.Imports, v1alpha1.ImportDefinition{
-		FieldValueDefinition: v1alpha1.FieldValueDefinition{
-			Name:   name,
-			Schema: v1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
-		},
-		Required: &required,
-	})
+	imp := blueprints.NewImporter()
+	imp.AddImportForTarget(blueprint, o.clusterParam)
+	imp.AddImportForElementaryType(blueprint, o.targetNsParam, "string")
 }
 
 func (o *addHelmLsDeployItemOptions) existsExecutionFile() (bool, error) {
