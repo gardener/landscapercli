@@ -101,7 +101,7 @@ func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem
 	if blueprintRes.Access.GetType() == cdv2.OCIRegistryType {
 		ref, ok := blueprintRes.Access.Object["imageReference"].(string)
 		if !ok {
-			return fmt.Errorf("")
+			return fmt.Errorf("cannot parse imageReference to string")
 		}
 
 		manifest, err := ociClient.GetManifest(ctx, ref)
@@ -161,7 +161,6 @@ func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem
 }
 
 func (o *createOpts) Complete(args []string) error {
-	// todo: validate args
 	o.baseUrl = args[0]
 	o.componentName = args[1]
 	o.version = args[2]
@@ -201,12 +200,12 @@ func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installatio
 
 	err = addImportSchemaComments(commentedInstallationYaml, blueprint)
 	if err != nil {
-		return nil, fmt.Errorf("cannot add import schema comments: %w", err)
+		return nil, fmt.Errorf("cannot add schema comments for imports: %w", err)
 	}
 
 	err = addExportSchemaComments(commentedInstallationYaml, blueprint)
 	if err != nil {
-		return nil, fmt.Errorf("cannot add export schema comments: %w", err)
+		return nil, fmt.Errorf("cannot add schema comments for exports: %w", err)
 	}
 
 	return commentedInstallationYaml, nil
