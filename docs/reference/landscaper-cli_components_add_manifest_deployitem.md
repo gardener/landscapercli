@@ -26,7 +26,7 @@ landscaper-cli component add manifest deployitem \
 ### Options
 
 ```
-      --cluster-param string       target cluster (default "targetCluster")
+      --cluster-param string       import parameter name for the target resource containing the access data of the target cluster (default "targetCluster")
       --file stringArray           manifest file
   -h, --help                       help for deployitem
       --import-param stringArray   import parameter

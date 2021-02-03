@@ -26,7 +26,7 @@ landscaper-cli component add helm-ls deployitem \
 ```
       --chart-directory string   path to chart directory
       --chart-version string     helm chart version
-      --cluster-param string     target cluster (default "targetCluster")
+      --cluster-param string     import parameter name for the target resource containing the access data of the target cluster (default "targetCluster")
   -h, --help                     help for deployitem
       --oci-reference string     reference to oci artifact containing the helm chart
       --target-ns-param string   target namespace
