@@ -356,3 +356,40 @@ func MarshalYaml(node *yamlv3.Node) ([]byte, error) {
 	}
 	return buf.Bytes(), nil
 }
+
+func FindNodeByPath(node *yamlv3.Node, path string) (*yamlv3.Node, *yamlv3.Node) {
+	var keyNode, valueNode *yamlv3.Node
+	if node.Kind == yamlv3.DocumentNode {
+		valueNode = node.Content[0]
+	} else {
+		valueNode = node
+	}
+	splittedPath := strings.Split(path, ".")
+
+	for _, p := range splittedPath {
+		keyNode, valueNode = findNode(valueNode.Content, p)
+		if keyNode == nil && valueNode == nil {
+			break
+		}
+	}
+
+	return keyNode, valueNode
+}
+
+func findNode(nodes []*yamlv3.Node, name string) (*yamlv3.Node, *yamlv3.Node) {
+	if nodes == nil {
+		return nil, nil
+	}
+
+	var keyNode, valueNode *yamlv3.Node
+	for i, node := range nodes {
+		if node.Value == name {
+			keyNode = node
+			if i < len(nodes)-1 {
+				valueNode = nodes[i+1]
+			}
+		}
+	}
+
+	return keyNode, valueNode
+}

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	ociopts "github.com/gardener/component-cli/ociclient/options"
 	"github.com/gardener/component-cli/pkg/commands/constants"
@@ -42,7 +41,8 @@ type createOpts struct {
 	// OciOptions contains all exposed options to configure the oci client.
 	OciOptions ociopts.Options
 
-	name string
+	name             string
+	renderSchemaInfo bool
 }
 
 func NewCreateCommand(ctx context.Context) *cobra.Command {
@@ -137,16 +137,25 @@ func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem
 
 	installation := buildInstallation(o.name, cd, blueprintRes, blueprint, &repoCtx)
 
-	commentedOutputYaml, err := annotateInstallationWithSchemaComments(installation, blueprint)
-	if err != nil {
-		return err
+	var marshaledYaml []byte
+	if o.renderSchemaInfo {
+		commentedYaml, err := annotateInstallationWithSchemaComments(installation, blueprint)
+		if err != nil {
+			return err
+		}
+
+		marshaledYaml, err = util.MarshalYaml(commentedYaml)
+		if err != nil {
+			return fmt.Errorf("cannot marshal yaml: %w", err)
+		}
+	} else {
+		marshaledYaml, err = yaml.Marshal(installation)
+		if err != nil {
+			return fmt.Errorf("cannot marshal yaml: %w", err)
+		}
 	}
 
-	yaml, err := util.MarshalYaml(commentedOutputYaml)
-	if err != nil {
-		return fmt.Errorf("cannot marshal yaml: %w", err)
-	}
-	fmt.Println(string(yaml))
+	fmt.Println(string(marshaledYaml))
 
 	return nil
 }
@@ -198,17 +207,17 @@ func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installatio
 	err = addExportSchemaComments(commentedInstallationYaml, blueprint)
 	if err != nil {
 		return nil, fmt.Errorf("cannot add export schema comments: %w", err)
-	}	
+	}
 
 	return commentedInstallationYaml, nil
 }
 
 func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint) error {
-	_, exportsDataValueNode := findNodeByPath(commentedInstallationYaml, "spec.exports.data")
+	_, exportsDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.exports.data")
 	for _, dataImportNode := range exportsDataValueNode.Content {
-		n1, n2 := findNode(dataImportNode.Content, "name")
+		n1, n2 := util.FindNodeByPath(dataImportNode, "name")
 		exportName := n2.Value
-		
+
 		var expdef lsv1alpha1.ExportDefinition
 		for _, bpexp := range blueprint.Exports {
 			if bpexp.Name == exportName {
@@ -220,12 +229,12 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 		if err != nil {
 			return fmt.Errorf("cannot marshal JSON schema: %w", err)
 		}
-		n1.HeadComment = "JSON Schema\n" + string(prettySchema)
+		n1.HeadComment = "JSON schema\n" + string(prettySchema)
 	}
-	
-	_, exportTargetsValueNode := findNodeByPath(commentedInstallationYaml, "spec.exports.targets")
+
+	_, exportTargetsValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.exports.targets")
 	for _, targetExportNode := range exportTargetsValueNode.Content {
-		n1, n2 := findNode(targetExportNode.Content, "name")
+		n1, n2 := util.FindNodeByPath(targetExportNode, "name")
 		targetName := n2.Value
 
 		var expdef lsv1alpha1.ExportDefinition
@@ -235,18 +244,18 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 				break
 			}
 		}
-		n1.HeadComment = "target type: " + expdef.TargetType
+		n1.HeadComment = "Target type: " + expdef.TargetType
 	}
 
 	return nil
 }
 
 func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint) error {
-	_, importDataValueNode := findNodeByPath(commentedInstallationYaml, "spec.imports.data")
+	_, importDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.imports.data")
 	for _, dataImportNode := range importDataValueNode.Content {
-		n1, n2 := findNode(dataImportNode.Content, "name")
+		n1, n2 := util.FindNodeByPath(dataImportNode, "name")
 		importName := n2.Value
-		
+
 		var impdef lsv1alpha1.ImportDefinition
 		for _, bpimp := range blueprint.Imports {
 			if bpimp.Name == importName {
@@ -258,12 +267,12 @@ func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 		if err != nil {
 			return fmt.Errorf("cannot marshal JSON schema: %w", err)
 		}
-		n1.HeadComment = "JSON Schema\n" + string(prettySchema)
+		n1.HeadComment = "JSON schema\n" + string(prettySchema)
 	}
-	
-	_, targetsValueNode := findNodeByPath(commentedInstallationYaml, "spec.imports.targets")
+
+	_, targetsValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.imports.targets")
 	for _, targetImportNode := range targetsValueNode.Content {
-		n1, n2 := findNode(targetImportNode.Content, "name")
+		n1, n2 := util.FindNodeByPath(targetImportNode, "name")
 		targetName := n2.Value
 
 		var impdef lsv1alpha1.ImportDefinition
@@ -273,51 +282,15 @@ func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 				break
 			}
 		}
-		n1.HeadComment = "target type: " + impdef.TargetType
+		n1.HeadComment = "Target type: " + impdef.TargetType
 	}
 
 	return nil
 }
 
-func findNodeByPath(node *yamlv3.Node, path string) (*yamlv3.Node, *yamlv3.Node) {
-	var keyNode, valueNode *yamlv3.Node
-	if node.Kind == yamlv3.DocumentNode {
-		valueNode = node.Content[0]
-	} else {
-		valueNode = node
-	}
-	splittedPath := strings.Split(path, ".")
-
-	for _, p := range splittedPath {
-		keyNode, valueNode = findNode(valueNode.Content, p)
-		if keyNode == nil && valueNode == nil {
-			break
-		}
-	}
-
-	return keyNode, valueNode
-}
-
-func findNode(nodes []*yamlv3.Node, name string) (*yamlv3.Node, *yamlv3.Node) {
-	if nodes == nil {
-		return nil, nil
-	}
-
-	var keyNode, valueNode *yamlv3.Node
-	for i, node := range nodes {
-		if node.Value == name {
-			keyNode = node
-			if i < len(nodes)-1 {
-				valueNode = nodes[i+1]
-			}
-		}
-	}
-
-	return keyNode, valueNode
-}
-
 func (o *createOpts) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "my-installation", "name of the generated installation")
+	fs.BoolVar(&o.renderSchemaInfo, "render-schema-info", false, "render schema information of the component's imports and exports as comments into the installation")
 	o.OciOptions.AddFlags(fs)
 }
 
