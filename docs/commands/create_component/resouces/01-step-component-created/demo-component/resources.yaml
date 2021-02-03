@@ -1,0 +1,10 @@
+---
+type: blueprint
+name: blueprint
+version: v0.1.0
+relation: local
+input: 
+  type: dir
+  path: ./blueprint
+  mediaType: application/vnd.gardener.landscaper.blueprint.v1+tar+gzip
+...

@@ -39,7 +39,7 @@ type createOptions struct {
 func NewCreateCommand(ctx context.Context) *cobra.Command {
 	opts := &createOptions{}
 	cmd := &cobra.Command{
-		Use:  "create [component name] [component version]",
+		Use:  "create [component name] [component semver version]",
 		Args: cobra.ExactArgs(2),
 		Example: "landscaper-cli component create \\\n" +
 			"    github.com/gardener/landscapercli/nginx \\\n" +
