@@ -28,14 +28,13 @@ import (
 )
 
 const addManifestDeployItemUse = `deployitem \
-    [component directory path] \
     [deployitem name] \
    `
 
 const addManifestDeployItemExample = `
 landscaper-cli component add manifest deployitem \
-  . \
   nginx \
+  --component-path ~/myComponent \
   --file ./deployment.yaml \
   --file ./service.yaml \
   --import-param replicas:integer
@@ -81,7 +80,7 @@ func NewAddManifestDeployItemCommand(ctx context.Context) *cobra.Command {
 		Use:     addManifestDeployItemUse,
 		Example: addManifestDeployItemExample,
 		Short:   addManifestDeployItemShort,
-		Args:    cobra.ExactArgs(2),
+		Args:    cobra.ExactArgs(1),
 
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -104,8 +103,7 @@ func NewAddManifestDeployItemCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *addManifestDeployItemOptions) Complete(args []string) error {
-	o.componentPath = args[0]
-	o.deployItemName = args[1]
+	o.deployItemName = args[0]
 
 	o.importDefinitions = []v1alpha1.ImportDefinition{}
 	o.replacement = map[string]string{}
@@ -130,6 +128,10 @@ func (o *addManifestDeployItemOptions) Complete(args []string) error {
 }
 
 func (o *addManifestDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.componentPath,
+		"component-path",
+		".",
+		"path to component directory")
 	o.files = fs.StringArray(
 		"file",
 		[]string{},
