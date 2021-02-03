@@ -288,7 +288,7 @@ func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 }
 
 func (o *createOpts) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.name, "name", "my-installation", "name of the generated installation")
+	fs.StringVar(&o.name, "name", "my-installation", "name of the installation")
 	fs.BoolVar(&o.renderSchemaInfo, "render-schema-info", false, "render schema information of the component's imports and exports as comments into the installation")
 	o.OciOptions.AddFlags(fs)
 }
