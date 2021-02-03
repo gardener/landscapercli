@@ -7,6 +7,7 @@ package components
 import (
 	"context"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"os"
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
@@ -68,6 +69,16 @@ func (o *createOptions) Complete(args []string) error {
 	o.componentPath = args[0]
 	o.componentName = args[1]
 	o.componentVersion = args[2]
+
+	return o.validate()
+}
+
+func (o *createOptions) validate() error {
+	_, err := semver.NewVersion(o.componentVersion)
+	if err != nil {
+		return fmt.Errorf("component version %s is not semver compatible", o.componentVersion)
+	}
+
 	return nil
 }
 
