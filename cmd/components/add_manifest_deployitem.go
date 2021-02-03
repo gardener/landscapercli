@@ -201,10 +201,7 @@ func (o *addManifestDeployItemOptions) run(ctx context.Context, log logr.Logger)
 
 	o.addExecution(blueprint)
 
-	err = o.addImports(blueprint)
-	if err != nil {
-		return err
-	}
+	o.addImports(blueprint)
 
 	return blueprints.NewBlueprintWriter(blueprintPath).Write(blueprint)
 }
@@ -228,66 +225,57 @@ func (o *addManifestDeployItemOptions) addExecution(blueprint *v1alpha1.Blueprin
 	})
 }
 
-func (o *addManifestDeployItemOptions) addImports(blueprint *v1alpha1.Blueprint) error {
-	o.addTargetImport(blueprint, o.clusterParam)
-	o.addStringImport(blueprint, o.targetNsParam)
+// addImports adds the following imports to the blueprint:
+// - one import parameter specified by the flag "--cluster-param [parameter name]"
+// - one import parameter specified by the flag "--target-ns-param [parameter name]"
+// - all import parameters specified  by (multiple) flags "--import-param [parameter name]:[parameter type]"
+func (o *addManifestDeployItemOptions) addImports(blueprint *v1alpha1.Blueprint) {
+	o.addImport(blueprint, o.buildImportDefinitionForClusterParam())
+	o.addImport(blueprint, o.buildImportDefinitionForTargetNsParam())
 
 	for _, importDefinition := range o.importDefinitions {
-		err := o.addImport(blueprint, &importDefinition)
-		if err != nil {
-			return err
-		}
+		o.addImport(blueprint, &importDefinition)
 	}
-
-	return nil
 }
 
-func (o *addManifestDeployItemOptions) addTargetImport(blueprint *v1alpha1.Blueprint, name string) {
-	for i := range blueprint.Imports {
-		if blueprint.Imports[i].Name == name {
-			return
-		}
-	}
-
+func (o *addManifestDeployItemOptions) buildImportDefinitionForClusterParam() *v1alpha1.ImportDefinition {
 	required := true
-
-	blueprint.Imports = append(blueprint.Imports, v1alpha1.ImportDefinition{
+	return &v1alpha1.ImportDefinition{
 		FieldValueDefinition: v1alpha1.FieldValueDefinition{
-			Name:       name,
+			Name:       o.clusterParam,
 			TargetType: string(v1alpha1.KubernetesClusterTargetType),
 		},
 		Required: &required,
-	})
+	}
 }
 
-func (o *addManifestDeployItemOptions) addStringImport(blueprint *v1alpha1.Blueprint, name string) {
-	for i := range blueprint.Imports {
-		if blueprint.Imports[i].Name == name {
-			return
-		}
-	}
-
+func (o *addManifestDeployItemOptions) buildImportDefinitionForTargetNsParam() *v1alpha1.ImportDefinition {
 	required := true
-
-	blueprint.Imports = append(blueprint.Imports, v1alpha1.ImportDefinition{
+	return &v1alpha1.ImportDefinition{
 		FieldValueDefinition: v1alpha1.FieldValueDefinition{
-			Name:   name,
-			Schema: v1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
+			Name:   o.targetNsParam,
+			Schema: o.buildElementarySchema("string"),
 		},
 		Required: &required,
-	})
+	}
 }
 
-func (o *addManifestDeployItemOptions) addImport(blueprint *v1alpha1.Blueprint, importDefinition *v1alpha1.ImportDefinition) error {
-	for i := range blueprint.Imports {
-		if blueprint.Imports[i].Name == importDefinition.Name {
-			// todo: check that the type has not changed
-			return nil
-		}
+func (o *addManifestDeployItemOptions) addImport(blueprint *v1alpha1.Blueprint, importDefinition *v1alpha1.ImportDefinition) {
+	if o.existsImport(blueprint, importDefinition.Name) {
+		return
 	}
 
 	blueprint.Imports = append(blueprint.Imports, *importDefinition)
-	return nil
+}
+
+func (o *addManifestDeployItemOptions) existsImport(blueprint *v1alpha1.Blueprint, name string) bool {
+	for i := range blueprint.Imports {
+		if blueprint.Imports[i].Name == name {
+			return true
+		}
+	}
+
+	return false
 }
 
 // parseImportDefinition creates a new ImportDefinition from a given parameter definition string.
@@ -311,16 +299,20 @@ func (o *addManifestDeployItemOptions) parseImportDefinition(paramDef string) (*
 			paramDef)
 	}
 
-	schema := fmt.Sprintf("{ \"type\": \"%s\" }", typ)
 	required := true
 
 	return &v1alpha1.ImportDefinition{
 		FieldValueDefinition: v1alpha1.FieldValueDefinition{
 			Name:   name,
-			Schema: v1alpha1.JSONSchemaDefinition(schema),
+			Schema: o.buildElementarySchema(typ),
 		},
 		Required: &required,
 	}, nil
+}
+
+func (o *addManifestDeployItemOptions) buildElementarySchema(elementaryType string) v1alpha1.JSONSchemaDefinition {
+	schema := fmt.Sprintf("{ \"type\": \"%s\" }", elementaryType)
+	return v1alpha1.JSONSchemaDefinition(schema)
 }
 
 func (o *addManifestDeployItemOptions) existsExecutionFile() (bool, error) {
