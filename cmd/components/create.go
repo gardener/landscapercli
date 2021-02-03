@@ -7,8 +7,9 @@ package components
 import (
 	"context"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
 	"os"
+
+	"github.com/Masterminds/semver/v3"
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	"github.com/gardener/landscaper/apis/core/v1alpha1"

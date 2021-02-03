@@ -5,7 +5,6 @@ Command to add a deploy item skeleton to the blueprint of a component
 
 ```
 landscaper-cli components add manifest deployitem \
-    [component directory path] \
     [deployitem name] \
     [flags]
 ```
@@ -15,11 +14,13 @@ landscaper-cli components add manifest deployitem \
 ```
 
 landscaper-cli component add manifest deployitem \
-  . \
   nginx \
+  --component-path ~/myComponent \
   --file ./deployment.yaml \
   --file ./service.yaml \
   --import-param replicas:integer
+  --cluster-param target-cluster
+  --target-ns-param target-namespace
 
 ```
 
@@ -27,6 +28,7 @@ landscaper-cli component add manifest deployitem \
 
 ```
       --cluster-param string       import parameter name for the target resource containing the access data of the target cluster (default "targetCluster")
+      --component-path string      path to component directory (default ".")
       --file stringArray           manifest file
   -h, --help                       help for deployitem
       --import-param stringArray   import parameter
