@@ -1,42 +1,34 @@
 # Landscaper CLI
 
-The Landscaper CLI tool supports users to interact with [Landscaper](https://github.com/gardener/landscaper) 
-systems and their custom resources like Installations, Executions, DeployItems, DataObjects, Targets etc. These 
-resources can simply be accessed using `kubectl`.
+The Landscaper CLI supports users to develop, maintain, and test components processed by the 
+[Landscaper](https://github.com/gardener/landscaper). This comprises the handling of objects like component descriptors, 
+blueprints, installations, etc. 
 
-The landscaper also interacts with resources that are not stored in a cluster.
-Some of these resources include Blueprints, ComponentDescriptors or jsonschemas that are stored remotely in an OCI 
-registry.
+The Landscaper CLI supports the following use cases:
 
-The Landscaper CLI tool is mainly build to support human users interacting with these remote resources.
-We may also think to improve the kubectl experience but this will then be rather a kubectl plugin than its own cli tool.
-(ref https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/)
+- Automatic setup of a landscaper and an OCI registry for development  
+- Development of components including a component descriptor and blueprint  
+- Local validation of such components  
+- Support for testing components on a kubernetes cluster  
+- Support for accessing and maintaining components with a blueprint in OCI registry
 
 ## Installation
 
-[Link](./docs/installation.md)
+Installation instructions can be found [here](docs/installation.md).
 
-## Login to an OCI Registry
+## Documentation 
 
-In order for the `landscaper-cli` to work with the registry, it needs valid credentials. The easiest way to generate 
-these, would be via `docker login`. 
+Detailed descriptions for commands could be found [here](docs/commands).
 
-```shell
-docker login ...
-```
+The command reference is located [here](docs/reference/landscaper-cli.md). 
 
-An example how to work with the Landscaper Cli and an [Harbor OCI registry](https://github.com/goharbor/harbor-helm) 
-could be found [here](https://github.com/gardener/landscaper/blob/master/docs/tutorials/00-local-setup.md).
+The Landscaper CLI support the installation of the [Docker OCI registry](https://hub.docker.com/_/registry/) 
+with the [quickstart command](docs/commands/quickstart).
+
+If you want to use the [Harbor OCI registry](https://github.com/goharbor/harbor-helm) as an alternative OCI registry, 
+see the [Landscaper documentation](https://github.com/gardener/landscaper/blob/master/docs/tutorials/00-local-setup.md).
+
+A description how to access an OCI registry with the Landscaper CLI can be found [here](docs/login-to-oci-registry.md). 
 
 Other examples:
 https://github.com/gardener/landscaper/blob/master/docs/tutorials/02-simple-import.md 
-
-## Commands 
-
-Detailed descriptions for commands could be found [here](docs/commands/README.md).
-
-The generated command reference is located in this [folder](docs/reference/landscaper-cli.md). 
-
-## Examples 
-
-Examples could be found [here](docs/examples/README.md).
