@@ -213,37 +213,42 @@ func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installatio
 
 func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint) error {
 	_, exportsDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.exports.data")
-	for _, dataImportNode := range exportsDataValueNode.Content {
-		n1, n2 := util.FindNodeByPath(dataImportNode, "name")
-		exportName := n2.Value
+	if exportsDataValueNode != nil {
 
-		var expdef lsv1alpha1.ExportDefinition
-		for _, bpexp := range blueprint.Exports {
-			if bpexp.Name == exportName {
-				expdef = bpexp
-				break
+		for _, dataImportNode := range exportsDataValueNode.Content {
+			n1, n2 := util.FindNodeByPath(dataImportNode, "name")
+			exportName := n2.Value
+
+			var expdef lsv1alpha1.ExportDefinition
+			for _, bpexp := range blueprint.Exports {
+				if bpexp.Name == exportName {
+					expdef = bpexp
+					break
+				}
 			}
+			prettySchema, err := json.MarshalIndent(expdef.Schema, "", "  ")
+			if err != nil {
+				return fmt.Errorf("cannot marshal JSON schema: %w", err)
+			}
+			n1.HeadComment = "JSON schema\n" + string(prettySchema)
 		}
-		prettySchema, err := json.MarshalIndent(expdef.Schema, "", "  ")
-		if err != nil {
-			return fmt.Errorf("cannot marshal JSON schema: %w", err)
-		}
-		n1.HeadComment = "JSON schema\n" + string(prettySchema)
 	}
 
 	_, exportTargetsValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.exports.targets")
-	for _, targetExportNode := range exportTargetsValueNode.Content {
-		n1, n2 := util.FindNodeByPath(targetExportNode, "name")
-		targetName := n2.Value
+	if exportTargetsValueNode != nil {
+		for _, targetExportNode := range exportTargetsValueNode.Content {
+			n1, n2 := util.FindNodeByPath(targetExportNode, "name")
+			targetName := n2.Value
 
-		var expdef lsv1alpha1.ExportDefinition
-		for _, bpexp := range blueprint.Exports {
-			if bpexp.Name == targetName {
-				expdef = bpexp
-				break
+			var expdef lsv1alpha1.ExportDefinition
+			for _, bpexp := range blueprint.Exports {
+				if bpexp.Name == targetName {
+					expdef = bpexp
+					break
+				}
 			}
+			n1.HeadComment = "Target type: " + expdef.TargetType
 		}
-		n1.HeadComment = "Target type: " + expdef.TargetType
 	}
 
 	return nil
@@ -251,37 +256,41 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 
 func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint) error {
 	_, importDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.imports.data")
-	for _, dataImportNode := range importDataValueNode.Content {
-		n1, n2 := util.FindNodeByPath(dataImportNode, "name")
-		importName := n2.Value
+	if importDataValueNode != nil {
+		for _, dataImportNode := range importDataValueNode.Content {
+			n1, n2 := util.FindNodeByPath(dataImportNode, "name")
+			importName := n2.Value
 
-		var impdef lsv1alpha1.ImportDefinition
-		for _, bpimp := range blueprint.Imports {
-			if bpimp.Name == importName {
-				impdef = bpimp
-				break
+			var impdef lsv1alpha1.ImportDefinition
+			for _, bpimp := range blueprint.Imports {
+				if bpimp.Name == importName {
+					impdef = bpimp
+					break
+				}
 			}
+			prettySchema, err := json.MarshalIndent(impdef.Schema, "", "  ")
+			if err != nil {
+				return fmt.Errorf("cannot marshal JSON schema: %w", err)
+			}
+			n1.HeadComment = "JSON schema\n" + string(prettySchema)
 		}
-		prettySchema, err := json.MarshalIndent(impdef.Schema, "", "  ")
-		if err != nil {
-			return fmt.Errorf("cannot marshal JSON schema: %w", err)
-		}
-		n1.HeadComment = "JSON schema\n" + string(prettySchema)
 	}
 
 	_, targetsValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.imports.targets")
-	for _, targetImportNode := range targetsValueNode.Content {
-		n1, n2 := util.FindNodeByPath(targetImportNode, "name")
-		targetName := n2.Value
+	if targetsValueNode != nil {
+		for _, targetImportNode := range targetsValueNode.Content {
+			n1, n2 := util.FindNodeByPath(targetImportNode, "name")
+			targetName := n2.Value
 
-		var impdef lsv1alpha1.ImportDefinition
-		for _, bpimp := range blueprint.Imports {
-			if bpimp.Name == targetName {
-				impdef = bpimp
-				break
+			var impdef lsv1alpha1.ImportDefinition
+			for _, bpimp := range blueprint.Imports {
+				if bpimp.Name == targetName {
+					impdef = bpimp
+					break
+				}
 			}
+			n1.HeadComment = "Target type: " + impdef.TargetType
 		}
-		n1.HeadComment = "Target type: " + impdef.TargetType
 	}
 
 	return nil
