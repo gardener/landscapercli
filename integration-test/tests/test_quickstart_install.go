@@ -11,11 +11,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/gardener/landscapercli/integration-test/config"
+	inttestutil "github.com/gardener/landscapercli/integration-test/util"
 	"github.com/gardener/landscapercli/pkg/util"
 )
 
-func RunQuickstartInstallTest(k8sClient client.Client, target *lsv1alpha1.Target, helmChartRef string, config *config.Config) error {
+func RunQuickstartInstallTest(k8sClient client.Client, target *lsv1alpha1.Target, helmChartRef string, config *inttestutil.Config) error {
 	// cleanup before
 	err := util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
