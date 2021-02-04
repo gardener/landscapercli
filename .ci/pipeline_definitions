@@ -38,7 +38,7 @@ landscaper-cli:
           - --garden-namespace garden-hubtest
           - --target-clustername int-test
           - --testNamespace landscapercli-test
-           output_dir: integration_test
+          output_dir: integration_test
     release-dev:
       traits:
         version:
