@@ -233,15 +233,77 @@ new import parameters *password-1* and *password-2*. These import parameters are
 to later provide their values to the adequate parts of the manifest specification. The so called *dedicated positions*
 are all those field values with in the manifests with the same string as the import parameter name.
 
-In the file *[resources.yaml](resouces/03-step-add-local-helm-chart/demo-component/resources.yaml)* you
+In the file *[resources.yaml](resouces/04-step-add-secret-manifests/demo-component/resources.yaml)* you
 find a new entry for the added echo server helm chart resource. You see here the input type *dir* which means
 that during the later upload of the component to the OCI registry the complete chart folder is added as a
 separate layer of the OCI artifact.
 
+## 3 Upload Component into an OCI Registry
+
+Now we describe how to upload the locally developed *[component](resouces/04-step-add-secret-manifests)* into an OCI registry.
+
+### 3.1 Add Resources to Component Descriptor
+
+In a first step, we add the resources in file *[resources.yaml](resouces/04-step-add-secret-manifests/demo-component/resources.yaml)* 
+to the component descriptor. This is achieved with the following command:
+
+```shell script
+landscaper-cli components-cli component-archive resources add \
+   .../landscapercli/docs/commands/create_component/resouces/05-step-prepare-push/demo-component \
+   -r .../landscapercli/docs/commands/create_component/resouces/05-step-prepare-push/demo-component/resources.yaml
+```
+
+Applying the command on the component folder in
+*[04-step-add-secret-manifests](resouces/04-step-add-secret-manifests)* results in the resources stored
+in the folder *[05-step-prepare-push](resouces/05-step-prepare-push)*.
+
+The command packs all resources with *input.type=dir* into a *blobs* directory. 
+Moreover, it adds all resources to the
+*[component-descriptor.yaml](resouces/05-step-prepare-push/demo-component/component-descriptor.yaml)*.
+
+**Remark:**
+The resources in the *blobs* directory will be stored together with the component descriptor in one OCI artifact.
+
+### 3.2 Maintain Base URL of the OCI Registry
+
+Set the field *component.repositoryContexts.baseUrl* of the 
+*[component-descriptor.yaml](resouces/05-step-prepare-push/demo-component/component-descriptor.yaml)*
+to the base URL of the OCI registry into which you want to upload the component, e.g.
+
+```yaml
+component:
+  repositoryContexts:
+  - baseUrl: eu.gcr.io/some-path
+    type: ociRegistry
+```
+
+### 3.3 Upload Component
+
+Next, we upload the component to the OCI registry with the following command:
+
+```shell script
+landscaper-cli components-cli ca remote push \
+    eu.gcr.io/some-path \
+    github.com/gardener/landscapercli/nginx \
+    v0.1.0 \
+    .../landscapercli/docs/commands/create_component/resouces/05-step-prepare-push/demo-component
+```
+
+In this case, the push command has the following arguments:
+
+* eu.gcr.io/some-path: the base URL of the OCI registry as defined in the component-descriptor.yaml
+* github.com/gardener/landscapercli/nginx: the component name as defined in the component-descriptor.yaml
+* v0.1.0: the component version as defined in the component-descriptor.yaml
+* .../landscapercli/docs/commands/create_component/resouces/05-step-prepare-push/demo-component: the path to the component directory
+
+After the push, the OCI registry contains an artifact 
+*eu.gcr.io/some-path/component-descriptors/github.com/gardener/landscapercli/nginx:v0.1.0*.
+It contains the component descriptor, the blueprint, and the helm chart of the echo server. 
+It does not contain the nginx helm chart, because this is only referenced and stored as a separate artifact.
+
+
 ## Todo
 
-- Add Resource
-- Upload to OCI Factor with URL adaption
 - Create Installation
 
 - Describe that the current helm deploy mechanism is not helm but only helm template plus apply
