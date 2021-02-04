@@ -15,8 +15,6 @@ landscaper-cli:
       verify:
         image: 'golang:1.15.2'
 
-  merge-keys:
-    code_tests: &code_test_trait
 jobs:
     head-update:
       traits:
@@ -33,7 +31,6 @@ jobs:
           nextversion: 'bump_minor'
           release_notes_policy: disabled
       steps:
-        <<: *code_test_trait
         run_integration_test:
           execute:
           - dev_integration_test.py
