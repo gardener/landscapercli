@@ -10,13 +10,6 @@ landscaper-cli:
       version:
         preprocess: 'inject-commit-hash'
         inject_effective_version: true
-      notifications:
-        default:
-          on_error:
-            triggering_policy: 'always'
-            recipients:
-            - email_addresses:
-              - 72857276+guewa@users.noreply.github.com
       component_descriptor: ~
     steps:
       verify:
@@ -37,15 +30,6 @@ landscaper-cli:
         release:
           nextversion: 'bump_minor'
           release_notes_policy: disabled
-      steps:
-        <<: *code_test_trait
-        run_integration_test:
-          execute:
-          - dev_integration_test.py
-          - --garden-namespace garden-hubtest
-          - --target-clustername int-test
-          - --testNamespace landscapercli-test
-          output_dir: integration_test
     release-dev:
       traits:
         version:
