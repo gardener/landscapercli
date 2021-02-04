@@ -15,26 +15,24 @@ landscaper-cli components add manifest deployitem \
 
 landscaper-cli component add manifest deployitem \
   nginx \
-  --component-path ~/myComponent \
-  --file ./deployment.yaml \
-  --file ./service.yaml \
+  --component-directory ~/myComponent \
+  --manifest-file ./deployment.yaml \
+  --manifest-file ./service.yaml \
   --import-param replicas:integer
   --cluster-param target-cluster
-  --target-ns-param target-namespace
 
 ```
 
 ### Options
 
 ```
-      --cluster-param string       import parameter name for the target resource containing the access data of the target cluster (default "targetCluster")
-      --component-path string      path to component directory (default ".")
-      --file stringArray           manifest file
-  -h, --help                       help for deployitem
-      --import-param stringArray   import parameter
-      --policy string              policy (default "manage")
-      --target-ns-param string     target namespace
-      --update-strategy string     update stategy (default "update")
+      --cluster-param string         import parameter name for the target resource containing the access data of the target cluster (default "targetCluster")
+      --component-directory string   path to component directory (default ".")
+  -h, --help                         help for deployitem
+      --import-param stringArray     import parameter as name:integer|string|boolean, e.g. replicas:integer
+      --manifest-file stringArray    manifest file containing one kubernetes resource
+      --policy string                policy (default "manage")
+      --update-strategy string       update stategy (default "update")
 ```
 
 ### Options inherited from parent commands
