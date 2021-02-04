@@ -15,7 +15,7 @@ landscaper-cli:
           on_error:
             email: true
             triggering_policy: 'only_first'
-            recipients: 
+            recipients:
             - codeowners
       component_descriptor: ~
     steps:
