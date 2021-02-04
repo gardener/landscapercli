@@ -15,7 +15,9 @@ landscaper-cli:
       verify:
         image: 'golang:1.15.2'
 
-  jobs:
+  merge-keys:
+    code_tests: &code_test_trait
+jobs:
     head-update:
       traits:
         draft_release: ~
@@ -29,4 +31,20 @@ landscaper-cli:
           preprocess: 'finalize'
         release:
           nextversion: 'bump_minor'
+          release_notes_policy: disabled
+      steps:
+        <<: *code_test_trait
+        run_integration_test:
+          execute:
+          - dev_integration_test.py
+          - --garden-namespace garden-hubtest
+          - --target-clustername int-test
+          - --testNamespace landscapercli-test
+          output_dir: integration_test
+    major-release:
+      traits:
+        version:
+          preprocess: 'finalize'
+        release:
+          nextversion: 'bump_major'
           release_notes_policy: disabled
