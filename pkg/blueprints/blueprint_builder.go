@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
+
+	"github.com/gardener/landscapercli/pkg/util"
 )
 
 type BlueprintBuilder struct {
@@ -62,4 +64,23 @@ func (b *BlueprintBuilder) AddImportForElementaryType(paramName, paramType strin
 		Required: &required,
 	}
 	b.AddImport(importDefinition)
+}
+
+func (b *BlueprintBuilder) ExistsDeployExecution(executionName string) bool {
+	for i := range b.blueprint.DeployExecutions {
+		execution := &b.blueprint.DeployExecutions[i]
+		if execution.Name == executionName {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (b *BlueprintBuilder) AddDeployExecution(deployItemName string) {
+	b.blueprint.DeployExecutions = append(b.blueprint.DeployExecutions, v1alpha1.TemplateExecutor{
+		Name: deployItemName,
+		Type: v1alpha1.GOTemplateType,
+		File: "/" + util.ExecutionFileName(deployItemName),
+	})
 }
