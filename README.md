@@ -28,7 +28,7 @@ with the [quickstart command](docs/commands/quickstart).
 If you want to use the [Harbor OCI registry](https://github.com/goharbor/harbor-helm) as an alternative OCI registry, 
 see the [Landscaper documentation](https://github.com/gardener/landscaper/blob/master/docs/tutorials/00-local-setup.md).
 
-A description how to access an OCI registry with the Landscaper CLI can be found [here](docs/login-to-oci-registry.md). 
+A description how to access an OCI registry which requires authentication with the Landscaper CLI can be found [here](docs/login-to-oci-registry.md). 
 
 Other examples:
 https://github.com/gardener/landscaper/blob/master/docs/tutorials/02-simple-import.md 
