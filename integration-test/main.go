@@ -8,9 +8,21 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"time"
 
+	"github.com/gardener/component-cli/ociclient"
+	"github.com/gardener/component-cli/ociclient/cache"
+	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
+	componentclilog "github.com/gardener/component-cli/pkg/logger"
+	"github.com/gardener/component-cli/pkg/utils"
+	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	"github.com/gardener/component-spec/bindings-go/ctf"
+	cdoci "github.com/gardener/component-spec/bindings-go/oci"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/go-logr/logr"
+	"github.com/mandelsoft/vfs/pkg/memoryfs"
+	"github.com/mandelsoft/vfs/pkg/vfs"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -18,6 +30,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscapercli/cmd/quickstart"
 	"github.com/gardener/landscapercli/integration-test/config"
@@ -77,6 +90,7 @@ func run() error {
 		return fmt.Errorf("cannot create logger: %w", err)
 	}
 	logger.SetLogger(log)
+	componentclilog.SetLogger(log)
 
 	cfg, err := clientcmd.BuildConfigFromFlags("", config.Kubeconfig)
 	if err != nil {
@@ -119,6 +133,7 @@ func run() error {
 		return fmt.Errorf("timeout while waiting for landscaper pods")
 	}
 
+	// TODO: fix error handling. no error is thrown if port is already in use.
 	fmt.Println("========== Starting port-forward to OCI registry ==========")
 	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, config.LandscaperNamespace, config.Kubeconfig)
 	if err != nil {
@@ -128,7 +143,7 @@ func run() error {
 		// Disable port-forward
 		killPortforwardErr := portforwardCmd.Process.Kill()
 		if killPortforwardErr != nil {
-			fmt.Println("cannot kill port-forward process:", err)
+			fmt.Println("cannot kill port-forward process:", killPortforwardErr)
 		}
 	}()
 
@@ -136,6 +151,12 @@ func run() error {
 	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace)
 	if err != nil {
 		return fmt.Errorf("upload of echo-server helm chart failed: %w", err)
+	}
+
+	fmt.Println("========== Uploading echo-server component descriptor to OCI registry ==========")
+	err = uploadEchoServerComponentDescriptor()
+	if err != nil {
+		return fmt.Errorf("upload of echo-server component descriptor failed: %w", err)
 	}
 
 	target, err := buildTarget(config.Kubeconfig)
@@ -266,6 +287,128 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 	return helmChartRef, nil
 }
 
+func createBluePrint() *lsv1alpha1.Blueprint {
+	bp := &lsv1alpha1.Blueprint{
+		Imports: []lsv1alpha1.ImportDefinition{
+			{
+				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
+					Name: "appname",
+				},
+			},
+			{
+				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
+					Name: "appnamespace",
+				},
+			},
+		},
+		Exports:          []lsv1alpha1.ExportDefinition{},
+		DeployExecutions: []lsv1alpha1.TemplateExecutor{},
+	}
+	return bp
+}
+
+func createComponentDescriptor() *cdv2.ComponentDescriptor {
+	cd := &cdv2.ComponentDescriptor{
+		Metadata: cdv2.Metadata{
+			Version: cdv2.SchemaVersion,
+		},
+		ComponentSpec: cdv2.ComponentSpec{
+			ObjectMeta: cdv2.ObjectMeta{
+				Name:    "github.com/gardener/echo-server-cd",
+				Version: "v0.1.0",
+			},
+			Provider: cdv2.InternalProvider,
+			RepositoryContexts: []cdv2.RepositoryContext{
+				{
+					Type:    cdv2.OCIRegistryType,
+					BaseURL: "oci-registry.landscaper.svc.cluster.local:5000",
+				},
+			},
+			Resources:           []cdv2.Resource{},
+			Sources:             []cdv2.Source{},
+			ComponentReferences: []cdv2.ComponentReference{},
+		},
+	}
+	return cd
+}
+
+func uploadEchoServerComponentDescriptor() error {
+	ctx := context.TODO()
+
+	cdDir, err := ioutil.TempDir(".", "echo-server-cd-*")
+	defer func() {
+		err = os.RemoveAll(cdDir)
+		if err != nil {
+			fmt.Printf("cannot remove temporary directory %s: %s", cdDir, err.Error())
+		}
+	}()
+
+	bpDir := path.Join(cdDir, "blueprint")
+	err = os.Mkdir(bpDir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	bp := createBluePrint()
+	marshaledBp, err := yaml.Marshal(bp)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(path.Join(bpDir, "blueprint.yaml"), marshaledBp, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	cd := createComponentDescriptor()
+	marshaledCd, err := yaml.Marshal(cd)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(path.Join(cdDir, "component-descriptor.yaml"), marshaledCd, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	resourcesYaml := `---
+type: blueprint
+name: ingress-nginx-blueprint
+version: v0.1.0
+relation: local
+input:
+  type: "dir"
+  path: "./blueprint"
+  compress: true
+  mediaType: "application/vnd.gardener.landscaper.blueprint.v1+tar+gzip"
+---
+`
+
+	resourceFile := path.Join(cdDir, "resources.yaml")
+	err = ioutil.WriteFile(resourceFile, []byte(resourcesYaml), os.ModePerm)
+	if err != nil {
+		return nil
+	}
+
+	addResourcesCmd := resources.NewAddCommand(ctx)
+	addResourcesArgs := []string{
+		cdDir,
+		"--resource",
+		resourceFile,
+	}
+	addResourcesCmd.SetArgs(addResourcesArgs)
+
+	err = addResourcesCmd.Execute()
+	if err != nil {
+		return err
+	}
+
+	err = UploadCD(cdDir, "localhost:5000/component-descriptors/github.com/gardener/echo-server-cd:v0.1.0")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func runQuickstartUninstall(config *config.Config) error {
 	uninstallArgs := []string{
 		"--kubeconfig",
@@ -286,14 +429,14 @@ func runQuickstartUninstall(config *config.Config) error {
 
 func runQuickstartInstall(config *config.Config) error {
 	const landscaperValues = `
-      landscaper:
-        registryConfig: # contains optional oci secrets
-          allowPlainHttpRegistries: true
-          secrets: {}
-        deployers:
-        - container
-        - helm
-    `
+landscaper:
+  registryConfig: # contains optional oci secrets
+    allowPlainHttpRegistries: true
+    secrets: {}
+  deployers:
+  - container
+  - helm
+`
 
 	tmpFile, err := ioutil.TempFile(".", "landscaper-values-")
 	defer func() {
@@ -303,7 +446,7 @@ func runQuickstartInstall(config *config.Config) error {
 		}
 	}()
 
-	err = ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValues), 0644)
+	err = ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValues), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("cannot write to file: %w", err)
 	}
@@ -326,4 +469,48 @@ func runQuickstartInstall(config *config.Config) error {
 	}
 
 	return nil
+}
+
+func UploadCD(componentPath, uploadRef string) error {
+	ctx := context.TODO()
+	ociClient, cache, err := BuildOCIClient(logger.Log, memoryfs.New(), componentPath)
+	if err != nil {
+		return fmt.Errorf("unable to build oci client: %s", err.Error())
+	}
+
+	archive, err := ctf.ComponentArchiveFromPath(componentPath)
+	if err != nil {
+		return fmt.Errorf("unable to build component archive: %w", err)
+	}
+	// update repository context
+	archive.ComponentDescriptor.RepositoryContexts = utils.AddRepositoryContext(archive.ComponentDescriptor.RepositoryContexts, cdv2.OCIRegistryType, "localhost:5000")
+
+	// manifest, err := cdoci.NewManifestBuilder(cache, archive).Build(ctx)
+	manifest, err := cdoci.NewManifestBuilder(cache, archive).Build(ctx)
+	if err != nil {
+		return fmt.Errorf("unable to build oci artifact for component acrchive: %w", err)
+	}
+
+	return ociClient.PushManifest(ctx, uploadRef, manifest)
+}
+
+func BuildOCIClient(log logr.Logger, fs vfs.FileSystem, componentPath string) (ociclient.Client, cache.Cache, error) {
+	cache, err := cache.NewCache(log, cache.WithBasePath(componentPath))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ociOpts := []ociclient.Option{
+		ociclient.WithCache{Cache: cache},
+		ociclient.WithKnownMediaType(cdoci.ComponentDescriptorConfigMimeType),
+		ociclient.WithKnownMediaType(cdoci.ComponentDescriptorTarMimeType),
+		ociclient.WithKnownMediaType(cdoci.ComponentDescriptorJSONMimeType),
+		ociclient.AllowPlainHttp(true),
+	}
+
+	ociClient, err := ociclient.NewClient(log, ociOpts...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to build oci client: %w", err)
+	}
+	return ociClient, cache, nil
 }

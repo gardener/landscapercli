@@ -170,6 +170,9 @@ func installLandscaper(ctx context.Context, kubeconfigPath, namespace, landscape
 	}
 
 	tempDir, err := ioutil.TempDir(".", "landscaper-chart-tmp-*")
+	if err != nil {
+		return err
+	}	
 	defer func() {
 		err = os.RemoveAll(tempDir)
 		if err != nil {

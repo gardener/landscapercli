@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -60,7 +61,11 @@ func (o *uninstallOptions) run(ctx context.Context, log logr.Logger) error {
 
 	_, err = k8sClient.CoreV1().Namespaces().Get(ctx, o.namespace, v1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("Cannot get namespace %s: %w", o.namespace, err)
+		if k8sErrors.IsNotFound(err) {
+			fmt.Printf("Cannot find namespace %s\n", o.namespace)
+			return nil
+		}
+		return fmt.Errorf("Cannot get namespace: %w", err)
 	}
 
 	fmt.Println("Uninstall OCI Registry...")
