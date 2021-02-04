@@ -13,7 +13,6 @@ import (
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	componentclilog "github.com/gardener/component-cli/pkg/logger"
-	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -279,7 +278,7 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 	return helmChartRef, nil
 }
 
-func createBluePrint() *lsv1alpha1.Blueprint {
+func createDummyBlueprint() *lsv1alpha1.Blueprint {
 	bp := &lsv1alpha1.Blueprint{
 		Imports: []lsv1alpha1.ImportDefinition{
 			{
@@ -299,31 +298,6 @@ func createBluePrint() *lsv1alpha1.Blueprint {
 	return bp
 }
 
-func createComponentDescriptor() *cdv2.ComponentDescriptor {
-	cd := &cdv2.ComponentDescriptor{
-		Metadata: cdv2.Metadata{
-			Version: cdv2.SchemaVersion,
-		},
-		ComponentSpec: cdv2.ComponentSpec{
-			ObjectMeta: cdv2.ObjectMeta{
-				Name:    "github.com/gardener/echo-server-cd",
-				Version: "v0.1.0",
-			},
-			Provider: cdv2.InternalProvider,
-			RepositoryContexts: []cdv2.RepositoryContext{
-				{
-					Type:    cdv2.OCIRegistryType,
-					BaseURL: "oci-registry.landscaper.svc.cluster.local:5000",
-				},
-			},
-			Resources:           []cdv2.Resource{},
-			Sources:             []cdv2.Source{},
-			ComponentReferences: []cdv2.ComponentReference{},
-		},
-	}
-	return cd
-}
-
 func uploadEchoServerComponentDescriptor() error {
 	ctx := context.TODO()
 
@@ -341,7 +315,7 @@ func uploadEchoServerComponentDescriptor() error {
 		return err
 	}
 
-	bp := createBluePrint()
+	bp := createDummyBlueprint()
 	marshaledBp, err := yaml.Marshal(bp)
 	if err != nil {
 		return err
@@ -351,7 +325,7 @@ func uploadEchoServerComponentDescriptor() error {
 		return err
 	}
 
-	cd := createComponentDescriptor()
+	cd := inttestutil.CreateComponentDescriptor("github.com/gardener/echo-server-cd", "v0.1.0", "oci-registry.landscaper.svc.cluster.local:5000")
 	marshaledCd, err := yaml.Marshal(cd)
 	if err != nil {
 		return err
