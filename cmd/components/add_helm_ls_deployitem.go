@@ -229,9 +229,9 @@ func (o *addHelmLsDeployItemOptions) addExecution(blueprint *v1alpha1.Blueprint)
 }
 
 func (o *addHelmLsDeployItemOptions) addImports(blueprint *v1alpha1.Blueprint) {
-	imp := blueprints.NewImporter()
-	imp.AddImportForTarget(blueprint, o.clusterParam)
-	imp.AddImportForElementaryType(blueprint, o.targetNsParam, "string")
+	b := blueprints.NewBlueprintBuilder(blueprint)
+	b.AddImportForTarget(o.clusterParam)
+	b.AddImportForElementaryType(o.targetNsParam, "string")
 }
 
 func (o *addHelmLsDeployItemOptions) existsExecutionFile() (bool, error) {
