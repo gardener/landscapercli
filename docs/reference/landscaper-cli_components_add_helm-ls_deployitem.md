@@ -15,9 +15,9 @@ landscaper-cli components add helm-ls deployitem \
 
 landscaper-cli component add helm-ls deployitem \
   nginx \
-  --component-path ~/myComponent \
+  --component-directory ~/myComponent \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
-  --chart-version v0.1.0
+  --resource-version v0.1.0
   --cluster-param target-cluster
   --target-ns-param target-namespace
 
@@ -26,13 +26,13 @@ landscaper-cli component add helm-ls deployitem \
 ### Options
 
 ```
-      --chart-directory string   path to chart directory
-      --chart-version string     helm chart version
-      --cluster-param string     import parameter name for the target resource containing the access data of the target cluster (default "targetCluster")
-      --component-path string    path to component directory (default ".")
-  -h, --help                     help for deployitem
-      --oci-reference string     reference to oci artifact containing the helm chart
-      --target-ns-param string   target namespace
+      --chart-directory string       path to chart directory
+      --cluster-param string         import parameter name for the target resource containing the access data of the target cluster (default "targetCluster")
+      --component-directory string   path to component directory (default ".")
+  -h, --help                         help for deployitem
+      --oci-reference string         reference to oci artifact containing the helm chart
+      --resource-version string      helm chart version
+      --target-ns-param string       target namespace
 ```
 
 ### Options inherited from parent commands
