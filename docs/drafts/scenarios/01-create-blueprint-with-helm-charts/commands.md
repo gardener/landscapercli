@@ -52,11 +52,10 @@ Command:
 
 ```
 landscaper-cli component add helm-ls deployitem
-    [component directory path]
-    [execution name]
     [deployitem name]
+    --component-directory [directory path to component]
     --oci-reference [oci reference]
-    --chart-version [chart-version]
+    --resource-version [chart-version]
     --cluster-param [cluster-parameter-name]
     --target-ns-param [target-namespace-parameter-name]
 ```
@@ -65,11 +64,10 @@ Example:
 
 ```
 landscaper-cli component add helm-ls deployitem \
-    . \
     ingress-nginx \
-    ingress-nginx \
+    --component-directory . \
     --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
-    --chart-version v0.1.0 \
+    --resource-version v0.1.0 \
     --cluster-param target-cluster \
     --target-ns-param nginx-namespace
 ```
