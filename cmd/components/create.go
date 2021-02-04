@@ -44,7 +44,7 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 		Example: "landscaper-cli component create \\\n" +
 			"    github.com/gardener/landscapercli/nginx \\\n" +
 			"    v0.1.0 \\\n" +
-			"    --component-path ~/myComponent",
+			"    --component-directory ~/myComponent",
 		Short: "command to create a component template in the specified directory",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -84,7 +84,7 @@ func (o *createOptions) validate() error {
 
 func (o *createOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.componentPath,
-		"component-path",
+		"component-directory",
 		".",
 		"path to component directory")
 }

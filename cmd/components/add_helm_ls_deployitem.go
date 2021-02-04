@@ -34,9 +34,9 @@ const addHelmLSDeployItemUse = `deployitem \
 const addHelmLSDeployItemExample = `
 landscaper-cli component add helm-ls deployitem \
   nginx \
-  --component-path ~/myComponent \
+  --component-directory ~/myComponent \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
-  --chart-version v0.1.0
+  --resource-version v0.1.0
   --cluster-param target-cluster
   --target-ns-param target-namespace
 `
@@ -55,7 +55,7 @@ type addHelmLsDeployItemOptions struct {
 	ociReference       string
 	chartDirectoryPath string
 
-	chartVersion string
+	resourceVersion string
 
 	clusterParam  string
 	targetNsParam string
@@ -98,7 +98,7 @@ func (o *addHelmLsDeployItemOptions) Complete(args []string) error {
 
 func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.componentPath,
-		"component-path",
+		"component-directory",
 		".",
 		"path to component directory")
 	fs.StringVar(&o.ociReference,
@@ -109,8 +109,8 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 		"chart-directory",
 		"",
 		"path to chart directory")
-	fs.StringVar(&o.chartVersion,
-		"chart-version",
+	fs.StringVar(&o.resourceVersion,
+		"resource-version",
 		"",
 		"helm chart version")
 	fs.StringVar(&o.clusterParam,
@@ -137,8 +137,8 @@ func (o *addHelmLsDeployItemOptions) validate() error {
 		return fmt.Errorf("both oci-reference and chart-directory are set, exactly one needs to be specified")
 	}
 
-	if o.chartVersion == "" {
-		return fmt.Errorf("chart-version is missing")
+	if o.resourceVersion == "" {
+		return fmt.Errorf("resource-version is missing")
 	}
 
 	if o.clusterParam == "" {
@@ -332,7 +332,7 @@ func (o *addHelmLsDeployItemOptions) createOciResource() (*cdresources.ResourceO
 		Resource: cd.Resource{
 			IdentityObjectMeta: cd.IdentityObjectMeta{
 				Name:    o.deployItemName + "-" + "chart",
-				Version: o.chartVersion,
+				Version: o.resourceVersion,
 				Type:    helm,
 			},
 			Relation: cd.ExternalRelation,
@@ -352,7 +352,7 @@ func (o *addHelmLsDeployItemOptions) createDirectoryResource() (*cdresources.Res
 		Resource: cd.Resource{
 			IdentityObjectMeta: cd.IdentityObjectMeta{
 				Name:    o.deployItemName + "-" + "chart",
-				Version: o.chartVersion,
+				Version: o.resourceVersion,
 				Type:    helm,
 			},
 			Relation: cd.ExternalRelation,

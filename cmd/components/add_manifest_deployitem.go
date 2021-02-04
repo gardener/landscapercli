@@ -34,12 +34,11 @@ const addManifestDeployItemUse = `deployitem \
 const addManifestDeployItemExample = `
 landscaper-cli component add manifest deployitem \
   nginx \
-  --component-path ~/myComponent \
-  --file ./deployment.yaml \
-  --file ./service.yaml \
+  --component-directory ~/myComponent \
+  --manifest-file ./deployment.yaml \
+  --manifest-file ./service.yaml \
   --import-param replicas:integer
   --cluster-param target-cluster
-  --target-ns-param target-namespace
 `
 
 const addManifestDeployItemShort = `
@@ -69,8 +68,6 @@ type addManifestDeployItemOptions struct {
 	policy string
 
 	clusterParam string
-
-	targetNsParam string
 }
 
 // NewCreateCommand creates a new blueprint command to create a blueprint
@@ -131,17 +128,17 @@ func (o *addManifestDeployItemOptions) Complete(args []string) error {
 
 func (o *addManifestDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.componentPath,
-		"component-path",
+		"component-directory",
 		".",
 		"path to component directory")
 	o.files = fs.StringArray(
-		"file",
+		"manifest-file",
 		[]string{},
-		"manifest file")
+		"manifest file containing one kubernetes resource")
 	o.importParams = fs.StringArray(
 		"import-param",
 		[]string{},
-		"import parameter")
+		"import parameter as name:integer|string|boolean, e.g. replicas:integer")
 	fs.StringVar(&o.updateStrategy,
 		"update-strategy",
 		"update",
@@ -154,10 +151,6 @@ func (o *addManifestDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 		"cluster-param",
 		"targetCluster",
 		"import parameter name for the target resource containing the access data of the target cluster")
-	fs.StringVar(&o.targetNsParam,
-		"target-ns-param",
-		"",
-		"target namespace")
 }
 
 func (o *addManifestDeployItemOptions) validate() error {
@@ -168,10 +161,6 @@ func (o *addManifestDeployItemOptions) validate() error {
 
 	if o.clusterParam == "" {
 		return fmt.Errorf("cluster-param is missing")
-	}
-
-	if o.targetNsParam == "" {
-		return fmt.Errorf("target-ns-param is missing")
 	}
 
 	return nil
@@ -234,7 +223,6 @@ func (o *addManifestDeployItemOptions) addExecution(blueprint *v1alpha1.Blueprin
 func (o *addManifestDeployItemOptions) addImports(blueprint *v1alpha1.Blueprint) {
 	imp := blueprints.NewImporter()
 	imp.AddImportForTarget(blueprint, o.clusterParam)
-	imp.AddImportForElementaryType(blueprint, o.targetNsParam, "string")
 	imp.AddImports(blueprint, o.importDefinitions)
 }
 
@@ -309,7 +297,6 @@ func (o *addManifestDeployItemOptions) writeExecution() error {
 		UpdateStrategy string
 	}{
 		ClusterParam:   o.clusterParam,
-		TargetNsParam:  o.targetNsParam,
 		DeployItemName: o.deployItemName,
 		UpdateStrategy: o.updateStrategy,
 	}

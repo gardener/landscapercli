@@ -1,0 +1,17 @@
+deployItems:
+- name: nginx
+  type: landscaper.gardener.cloud/helm
+  target:
+    name: {{ .imports.target-cluster.metadata.name }}
+    namespace: {{ .imports.target-cluster.metadata.namespace }}
+  config:
+    apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
+    kind: ProviderConfiguration
+
+    chart:
+      ref: {{ with (getResource .cd "name" "nginx-chart") }} {{ .access.imageReference }} {{ end }}
+
+    updateStrategy: patch
+
+    name: nginx
+    namespace: {{ .imports.nginx-namespace }}
