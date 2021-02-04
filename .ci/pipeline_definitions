@@ -16,7 +16,7 @@ landscaper-cli:
             triggering_policy: 'always'
             recipients:
             - email_addresses:
-              - DL_5FE20D672BF0A1703D213F8C@global.corp.sap
+              - 72857276+guewa@users.noreply.github.com
       component_descriptor: ~
     steps:
       verify:
