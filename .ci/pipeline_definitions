@@ -37,11 +37,3 @@ jobs:
         release:
           nextversion: 'bump_minor'
           release_notes_policy: disabled
-      steps:
-        run_integration_test:
-          execute:
-          - dev_integration_test.py
-          - --garden-namespace garden-hubtest
-          - --target-clustername int-test
-          - --testNamespace landscapercli-test
-          output_dir: integration_test
