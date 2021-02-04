@@ -15,8 +15,6 @@ import (
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
-	"github.com/gardener/landscaper/apis/core/v1alpha1"
-
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -164,7 +162,9 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 		return err
 	}
 
-	if o.existsExecution(blueprint) {
+	blueprintBuilder := blueprints.NewBlueprintBuilder(blueprint)
+
+	if blueprintBuilder.ExistsDeployExecution(o.deployItemName) {
 		return fmt.Errorf("The blueprint already contains a deploy item %s\n", o.deployItemName)
 	}
 
@@ -172,7 +172,6 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 	if err != nil {
 		return err
 	}
-
 	if exists {
 		return fmt.Errorf("Deploy execution file %s already exists\n", util.ExecutionFilePath(o.componentPath, o.deployItemName))
 	}
@@ -182,8 +181,9 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 		return err
 	}
 
-	o.addExecution(blueprint)
-	o.addImports(blueprint)
+	blueprintBuilder.AddDeployExecution(o.deployItemName)
+	blueprintBuilder.AddImportForTarget(o.clusterParam)
+	blueprintBuilder.AddImportForElementaryType(o.targetNsParam, "string")
 
 	return blueprints.NewBlueprintWriter(blueprintPath).Write(blueprint)
 }
@@ -207,31 +207,6 @@ func (o *addHelmLsDeployItemOptions) addResource() error {
 	err = resourceWriter.Write(resources)
 
 	return err
-}
-
-func (o *addHelmLsDeployItemOptions) existsExecution(blueprint *v1alpha1.Blueprint) bool {
-	for i := range blueprint.DeployExecutions {
-		execution := &blueprint.DeployExecutions[i]
-		if execution.Name == o.deployItemName {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (o *addHelmLsDeployItemOptions) addExecution(blueprint *v1alpha1.Blueprint) {
-	blueprint.DeployExecutions = append(blueprint.DeployExecutions, v1alpha1.TemplateExecutor{
-		Name: o.deployItemName,
-		Type: v1alpha1.GOTemplateType,
-		File: "/" + util.ExecutionFileName(o.deployItemName),
-	})
-}
-
-func (o *addHelmLsDeployItemOptions) addImports(blueprint *v1alpha1.Blueprint) {
-	b := blueprints.NewBlueprintBuilder(blueprint)
-	b.AddImportForTarget(o.clusterParam)
-	b.AddImportForElementaryType(o.targetNsParam, "string")
 }
 
 func (o *addHelmLsDeployItemOptions) existsExecutionFile() (bool, error) {

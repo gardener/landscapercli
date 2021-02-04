@@ -171,7 +171,9 @@ func (o *addManifestDeployItemOptions) run(ctx context.Context, log logr.Logger)
 		return err
 	}
 
-	if o.existsExecution(blueprint) {
+	blueprintBuilder := blueprints.NewBlueprintBuilder(blueprint)
+
+	if blueprintBuilder.ExistsDeployExecution(o.deployItemName) {
 		return fmt.Errorf("The blueprint already contains a deploy item %s\n", o.deployItemName)
 	}
 
@@ -188,40 +190,11 @@ func (o *addManifestDeployItemOptions) run(ctx context.Context, log logr.Logger)
 		return err
 	}
 
-	o.addExecution(blueprint)
-
-	o.addImports(blueprint)
+	blueprintBuilder.AddDeployExecution(o.deployItemName)
+	blueprintBuilder.AddImportForTarget(o.clusterParam)
+	blueprintBuilder.AddImports(o.importDefinitions)
 
 	return blueprints.NewBlueprintWriter(blueprintPath).Write(blueprint)
-}
-
-func (o *addManifestDeployItemOptions) existsExecution(blueprint *v1alpha1.Blueprint) bool {
-	for i := range blueprint.DeployExecutions {
-		execution := &blueprint.DeployExecutions[i]
-		if execution.Name == o.deployItemName {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (o *addManifestDeployItemOptions) addExecution(blueprint *v1alpha1.Blueprint) {
-	blueprint.DeployExecutions = append(blueprint.DeployExecutions, v1alpha1.TemplateExecutor{
-		Name: o.deployItemName,
-		Type: v1alpha1.GOTemplateType,
-		File: "/" + util.ExecutionFileName(o.deployItemName),
-	})
-}
-
-// addImports adds the following imports to the blueprint:
-// - one import parameter specified by the flag "--cluster-param [parameter name]"
-// - one import parameter specified by the flag "--target-ns-param [parameter name]"
-// - all import parameters specified  by (multiple) flags "--import-param [parameter name]:[parameter type]"
-func (o *addManifestDeployItemOptions) addImports(blueprint *v1alpha1.Blueprint) {
-	b := blueprints.NewBlueprintBuilder(blueprint)
-	b.AddImportForTarget(o.clusterParam)
-	b.AddImports(o.importDefinitions)
 }
 
 // parseImportDefinition creates a new ImportDefinition from a given parameter definition string.
