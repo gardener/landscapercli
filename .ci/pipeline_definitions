@@ -10,13 +10,6 @@ landscaper-cli:
       version:
         preprocess: 'inject-commit-hash'
         inject_effective_version: true
-      notifications:
-        default:
-          on_error:
-            email: true
-            triggering_policy: 'only_first'
-            recipients:
-            - codeowners
       component_descriptor: ~
     steps:
       verify:
