@@ -17,23 +17,23 @@ func NewVersionCommand() *cobra.Command {
 			v := version.Get()
 			fmt.Printf("\nLandscaper-CLI Version: %s\n", v.GitVersion)
 
-			if v.GitCommit != ""{
+			if v.GitCommit != "" {
 				fmt.Printf("  GitCommit: %s\n", v.GitCommit)
 			}
 
-			if v.GitTreeState != ""{
+			if v.GitTreeState != "" {
 				fmt.Printf("  GitTreeState: %s\n", v.GitTreeState)
 			}
 
-			if v.GoVersion != ""{
+			if v.GoVersion != "" {
 				fmt.Printf("  GoVersion: %s\n", v.GoVersion)
 			}
 
-			if v.Compiler != ""{
+			if v.Compiler != "" {
 				fmt.Printf("  Compiler: %s\n", v.Compiler)
 			}
 
-			if v.Platform != ""{
+			if v.Platform != "" {
 				fmt.Printf("  Platform: %s\n", v.Platform)
 			}
 

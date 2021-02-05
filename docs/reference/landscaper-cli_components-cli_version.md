@@ -25,5 +25,5 @@ landscaper-cli components-cli version [flags]
 
 ### SEE ALSO
 
-* [landscaper-cli components-cli](landscaper-cli_components-cli.md)	 - components cli
+* [landscaper-cli components-cli](landscaper-cli_components-cli.md)	 - commands of the components cli
 

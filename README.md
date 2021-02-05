@@ -4,7 +4,9 @@ The Landscaper CLI supports users to develop, maintain, and test components proc
 [Landscaper](https://github.com/gardener/landscaper). This comprises the handling of objects like component descriptors, 
 blueprints, installations, etc. 
 
-The Landscaper CLI supports the following use cases:
+The Landscaper CLI integrates the commands of the [Components CLI](https://github.com/gardener/component-cli).
+
+The Landscaper CLI adds commands for the following use cases:
 
 - Automatic setup of a landscaper and an OCI registry for development  
 - Development of components including a component descriptor and blueprint  
