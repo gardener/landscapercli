@@ -3,6 +3,8 @@ package util
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/gardener/component-cli/ociclient"
 	"github.com/gardener/component-cli/ociclient/cache"
@@ -15,8 +17,16 @@ import (
 )
 
 func UploadComponentArchive(archiveDir, uploadRef string) error {
-	// TODO: parse url and get registry base url
-	const registryBaseURL = "localhost:5000"
+	baseUrl := uploadRef
+	if !strings.Contains(baseUrl, "://") {
+		// add dummy protocol to correctly parse the the url
+		baseUrl = "http://" + baseUrl
+	}
+	u, err := url.Parse(baseUrl)
+	if err != nil {
+		return err
+	}
+	baseUrl = u.Host
 
 	ctx := context.TODO()
 	ociClient, cache, err := buildOCIClient(logger.Log)
@@ -29,9 +39,8 @@ func UploadComponentArchive(archiveDir, uploadRef string) error {
 		return fmt.Errorf("unable to build component archive: %w", err)
 	}
 	// update repository context
-	archive.ComponentDescriptor.RepositoryContexts = utils.AddRepositoryContext(archive.ComponentDescriptor.RepositoryContexts, cdv2.OCIRegistryType, registryBaseURL)
+	archive.ComponentDescriptor.RepositoryContexts = utils.AddRepositoryContext(archive.ComponentDescriptor.RepositoryContexts, cdv2.OCIRegistryType, baseUrl)
 
-	// manifest, err := cdoci.NewManifestBuilder(cache, archive).Build(ctx)
 	manifest, err := cdoci.NewManifestBuilder(cache, archive).Build(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to build oci artifact for component acrchive: %w", err)

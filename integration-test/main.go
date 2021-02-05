@@ -8,12 +8,15 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
 	"time"
 
-	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	componentclilog "github.com/gardener/component-cli/pkg/logger"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscapercli/cmd/quickstart"
+	"github.com/gardener/landscapercli/integration-test/tests"
+	inttestutil "github.com/gardener/landscapercli/integration-test/util"
+	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -21,13 +24,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
-
-	"github.com/gardener/landscapercli/cmd/quickstart"
-	"github.com/gardener/landscapercli/integration-test/tests"
-	inttestutil "github.com/gardener/landscapercli/integration-test/util"
-	"github.com/gardener/landscapercli/pkg/logger"
-	"github.com/gardener/landscapercli/pkg/util"
 )
 
 var (
@@ -142,12 +138,6 @@ func run() error {
 	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace)
 	if err != nil {
 		return fmt.Errorf("upload of echo-server helm chart failed: %w", err)
-	}
-
-	fmt.Println("========== Uploading echo-server component descriptor to OCI registry ==========")
-	err = uploadEchoServerComponentDescriptor()
-	if err != nil {
-		return fmt.Errorf("upload of echo-server component descriptor failed: %w", err)
 	}
 
 	target, err := buildTarget(config.Kubeconfig)
@@ -276,103 +266,6 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 
 	helmChartRef := fmt.Sprintf("oci-registry.%s.svc.cluster.local:5000/echo-server-chart:v1.1.0", landscaperNamespace)
 	return helmChartRef, nil
-}
-
-func createDummyBlueprint() *lsv1alpha1.Blueprint {
-	bp := &lsv1alpha1.Blueprint{
-		Imports: []lsv1alpha1.ImportDefinition{
-			{
-				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name: "appname",
-				},
-			},
-			{
-				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name: "appnamespace",
-				},
-			},
-		},
-		Exports:          []lsv1alpha1.ExportDefinition{},
-		DeployExecutions: []lsv1alpha1.TemplateExecutor{},
-	}
-	return bp
-}
-
-func uploadEchoServerComponentDescriptor() error {
-	ctx := context.TODO()
-
-	cdDir, err := ioutil.TempDir(".", "echo-server-cd-*")
-	defer func() {
-		err = os.RemoveAll(cdDir)
-		if err != nil {
-			fmt.Printf("cannot remove temporary directory %s: %s", cdDir, err.Error())
-		}
-	}()
-
-	bpDir := path.Join(cdDir, "blueprint")
-	err = os.Mkdir(bpDir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	bp := createDummyBlueprint()
-	marshaledBp, err := yaml.Marshal(bp)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(path.Join(bpDir, "blueprint.yaml"), marshaledBp, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	cd := inttestutil.CreateComponentDescriptor("github.com/gardener/echo-server-cd", "v0.1.0", "oci-registry.landscaper.svc.cluster.local:5000")
-	marshaledCd, err := yaml.Marshal(cd)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(path.Join(cdDir, "component-descriptor.yaml"), marshaledCd, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	resourcesYaml := `---
-type: blueprint
-name: ingress-nginx-blueprint
-version: v0.1.0
-relation: local
-input:
-  type: "dir"
-  path: "./blueprint"
-  compress: true
-  mediaType: "application/vnd.gardener.landscaper.blueprint.v1+tar+gzip"
----
-`
-
-	resourceFile := path.Join(cdDir, "resources.yaml")
-	err = ioutil.WriteFile(resourceFile, []byte(resourcesYaml), os.ModePerm)
-	if err != nil {
-		return nil
-	}
-
-	addResourcesCmd := resources.NewAddCommand(ctx)
-	addResourcesArgs := []string{
-		cdDir,
-		"--resource",
-		resourceFile,
-	}
-	addResourcesCmd.SetArgs(addResourcesArgs)
-
-	err = addResourcesCmd.Execute()
-	if err != nil {
-		return err
-	}
-
-	err = inttestutil.UploadComponentArchive(cdDir, "localhost:5000/component-descriptors/github.com/gardener/echo-server-cd:v0.1.0")
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func runQuickstartUninstall(config *inttestutil.Config) error {
