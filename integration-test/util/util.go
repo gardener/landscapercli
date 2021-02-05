@@ -1,8 +1,18 @@
 package util
 
 import (
+	"fmt"
+
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	"github.com/stretchr/testify/assert"
 )
+
+var _ assert.TestingT = MyTesting{}
+type MyTesting struct {}
+
+func (t MyTesting) Errorf(format string, args ...interface{}) {
+	fmt.Printf(format, args...)
+}
 
 func CreateComponentDescriptor(name, version, baseURL string) *cdv2.ComponentDescriptor {
 	cd := &cdv2.ComponentDescriptor{

@@ -9,7 +9,10 @@ import (
 	"path"
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
+	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscapercli/cmd/installations"
@@ -18,25 +21,20 @@ import (
 
 func RunInstallationCreateTest(config *inttestutil.Config) error {
 	const (
-		componentName         = "github.com/dummy-cd"
-		componentVersion      = "v0.1.0"
-		blueprintName         = "dummy-blueprint"
-		dummyDataImportName   = "dummyDataImport"
-		dummyTargetImportName = "dummyTargetImport"
-		dummyDataExportName   = "dummyDataExport"
-		dummyTargetExportName = "dummyTargetExport"
+		installationName = "test-installation"
+		componentName    = "github.com/dummy-cd"
+		componentVersion = "v0.1.0"
+		blueprintName    = "dummy-blueprint"
 	)
 
 	test := installationCreateTest{
-		registryBaseURL:       config.RegistryBaseURL,
-		componentName:         componentName,
-		componentVersion:      componentVersion,
-		blueprintName:         blueprintName,
-		dummyDataImportName:   dummyDataImportName,
-		dummyTargetImportName: dummyTargetImportName,
-		dummyDataExportName:   dummyDataExportName,
-		dummyTargetExportName: dummyTargetExportName,
+		registryBaseURL:  config.RegistryBaseURL,
+		installationName: installationName,
+		componentName:    componentName,
+		componentVersion: componentVersion,
+		blueprintName:    blueprintName,
 	}
+
 	err := test.run()
 	if err != nil {
 		// do not cleanup after erroneous test run to keep failed resources on the cluster
@@ -47,14 +45,11 @@ func RunInstallationCreateTest(config *inttestutil.Config) error {
 }
 
 type installationCreateTest struct {
-	registryBaseURL       string
-	componentName         string
-	componentVersion      string
-	blueprintName         string
-	dummyDataImportName   string
-	dummyTargetImportName string
-	dummyDataExportName   string
-	dummyTargetExportName string
+	registryBaseURL  string
+	installationName string
+	componentName    string
+	componentVersion string
+	blueprintName    string
 }
 
 func (t *installationCreateTest) run() error {
@@ -74,24 +69,74 @@ func (t *installationCreateTest) run() error {
 		"localhost:5000",
 		t.componentName,
 		t.componentVersion,
+		"--name",
+		t.installationName,
 		"--allow-plain-http",
 		"--render-schema-info",
 	}
 	cmd.SetArgs(args)
+
+	fmt.Println("###### here comes the stuff:", outBuf.String())
 
 	err = cmd.Execute()
 	if err != nil {
 		return fmt.Errorf("landscaper-cli installations create failed: %w", err)
 	}
 
-	cmdOutput := outBuf.String()
-	fmt.Println(cmdOutput)
-
-	var actualInstallation lsv1alpha1.Installation
+	actualInstallation := lsv1alpha1.Installation{}
 	err = yaml.Unmarshal(outBuf.Bytes(), &actualInstallation)
 	if err != nil {
 		return fmt.Errorf("cannot unmarshal output of landscaper-cli installations create: %w", err)
 	}
+
+	expectedInstallation := lsv1alpha1.Installation{
+		ObjectMeta: v1.ObjectMeta{
+			Name: t.installationName,
+		},
+		Spec: lsv1alpha1.InstallationSpec{
+			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
+				Reference: &lsv1alpha1.ComponentDescriptorReference{
+					Version:       t.componentVersion,
+					ComponentName: t.componentName,
+					RepositoryContext: &cdv2.RepositoryContext{
+						Type:    cdv2.OCIRegistryType,
+						BaseURL: t.registryBaseURL,
+					},
+				},
+			},
+			Blueprint: lsv1alpha1.BlueprintDefinition{
+				Reference: &lsv1alpha1.RemoteBlueprintReference{
+					ResourceName: t.blueprintName,
+				},
+			},
+			Imports: lsv1alpha1.InstallationImports{
+				Data: []lsv1alpha1.DataImport{
+					{
+						Name: "dummyDataImport",
+					},
+				},
+				Targets: []lsv1alpha1.TargetImportExport{
+					{
+						Name: "dummyTargetImport",
+					},
+				},
+			},
+			Exports: lsv1alpha1.InstallationExports{
+				Data: []lsv1alpha1.DataExport{
+					{
+						Name: "dummyDataExport",
+					},
+				},
+				Targets: []lsv1alpha1.TargetImportExport{
+					{
+						Name: "dummyTargetExport",
+					},
+				},
+			},
+		},
+	}
+
+	assert.Equal(inttestutil.MyTesting{}, expectedInstallation, actualInstallation)
 
 	return nil
 }
@@ -101,12 +146,12 @@ func (t *installationCreateTest) createDummyBlueprint() *lsv1alpha1.Blueprint {
 		Imports: []lsv1alpha1.ImportDefinition{
 			{
 				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name: t.dummyDataImportName,
+					Name: "dummyDataImport",
 				},
 			},
 			{
 				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name:       t.dummyTargetImportName,
+					Name:       "dummyTargetImport",
 					TargetType: string(lsv1alpha1.KubernetesClusterTargetType),
 				},
 			},
@@ -114,12 +159,12 @@ func (t *installationCreateTest) createDummyBlueprint() *lsv1alpha1.Blueprint {
 		Exports: []lsv1alpha1.ExportDefinition{
 			{
 				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name: t.dummyDataExportName,
+					Name: "dummyDataExport",
 				},
 			},
 			{
 				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name:       t.dummyTargetExportName,
+					Name:       "dummyTargetExport",
 					TargetType: string(lsv1alpha1.KubernetesClusterTargetType),
 				},
 			},
