@@ -10,19 +10,12 @@ landscaper-cli:
       version:
         preprocess: 'inject-commit-hash'
         inject_effective_version: true
-      notifications:
-        default:
-          on_error:
-            email: true
-            triggering_policy: 'only_first'
-            recipients:
-            - codeowners
       component_descriptor: ~
     steps:
       verify:
         image: 'golang:1.15.2'
 
-jobs:
+  jobs:
     head-update:
       traits:
         draft_release: ~
@@ -30,7 +23,15 @@ jobs:
       traits:
         pull-request: ~
         draft_release: ~
-    minor-release:
+    release:
+      steps:
+        run_integration_test:
+          execute:
+          - "dev_integration_test.py"
+          - "--garden-namespace garden-hubtest"
+          - "--target-clustername int-test"
+          - "--testNamespace landscapercli-test"
+          output_dir: 'integration_test'
       traits:
         version:
           preprocess: 'finalize'
