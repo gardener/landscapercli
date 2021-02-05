@@ -263,7 +263,10 @@ Applying the command on the component folder in
 *[04-step-add-secret-manifests](resouces/04-step-add-secret-manifests)* results in the resources stored
 in the folder *[05-step-prepare-push](resouces/05-step-prepare-push)*.
 
-The command packs all resources with *input.type=dir* into a *blobs* directory. 
+The command packs all resources with *input.type=dir* into a *blobs* directory. We have removed the *blobs* directory
+from the repository because the generated files will interfere with the *go get* command, so you will not see them in 
+the example folder. 
+
 Moreover, it adds all resources to the
 *[component-descriptor.yaml](resouces/05-step-prepare-push/demo-component/component-descriptor.yaml)*.
 
