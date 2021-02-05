@@ -24,6 +24,14 @@ landscaper-cli:
         pull-request: ~
         draft_release: ~
     release:
+      steps:
+        run_integration_test:
+          execute:
+          - "dev_integration_test.py"
+          - "--garden-namespace garden-hubtest"
+          - "--target-clustername int-test"
+          - "--testNamespace landscapercli-test"
+          output_dir: 'integration_test'
       traits:
         version:
           preprocess: 'finalize'
