@@ -44,7 +44,7 @@ func runTestSuite(k8sClient client.Client, config *inttestutil.Config, target *l
 	}
 
 	fmt.Println("========== RunInstallationCreateTest() ==========")
-	err = tests.RunInstallationCreateTest()
+	err = tests.RunInstallationCreateTest(config)
 	if err != nil {
 		return fmt.Errorf("RunInstallationCreateTest() failed: %w", err)
 	}
@@ -112,13 +112,13 @@ func run() error {
 		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
 	}
 
-	fmt.Println("Waiting for Landscaper pods to get ready")
+	fmt.Println("Waiting for pods to get ready")
 	timeout, err := util.CheckAndWaitUntilAllPodsAreReady(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
-		return fmt.Errorf("error while waiting for Landscaper pods: %w", err)
+		return fmt.Errorf("error while waiting for pods: %w", err)
 	}
 	if timeout {
-		return fmt.Errorf("timeout while waiting for landscaper pods")
+		return fmt.Errorf("timeout while waiting for pods")
 	}
 
 	// TODO: fix error handling. no error is thrown if port is already in use.
@@ -172,12 +172,15 @@ func parseConfig() *inttestutil.Config {
 	flag.IntVar(&maxRetries, "max-retries", 10, "max retries (every 5s) for all waiting operations")
 	flag.Parse()
 
+	registryBaseURL := fmt.Sprintf("oci-registry.%s.svc.cluster.local:5000", landscaperNamespace)
+
 	config := inttestutil.Config{
 		Kubeconfig:          kubeconfig,
 		LandscaperNamespace: landscaperNamespace,
 		TestNamespace:       testNamespace,
 		MaxRetries:          maxRetries,
 		SleepTime:           5 * time.Second,
+		RegistryBaseURL:     registryBaseURL,
 	}
 
 	return &config
