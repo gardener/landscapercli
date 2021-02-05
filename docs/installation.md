@@ -3,6 +3,8 @@
 The landscaper cli can be installed via go:
 
 ```shell script
+export GO111MODULE=on
+
 go get github.com/gardener/landscapercli/landscaper-cli
 
 # or with a specific version
