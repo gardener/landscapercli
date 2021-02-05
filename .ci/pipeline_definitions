@@ -15,7 +15,7 @@ landscaper-cli:
       verify:
         image: 'golang:1.15.2'
 
-jobs:
+  jobs:
     head-update:
       traits:
         draft_release: ~
@@ -23,7 +23,7 @@ jobs:
       traits:
         pull-request: ~
         draft_release: ~
-    minor-release:
+    release:
       traits:
         version:
           preprocess: 'finalize'
