@@ -12,11 +12,6 @@ import (
 
 	componentclilog "github.com/gardener/component-cli/pkg/logger"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
-	"github.com/gardener/landscapercli/cmd/quickstart"
-	"github.com/gardener/landscapercli/integration-test/tests"
-	inttestutil "github.com/gardener/landscapercli/integration-test/util"
-	"github.com/gardener/landscapercli/pkg/logger"
-	"github.com/gardener/landscapercli/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -24,6 +19,12 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/gardener/landscapercli/cmd/quickstart"
+	"github.com/gardener/landscapercli/integration-test/tests"
+	inttestutil "github.com/gardener/landscapercli/integration-test/util"
+	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/util"
 )
 
 var (

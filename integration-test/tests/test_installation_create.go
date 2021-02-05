@@ -10,9 +10,10 @@ import (
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"sigs.k8s.io/yaml"
+
 	"github.com/gardener/landscapercli/cmd/installations"
 	inttestutil "github.com/gardener/landscapercli/integration-test/util"
-	"sigs.k8s.io/yaml"
 )
 
 func RunInstallationCreateTest() error {

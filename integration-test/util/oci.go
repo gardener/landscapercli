@@ -12,8 +12,9 @@ import (
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/component-spec/bindings-go/ctf"
 	cdoci "github.com/gardener/component-spec/bindings-go/oci"
-	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/go-logr/logr"
+
+	"github.com/gardener/landscapercli/pkg/logger"
 )
 
 func UploadComponentArchive(archiveDir, uploadRef string) error {
