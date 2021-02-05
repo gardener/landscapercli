@@ -25,14 +25,26 @@ except KeyError:
     print("Output dir env var not set. " +
           "The output of the integration test won't be saved in a file.")
 factory = ctx().cfg_factory()
-landscape_kubeconfig = factory.kubernetes("garden-" + landscape + "-virtual")
+landscape_kubeconfig = factory.kubernetes("hub-" + landscape)
+landscape_test_kubeconfig = factory.kubernetes("hub-" + landscape + "-test")
 landscape_kubeconfig_name = "landscape_kubeconfig"
 landscape_kubeconfig_path = os.path.join(root_path, source_path,
                                          "integration-test",
                                          landscape_kubeconfig_name)
 
+landscape_test_kubeconfig_name = "landscape_test_kubeconfig"
+landscape_test_kubeconfig_path = os.path.join(root_path, source_path,
+                                              "integration-test",
+                                              landscape_test_kubeconfig_name)
+
 utils.write_data(landscape_kubeconfig_path, yaml.dump(
                 landscape_kubeconfig.kubeconfig()))
+utils.write_data(landscape_test_kubeconfig_path, yaml.dump(
+                landscape_test_kubeconfig.kubeconfig()))
+
+landscape_config = utils.get_landscape_config("hub-" + landscape)
+int_test_config = landscape_config.raw["int-test"]["config"]
+token = int_test_config["auth"]["token"]
 
 golang_found = shutil.which("go")
 if golang_found:
@@ -43,15 +55,13 @@ else:
     result = run(command)
     result.check_returncode()
 
-
 os.chdir(os.path.join(root_path, source_path, "integration-test"))
 
 command = ["go", "run", "main.go",
-           "-garden-kubeconfig", landscape_kubeconfig_path,
-           '-landscaperNamespace', garden_namespace,
-           '-target-clustername', target_cluster,
-           "-testNamespace", test_namespace,
-           "-maxRetries", "10"]
+           "--kubeconfig", landscape_kubeconfig_path,
+           '--namespace', "app-test",
+           '--target-kubeconfig', landscape_test_kubeconfig_path,
+           "--token", token]
 
 print(f"Running integration test with command: {' '.join(command)}")
 try:
