@@ -58,7 +58,7 @@ func NewPushCommand(ctx context.Context) *cobra.Command {
 				os.Exit(1)
 			}
 
-			fmt.Printf("Successfully uploaded %s\n", opts.ref)
+			fmt.Printf("Json schema uploaded %s\n", opts.ref)
 		},
 	}
 

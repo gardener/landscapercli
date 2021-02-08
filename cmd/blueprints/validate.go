@@ -48,7 +48,7 @@ func NewValidationCommand(_ context.Context) *cobra.Command {
 				os.Exit(1)
 			}
 
-			fmt.Printf("Successfully validated blueprint without errors\n")
+			fmt.Printf("Blueprint validated without errors\n")
 		},
 	}
 

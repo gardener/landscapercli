@@ -57,7 +57,10 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 				os.Exit(1)
 			}
 
-			fmt.Printf("Successfully created")
+			fmt.Printf("Component with blueprint created")
+			fmt.Printf("  \n- blueprint folder with blueprint yaml created")
+			fmt.Printf("  \n- component descriptor yaml created")
+			fmt.Printf("  \n- resources yaml created")
 		},
 	}
 

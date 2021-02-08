@@ -90,7 +90,10 @@ func NewAddManifestDeployItemCommand(ctx context.Context) *cobra.Command {
 				os.Exit(1)
 			}
 
-			fmt.Printf("Successfully added deploy item")
+			fmt.Printf("Deploy item added")
+			fmt.Printf("  \n- deploy item definition in blueprint folder in file %s created", util.ExecutionFileName(opts.deployItemName))
+			fmt.Printf("  \n- file reference to deploy item definition added to blueprint")
+			fmt.Printf("  \n- import definitions added to blueprint")
 		},
 	}
 
