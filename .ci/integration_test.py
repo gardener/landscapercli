@@ -23,28 +23,6 @@ except KeyError:
     print("Output dir env var not set. " +
           "The output of the integration test won't be saved in a file.")
 
-factory = ctx().cfg_factory()
-landscape_kubeconfig = factory.kubernetes("hub-" + landscape)
-landscape_target_kubeconfig = factory.kubernetes("hub-" + landscape + "-test")
-landscape_kubeconfig_name = "landscape_kubeconfig"
-landscape_kubeconfig_path = os.path.join(root_path, source_path,
-                                         "integration-test",
-                                         landscape_kubeconfig_name)
-
-landscape_target_kubeconfig_name = "landscape_target_kubeconfig"
-landscape_target_kubeconfig_path = os.path.join(root_path, source_path,
-                                              "integration-test",
-                                              landscape_target_kubeconfig_name)
-
-utils.write_data(landscape_kubeconfig_path, yaml.dump(
-                landscape_kubeconfig.kubeconfig()))
-utils.write_data(landscape_target_kubeconfig_path, yaml.dump(
-                landscape_target_kubeconfig.kubeconfig()))
-
-landscape_config = utils.get_landscape_config("hub-" + landscape)
-int_test_config = landscape_config.raw["int-test"]["config"]
-token = int_test_config["auth"]["token"]
-
 golang_found = shutil.which("go")
 if golang_found:
     print(f"Found go compiler in {golang_found}")
@@ -56,25 +34,34 @@ else:
 
 os.chdir(os.path.join(root_path, source_path, "integration-test"))
 
-command = ["go", "run", "main.go",
-           "--kubeconfig", landscape_kubeconfig_path,
-           '--namespace', "app-test",
-           '--target-kubeconfig', landscape_target_kubeconfig_path,
-           "--token", token]
+factory = ctx().cfg_factory()
+landscape_name = "hub-" + landscape + "-test"
+landscape_kubeconfig = factory.kubernetes(landscape_name)
 
-print(f"Running integration test with command: {' '.join(command)}")
-try:
-    # check if path var is set
-    integration_test_path
-except NameError:
-    run = run(command)
-else:
-    output_path = os.path.join(root_path, integration_test_path, "out")
+with utils.TempFileAuto(prefix="landscape_kubeconfig_") as temp_file:
+    temp_file.write(yaml.safe_dump(landscape_kubeconfig.kubeconfig()))
+    landscape_kubeconfig_path = temp_file.switch()
 
-    with Popen(command, stdout=PIPE, stderr=STDOUT, bufsize=1, universal_newlines=True) as run, open(output_path, 'w') as file:
-        for line in run.stdout:
-            sys.stdout.write(line)
-            file.write(line)
+    command = ["go", "run", "main.go",
+            "--kubeconfig", landscape_kubeconfig_path,
+            "--landscaper-namespace", "lndscpr-int-test",
+            "--test-namespace", "ls-cli-inttest",
+            "--max-retries", "10"]
 
-if run.returncode != 0:
-    raise EnvironmentError("Integration test exited with errors")
+    print(f"Running integration test with command: {' '.join(command)}")
+
+    try:
+        # check if path var is set
+        integration_test_path
+    except NameError:
+        run = run(command)
+    else:
+        output_path = os.path.join(root_path, integration_test_path, "out")
+
+        with Popen(command, stdout=PIPE, stderr=STDOUT, bufsize=1, universal_newlines=True) as run, open(output_path, 'w') as file:
+            for line in run.stdout:
+                sys.stdout.write(line)
+                file.write(line)
+
+    if run.returncode != 0:
+        raise EnvironmentError("Integration test exited with errors")
