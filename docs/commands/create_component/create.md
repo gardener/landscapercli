@@ -37,7 +37,7 @@ The flag *component-directory* is optional with the current folder as default.
 Example:
 
 ```
-`landscaper-cli component create github.com/gardener/landscapercli/nginx v0.1.0 --component-directory ~/demo-component`
+landscaper-cli component create github.com/gardener/landscapercli/nginx v0.1.0 --component-directory ~/demo-component
 ```
 
 The result of this example could be found in the folder
@@ -62,7 +62,7 @@ We assume the Helm Chart is stored in an OCI registry.
 
 The general syntax of the command is:
 
-```
+```bash
 landscaper-cli component add helm-ls deployitem [deploy-item-name] \
     --component-directory [some-path]  \
     --oci-reference [oci-helm-chart-reference] \
@@ -91,10 +91,10 @@ Example:
 
 ```
 landscaper-cli component add helm-ls deployitem nginx \
-  --component-directory ~/demo-component
-  --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0
-  --resource-version v0.2.0
-  --cluster-param target-cluster
+  --component-directory ~/demo-component \
+  --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
+  --resource-version v0.2.0 \
+  --cluster-param target-cluster \
   --target-ns-param nginx-namespace
 ```
 
@@ -142,10 +142,10 @@ In this example, we want to add an echo server application, which is provided as
 
 ```
 landscaper-cli component add helm-ls deployitem echo \
-  --component-directory ~/demo-component
-  --chart-directory ../resouces/charts/echo-server
-  --resource-version v0.3.0
-  --cluster-param target-cluster
+  --component-directory ~/demo-component \
+  --chart-directory ../resouces/charts/echo-server \
+  --resource-version v0.3.0 \
+  --cluster-param target-cluster \
   --target-ns-param echo-server-namespace
 ```
 
@@ -213,11 +213,11 @@ component is deployed. The corresponding command looks as the following:
 
 ```
 landscaper-cli component add manifest deployitem secrets \
-  --component-directory ~/demo-component
-  --manifest-file ../resouces/manifests/set1/demo-secret-1.yaml
-  --manifest-file ../resouces/manifests/set1/demo-secret-2.yaml
-  --import-param password-1:string
-  --import-param password-2:string
+  --component-directory ~/demo-component \
+  --manifest-file ../resouces/manifests/set1/demo-secret-1.yaml \
+  --manifest-file ../resouces/manifests/set1/demo-secret-2.yaml \
+  --import-param password-1:string \
+  --import-param password-2:string \
   --cluster-param target-cluster
 ```
 
@@ -322,8 +322,11 @@ the nginx helm chart, because this is only referenced and stored as a separate O
 
 
 ## Todo
-
 - Create Installation
+
+- check if paths beginning with ~ are working
+
+- Support access to container registries with authentication?
 
 - Describe that the current helm deploy mechanism is not helm but only helm template plus apply
 
