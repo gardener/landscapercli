@@ -16,7 +16,7 @@ func TestFindNodeByPath(t *testing.T) {
 		expectedValueNode *yamlv3.Node
 	}{
 		{
-			name: "simple positive test",
+			name: "positive test 1",
 			yaml: `
             key1: val1
             key2:
@@ -32,6 +32,46 @@ func TestFindNodeByPath(t *testing.T) {
 				Kind:  yamlv3.ScalarNode,
 				Tag:   "!!str",
 				Value: "val3",
+			},
+		},
+		{
+			name: "positive test 2",
+			yaml: `
+            key1: val1
+            key2:
+            - key4: val4
+            - key3: val3
+            `,
+			keyPath: "key2.key3",
+			expectedKeyNode: &yamlv3.Node{
+				Kind:  yamlv3.ScalarNode,
+				Tag:   "!!str",
+				Value: "key3",
+			},
+			expectedValueNode: &yamlv3.Node{
+				Kind:  yamlv3.ScalarNode,
+				Tag:   "!!str",
+				Value: "val3",
+			},
+		},
+		{
+			name: "positive test 3",
+			yaml: `
+            key1: val1
+            key2:
+            - key3:
+                key4: val4
+            `,
+			keyPath: "key2.key3.key4",
+			expectedKeyNode: &yamlv3.Node{
+				Kind:  yamlv3.ScalarNode,
+				Tag:   "!!str",
+				Value: "key4",
+			},
+			expectedValueNode: &yamlv3.Node{
+				Kind:  yamlv3.ScalarNode,
+				Tag:   "!!str",
+				Value: "val4",
 			},
 		},
 		{

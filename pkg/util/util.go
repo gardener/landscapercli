@@ -392,6 +392,12 @@ func findNode(nodes []*yamlv3.Node, name string) (*yamlv3.Node, *yamlv3.Node) {
 			if i < len(nodes)-1 {
 				valueNode = nodes[i+1]
 			}
+		} else if node.Kind == yamlv3.SequenceNode || node.Kind == yamlv3.MappingNode {
+			keyNode, valueNode = findNode(node.Content, name)
+		}
+
+		if keyNode != nil && valueNode != nil {
+			break
 		}
 	}
 

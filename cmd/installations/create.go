@@ -57,7 +57,7 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 				os.Exit(1)
 			}
 
-			if err := opts.run(ctx, logger.Log, osfs.New()); err != nil {
+			if err := opts.run(ctx, logger.Log, osfs.New(), cmd); err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
@@ -69,7 +69,7 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 	return cmd
 }
 
-func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
+func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem, cmd *cobra.Command) error {
 	repoCtx := cdv2.RepositoryContext{
 		Type:    cdv2.OCIRegistryType,
 		BaseURL: o.baseUrl,
@@ -155,7 +155,7 @@ func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem
 		}
 	}
 
-	fmt.Println(string(marshaledYaml))
+	cmd.Println(string(marshaledYaml))
 
 	return nil
 }

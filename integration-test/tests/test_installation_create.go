@@ -12,11 +12,13 @@ import (
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/stretchr/testify/assert"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	yamlv3 "gopkg.in/yaml.v3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscapercli/cmd/installations"
 	inttestutil "github.com/gardener/landscapercli/integration-test/util"
+	"github.com/gardener/landscapercli/pkg/util"
 )
 
 func RunInstallationCreateTest(config *inttestutil.Config) error {
@@ -63,7 +65,7 @@ func (t *installationCreateTest) run() error {
 
 	fmt.Println("Executing landscaper-cli installations create")
 	cmd := installations.NewCreateCommand(ctx)
-	outBuf := bytes.NewBufferString("")
+	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
 	args := []string{
 		"localhost:5000",
@@ -75,8 +77,6 @@ func (t *installationCreateTest) run() error {
 		"--render-schema-info",
 	}
 	cmd.SetArgs(args)
-
-	fmt.Println("###### here comes the stuff:", outBuf.String())
 
 	err = cmd.Execute()
 	if err != nil {
@@ -90,7 +90,11 @@ func (t *installationCreateTest) run() error {
 	}
 
 	expectedInstallation := lsv1alpha1.Installation{
-		ObjectMeta: v1.ObjectMeta{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Installation",
+			APIVersion: lsv1alpha1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
 			Name: t.installationName,
 		},
 		Spec: lsv1alpha1.InstallationSpec{
@@ -99,8 +103,9 @@ func (t *installationCreateTest) run() error {
 					Version:       t.componentVersion,
 					ComponentName: t.componentName,
 					RepositoryContext: &cdv2.RepositoryContext{
-						Type:    cdv2.OCIRegistryType,
-						BaseURL: t.registryBaseURL,
+						Type: cdv2.OCIRegistryType,
+						// TODO: this is not nice. the URL inside of the CD artifact and the URL for invoking the "landscaper-cli installations create" are different
+						BaseURL: "localhost:5000",
 					},
 				},
 			},
@@ -136,7 +141,48 @@ func (t *installationCreateTest) run() error {
 		},
 	}
 
-	assert.Equal(inttestutil.MyTesting{}, expectedInstallation, actualInstallation)
+	ok := assert.Equal(inttestutil.MyTesting{}, expectedInstallation, actualInstallation)
+	if !ok {
+		return fmt.Errorf("")
+	}
+
+	rootNode := &yamlv3.Node{}
+	err = yamlv3.Unmarshal(outBuf.Bytes(), rootNode)
+
+	_, dataImportsNode := util.FindNodeByPath(rootNode, "spec.imports.data")
+	expectedSchema := `# JSON schema
+# {
+#   "type": "string"
+# }`
+	ok = assert.Equal(inttestutil.MyTesting{}, expectedSchema, dataImportsNode.Content[0].Content[0].HeadComment)
+	if !ok {
+		return fmt.Errorf("schema comments for spec.imports.data are invalid")
+	}
+
+	_, targetImportsNode := util.FindNodeByPath(rootNode, "spec.imports.targets")
+	expectedSchema = "# Target type: landscaper.gardener.cloud/kubernetes-cluster"
+	ok = assert.Equal(inttestutil.MyTesting{}, expectedSchema, targetImportsNode.Content[0].Content[0].HeadComment)
+	if !ok {
+		return fmt.Errorf("schema comments for spec.imports.targets are invalid")
+	}
+
+	_, dataExportsNode := util.FindNodeByPath(rootNode, "spec.exports.data")
+	dataExportsNode, _ = util.FindNodeByPath(dataExportsNode.Content[0], "name")
+	expectedSchema = `# JSON schema
+# {
+#   "type": "string"
+# }`
+	ok = assert.Equal(inttestutil.MyTesting{}, expectedSchema, dataExportsNode.HeadComment)
+	if !ok {
+		return fmt.Errorf("schema comments for spec.exports.data are invalid")
+	}
+
+	_, targetExportsNode := util.FindNodeByPath(rootNode, "spec.exports.targets")
+	expectedSchema = "# Target type: landscaper.gardener.cloud/kubernetes-cluster"
+	ok = assert.Equal(inttestutil.MyTesting{}, expectedSchema, targetExportsNode.Content[0].Content[0].HeadComment)
+	if !ok {
+		return fmt.Errorf("schema comments for spec.exports.targets are invalid")
+	}
 
 	return nil
 }
@@ -147,6 +193,7 @@ func (t *installationCreateTest) createDummyBlueprint() *lsv1alpha1.Blueprint {
 			{
 				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
 					Name: "dummyDataImport",
+					Schema: lsv1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
 				},
 			},
 			{
@@ -160,6 +207,7 @@ func (t *installationCreateTest) createDummyBlueprint() *lsv1alpha1.Blueprint {
 			{
 				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
 					Name: "dummyDataExport",
+					Schema: lsv1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
 				},
 			},
 			{
