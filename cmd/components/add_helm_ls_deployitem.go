@@ -8,9 +8,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"os"
 	"regexp"
+	"text/template"
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
@@ -246,8 +246,8 @@ const executionTemplateExternalRef = `deployItems:
 - name: {{.DeployItemName}}
   type: landscaper.gardener.cloud/helm
   target:
-    name: {{"{{"}} .imports.{{.ClusterParam}}.metadata.name {{"}}"}}
-    namespace: {{"{{"}} .imports.{{.ClusterParam}}.metadata.namespace {{"}}"}}
+    name: {{.TargetNameExpression}}
+    namespace: {{.TargetNamespaceExpression}}
   config:
     apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
     kind: ProviderConfiguration
@@ -258,15 +258,15 @@ const executionTemplateExternalRef = `deployItems:
     updateStrategy: patch
 
     name: {{.DeployItemName}}
-    namespace: {{"{{"}} .imports.{{.TargetNsParam}} {{"}}"}}
+    namespace: {{.ApplicationNamespaceExpression}}
 `
 
 const executionTemplateLocally = `deployItems:
 - name: {{.DeployItemName}}
   type: landscaper.gardener.cloud/helm
   target:
-    name: {{"{{"}} .imports.{{.ClusterParam}}.metadata.name {{"}}"}}
-    namespace: {{"{{"}} .imports.{{.ClusterParam}}.metadata.namespace {{"}}"}}
+    name: {{.TargetNameExpression}}
+    namespace: {{.TargetNamespaceExpression}}
   config:
     apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
     kind: ProviderConfiguration
@@ -279,7 +279,7 @@ const executionTemplateLocally = `deployItems:
     updateStrategy: patch
 
     name: {{.DeployItemName}}
-    namespace: {{"{{"}} .imports.{{.TargetNsParam}} {{"}}"}}
+    namespace: {{.ApplicationNamespaceExpression}}
 `
 
 func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
@@ -295,13 +295,15 @@ func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
 	}
 
 	data := struct {
-		ClusterParam   string
-		TargetNsParam  string
-		DeployItemName string
+		ApplicationNamespaceExpression string
+		TargetNameExpression           string
+		TargetNamespaceExpression      string
+		DeployItemName                 string
 	}{
-		ClusterParam:   o.clusterParam,
-		TargetNsParam:  o.targetNsParam,
-		DeployItemName: o.deployItemName,
+		ApplicationNamespaceExpression: blueprints.GetImportExpression(o.targetNsParam),
+		TargetNameExpression:           blueprints.GetTargetNameExpression(o.clusterParam),
+		TargetNamespaceExpression:      blueprints.GetTargetNamespaceExpression(o.clusterParam),
+		DeployItemName:                 o.deployItemName,
 	}
 
 	err = t.Execute(f, data)

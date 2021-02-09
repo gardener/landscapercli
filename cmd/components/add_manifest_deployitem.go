@@ -8,10 +8,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
+	"text/template"
 
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/apis/deployer/manifest"
@@ -249,17 +250,17 @@ func (o *addManifestDeployItemOptions) existsExecutionFile() (bool, error) {
 }
 
 func (o *addManifestDeployItemOptions) createExecutionFile() error {
-	err := o.writeExecution()
-	if err != nil {
-		return err
-	}
-
-	f, err := os.OpenFile(util.ExecutionFilePath(o.componentPath, o.deployItemName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.Create(util.ExecutionFilePath(o.componentPath, o.deployItemName))
 	if err != nil {
 		return err
 	}
 
 	defer f.Close()
+
+	err = o.writeExecution(f)
+	if err != nil {
+		return err
+	}
 
 	manifests, err := o.getManifests()
 	if err != nil {
@@ -275,36 +276,30 @@ const manifestExecutionTemplate = `deployItems:
 - name: {{.DeployItemName}}
   type: landscaper.gardener.cloud/kubernetes-manifest
   target:
-    name: {{"{{"}} .imports.{{.ClusterParam}}.metadata.name {{"}}"}}
-    namespace: {{"{{"}} .imports.{{.ClusterParam}}.metadata.namespace {{"}}"}}
+    name: {{.TargetNameExpression}}
+    namespace: {{.TargetNamespaceExpression}}
   config:
     apiVersion: manifest.deployer.landscaper.gardener.cloud/v1alpha2
     kind: ProviderConfiguration
     updateStrategy: {{.UpdateStrategy}}
 `
 
-func (o *addManifestDeployItemOptions) writeExecution() error {
-	f, err := os.Create(util.ExecutionFilePath(o.componentPath, o.deployItemName))
-	if err != nil {
-		return err
-	}
-
-	defer f.Close()
-
+func (o *addManifestDeployItemOptions) writeExecution(f io.Writer) error {
 	t, err := template.New("").Parse(manifestExecutionTemplate)
 	if err != nil {
 		return err
 	}
 
 	data := struct {
-		ClusterParam   string
-		TargetNsParam  string
-		DeployItemName string
-		UpdateStrategy string
+		DeployItemName            string
+		TargetNameExpression      string
+		TargetNamespaceExpression string
+		UpdateStrategy            string
 	}{
-		ClusterParam:   o.clusterParam,
-		DeployItemName: o.deployItemName,
-		UpdateStrategy: o.updateStrategy,
+		DeployItemName:            o.deployItemName,
+		TargetNameExpression:      blueprints.GetTargetNameExpression(o.clusterParam),
+		TargetNamespaceExpression: blueprints.GetTargetNamespaceExpression(o.clusterParam),
+		UpdateStrategy:            o.updateStrategy,
 	}
 
 	err = t.Execute(f, data)
@@ -430,7 +425,7 @@ func (o *addManifestDeployItemOptions) replaceUUIDsByImportTemplates(data []byte
 	s := string(data)
 
 	for paramName, uuid := range o.replacement {
-		newValue := fmt.Sprintf("{{ .imports.%s }}", paramName)
+		newValue := blueprints.GetImportExpression(paramName)
 		s = strings.ReplaceAll(s, uuid, newValue)
 	}
 
