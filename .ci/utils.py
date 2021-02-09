@@ -5,11 +5,6 @@ import tempfile
 import yaml
 
 
-def write_data(path: str, data: str):
-    with open(path, "w") as file:
-        file.write(data)
-
-
 class TempFileAuto(object):
     def __init__(self, prefix=None, mode='w+', suffix=".yaml"):
         self.file_obj = tempfile.NamedTemporaryFile(mode=mode, prefix=prefix, suffix=suffix, delete=False)
