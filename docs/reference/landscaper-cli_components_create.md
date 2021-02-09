@@ -3,22 +3,23 @@
 command to create a component template in the specified directory
 
 ```
-landscaper-cli components create [component directory path] [component name] [component version] [flags]
+landscaper-cli components create [component name] [component semver version] [flags]
 ```
 
 ### Examples
 
 ```
 landscaper-cli component create \
-    . \
     github.com/gardener/landscapercli/nginx \
-    v0.1.0
+    v0.1.0 \
+    --component-directory ~/myComponent
 ```
 
 ### Options
 
 ```
-  -h, --help   help for create
+      --component-directory string   path to component directory (default ".")
+  -h, --help                         help for create
 ```
 
 ### Options inherited from parent commands

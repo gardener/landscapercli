@@ -1,0 +1,19 @@
+deployItems:
+- name: echo
+  type: landscaper.gardener.cloud/helm
+  target:
+    name: {{ .imports.targetcluster.metadata.name }}
+    namespace: {{ .imports.targetcluster.metadata.namespace }}
+  config:
+    apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
+    kind: ProviderConfiguration
+
+    chart:
+      fromResource:
+{{ toYaml .componentDescriptorDef | indent 8 }}
+        resourceName: echo-chart
+
+    updateStrategy: patch
+
+    name: echo
+    namespace: {{ .imports.echoservernamespace }}

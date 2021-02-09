@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Masterminds/semver/v3"
+
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
 
@@ -37,12 +39,12 @@ type createOptions struct {
 func NewCreateCommand(ctx context.Context) *cobra.Command {
 	opts := &createOptions{}
 	cmd := &cobra.Command{
-		Use:  "create [component directory path] [component name] [component version]",
-		Args: cobra.ExactArgs(3),
+		Use:  "create [component name] [component semver version]",
+		Args: cobra.ExactArgs(2),
 		Example: "landscaper-cli component create \\\n" +
-			"    . \\\n" +
 			"    github.com/gardener/landscapercli/nginx \\\n" +
-			"    v0.1.0",
+			"    v0.1.0 \\\n" +
+			"    --component-directory ~/myComponent",
 		Short: "command to create a component template in the specified directory",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -55,7 +57,10 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 				os.Exit(1)
 			}
 
-			fmt.Printf("Successfully created")
+			fmt.Printf("Component with blueprint created")
+			fmt.Printf("  \n- blueprint folder with blueprint yaml created")
+			fmt.Printf("  \n- component descriptor yaml created")
+			fmt.Printf("  \n- resources yaml created")
 		},
 	}
 
@@ -65,13 +70,26 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *createOptions) Complete(args []string) error {
-	o.componentPath = args[0]
-	o.componentName = args[1]
-	o.componentVersion = args[2]
+	o.componentName = args[0]
+	o.componentVersion = args[1]
+
+	return o.validate()
+}
+
+func (o *createOptions) validate() error {
+	_, err := semver.NewVersion(o.componentVersion)
+	if err != nil {
+		return fmt.Errorf("component version %s is not semver compatible", o.componentVersion)
+	}
+
 	return nil
 }
 
 func (o *createOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.componentPath,
+		"component-directory",
+		".",
+		"path to component directory")
 }
 
 func (o *createOptions) run(ctx context.Context, log logr.Logger) error {
@@ -82,7 +100,7 @@ func (o *createOptions) run(ctx context.Context, log logr.Logger) error {
 
 	// Create blueprint directory
 	blueprintDirectoryPath := util.BlueprintDirectoryPath(o.componentPath)
-	err = os.Mkdir(blueprintDirectoryPath, os.ModePerm)
+	err = os.Mkdir(blueprintDirectoryPath, 0755)
 	if err != nil {
 		return err
 	}
@@ -116,9 +134,19 @@ func (o *createOptions) checkPreconditions() error {
 	fileInfo, err := os.Stat(o.componentPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("Component directory does not exist")
+			err = os.MkdirAll(o.componentPath, 0755)
+			if err != nil {
+				return err
+			}
+
+			fileInfo, err = os.Stat(o.componentPath)
+			if err != nil {
+				return err
+			}
+
+		} else {
+			return err
 		}
-		return err
 	}
 
 	// Check that the path points to a directory
@@ -126,13 +154,31 @@ func (o *createOptions) checkPreconditions() error {
 		return fmt.Errorf("Path is not a directory")
 	}
 
-	// Check that the component directory is empty
-	empty, err := util.IsDirectoryEmpty(o.componentPath)
+	_, err = os.Stat(util.BlueprintDirectoryPath(o.componentPath))
 	if err != nil {
-		return err
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		return fmt.Errorf("blueprint file or folder already exists in %s ", util.BlueprintDirectoryPath(o.componentPath))
 	}
-	if !empty {
-		return fmt.Errorf("Component directory is not empty")
+
+	_, err = os.Stat(util.ResourcesFilePath(o.componentPath))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		return fmt.Errorf("resources.yaml file already exists in %s ", util.ResourcesFilePath(o.componentPath))
+	}
+
+	_, err = os.Stat(util.ComponentDescriptorFilePath(o.componentPath))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		return fmt.Errorf("resources.yaml file already exists in %s ", util.ResourcesFilePath(o.componentPath))
 	}
 
 	return nil

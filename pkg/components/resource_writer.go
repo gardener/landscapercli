@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
@@ -46,6 +47,8 @@ func (w *ResourceWriter) Write(resourceOptions []cdresources.ResourceOptions) er
 			if resourceOptions[i].Input.MediaType != "" {
 				infoString += "  mediaType: " + resourceOptions[i].Input.MediaType + "\n"
 			}
+
+			infoString += "  compress: " + strconv.FormatBool(resourceOptions[i].Input.Compress()) + "\n"
 
 		} else if resourceOptions[i].Access != nil {
 			data := resourceOptions[i].Access.Raw

@@ -5,9 +5,8 @@
 package components
 
 import (
-	"bufio"
-	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -20,6 +19,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscapercli/pkg/blueprints"
@@ -28,17 +28,17 @@ import (
 )
 
 const addManifestDeployItemUse = `deployitem \
-    [component directory path] \
     [deployitem name] \
    `
 
 const addManifestDeployItemExample = `
 landscaper-cli component add manifest deployitem \
-  . \
   nginx \
-  --file ./deployment.yaml \
-  --file ./service.yaml \
+  --component-directory ~/myComponent \
+  --manifest-file ./deployment.yaml \
+  --manifest-file ./service.yaml \
   --import-param replicas:integer
+  --cluster-param target-cluster
 `
 
 const addManifestDeployItemShort = `
@@ -47,17 +47,27 @@ Command to add a deploy item skeleton to the blueprint of a component`
 //var identityKeyValidationRegexp = regexp.MustCompile("^[a-z0-9]([-_+a-z0-9]*[a-z0-9])?$")
 
 type addManifestDeployItemOptions struct {
-	componentPath  string
+	componentPath string
+
 	deployItemName string
 
-	files        *[]string
+	// names of manifest files
+	files *[]string
+
+	// import parameter definitions in the format "name:type"
 	importParams *[]string
 
-	updateStrategy string
-	policy         string
+	// parsed import parameter definitions
+	importDefinitions []v1alpha1.ImportDefinition
 
-	clusterParam  string
-	targetNsParam string
+	// a map that assigns with each import parameter name a uuid
+	replacement map[string]string
+
+	updateStrategy string
+
+	policy string
+
+	clusterParam string
 }
 
 // NewCreateCommand creates a new blueprint command to create a blueprint
@@ -67,7 +77,7 @@ func NewAddManifestDeployItemCommand(ctx context.Context) *cobra.Command {
 		Use:     addManifestDeployItemUse,
 		Example: addManifestDeployItemExample,
 		Short:   addManifestDeployItemShort,
-		Args:    cobra.ExactArgs(2),
+		Args:    cobra.ExactArgs(1),
 
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -80,7 +90,10 @@ func NewAddManifestDeployItemCommand(ctx context.Context) *cobra.Command {
 				os.Exit(1)
 			}
 
-			fmt.Printf("Successfully added deploy item")
+			fmt.Printf("Deploy item added")
+			fmt.Printf("  \n- deploy item definition in blueprint folder in file %s created", util.ExecutionFileName(opts.deployItemName))
+			fmt.Printf("  \n- file reference to deploy item definition added to blueprint")
+			fmt.Printf("  \n- import definitions added to blueprint")
 		},
 	}
 
@@ -90,21 +103,43 @@ func NewAddManifestDeployItemCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *addManifestDeployItemOptions) Complete(args []string) error {
-	o.componentPath = args[0]
-	o.deployItemName = args[1]
+	o.deployItemName = args[0]
+
+	o.importDefinitions = []v1alpha1.ImportDefinition{}
+	o.replacement = map[string]string{}
+	if o.importParams != nil {
+		for _, p := range *o.importParams {
+			importDefinition, err := o.parseImportDefinition(p)
+			if err != nil {
+				return err
+			}
+
+			o.importDefinitions = append(o.importDefinitions, *importDefinition)
+
+			if _, ok := o.replacement[importDefinition.Name]; ok {
+				return fmt.Errorf("import parameter %s occurs more than once", importDefinition.Name)
+			}
+
+			o.replacement[importDefinition.Name] = string(uuid.NewUUID())
+		}
+	}
 
 	return o.validate()
 }
 
 func (o *addManifestDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.componentPath,
+		"component-directory",
+		".",
+		"path to component directory")
 	o.files = fs.StringArray(
-		"file",
+		"manifest-file",
 		[]string{},
-		"manifest file")
+		"manifest file containing one kubernetes resource")
 	o.importParams = fs.StringArray(
 		"import-param",
 		[]string{},
-		"import parameter")
+		"import parameter as name:integer|string|boolean, e.g. replicas:integer")
 	fs.StringVar(&o.updateStrategy,
 		"update-strategy",
 		"update",
@@ -116,11 +151,7 @@ func (o *addManifestDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.clusterParam,
 		"cluster-param",
 		"targetCluster",
-		"target cluster")
-	fs.StringVar(&o.targetNsParam,
-		"target-ns-param",
-		"",
-		"target namespace")
+		"import parameter name for the target resource containing the access data of the target cluster")
 }
 
 func (o *addManifestDeployItemOptions) validate() error {
@@ -129,8 +160,8 @@ func (o *addManifestDeployItemOptions) validate() error {
 			"or '+', and must start and end with an alphanumeric character")
 	}
 
-	if o.targetNsParam == "" {
-		return fmt.Errorf("target-ns-param is missing")
+	if o.clusterParam == "" {
+		return fmt.Errorf("cluster-param is missing")
 	}
 
 	return nil
@@ -143,7 +174,9 @@ func (o *addManifestDeployItemOptions) run(ctx context.Context, log logr.Logger)
 		return err
 	}
 
-	if o.existsExecution(blueprint) {
+	blueprintBuilder := blueprints.NewBlueprintBuilder(blueprint)
+
+	if blueprintBuilder.ExistsDeployExecution(o.deployItemName) {
 		return fmt.Errorf("The blueprint already contains a deploy item %s\n", o.deployItemName)
 	}
 
@@ -160,100 +193,11 @@ func (o *addManifestDeployItemOptions) run(ctx context.Context, log logr.Logger)
 		return err
 	}
 
-	o.addExecution(blueprint)
-
-	err = o.addImports(blueprint)
-	if err != nil {
-		return err
-	}
+	blueprintBuilder.AddDeployExecution(o.deployItemName)
+	blueprintBuilder.AddImportForTarget(o.clusterParam)
+	blueprintBuilder.AddImports(o.importDefinitions)
 
 	return blueprints.NewBlueprintWriter(blueprintPath).Write(blueprint)
-}
-
-func (o *addManifestDeployItemOptions) existsExecution(blueprint *v1alpha1.Blueprint) bool {
-	for i := range blueprint.DeployExecutions {
-		execution := &blueprint.DeployExecutions[i]
-		if execution.Name == o.deployItemName {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (o *addManifestDeployItemOptions) addExecution(blueprint *v1alpha1.Blueprint) {
-	blueprint.DeployExecutions = append(blueprint.DeployExecutions, v1alpha1.TemplateExecutor{
-		Name: o.deployItemName,
-		Type: v1alpha1.GOTemplateType,
-		File: "/" + util.ExecutionFileName(o.deployItemName),
-	})
-}
-
-func (o *addManifestDeployItemOptions) addImports(blueprint *v1alpha1.Blueprint) error {
-	o.addTargetImport(blueprint, o.clusterParam)
-	o.addStringImport(blueprint, o.targetNsParam)
-
-	for _, p := range *o.importParams {
-		err := o.addImport(blueprint, p)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (o *addManifestDeployItemOptions) addTargetImport(blueprint *v1alpha1.Blueprint, name string) {
-	for i := range blueprint.Imports {
-		if blueprint.Imports[i].Name == name {
-			return
-		}
-	}
-
-	required := true
-
-	blueprint.Imports = append(blueprint.Imports, v1alpha1.ImportDefinition{
-		FieldValueDefinition: v1alpha1.FieldValueDefinition{
-			Name:       name,
-			TargetType: string(v1alpha1.KubernetesClusterTargetType),
-		},
-		Required: &required,
-	})
-}
-
-func (o *addManifestDeployItemOptions) addStringImport(blueprint *v1alpha1.Blueprint, name string) {
-	for i := range blueprint.Imports {
-		if blueprint.Imports[i].Name == name {
-			return
-		}
-	}
-
-	required := true
-
-	blueprint.Imports = append(blueprint.Imports, v1alpha1.ImportDefinition{
-		FieldValueDefinition: v1alpha1.FieldValueDefinition{
-			Name:   name,
-			Schema: v1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
-		},
-		Required: &required,
-	})
-}
-
-func (o *addManifestDeployItemOptions) addImport(blueprint *v1alpha1.Blueprint, paramDef string) error {
-	importDefinition, err := o.parseImportDefinition(paramDef)
-	if err != nil {
-		return err
-	}
-
-	for i := range blueprint.Imports {
-		if blueprint.Imports[i].Name == importDefinition.Name {
-			// todo: check that the type has not changed
-			return nil
-		}
-	}
-
-	blueprint.Imports = append(blueprint.Imports, *importDefinition)
-	return nil
 }
 
 // parseImportDefinition creates a new ImportDefinition from a given parameter definition string.
@@ -277,13 +221,12 @@ func (o *addManifestDeployItemOptions) parseImportDefinition(paramDef string) (*
 			paramDef)
 	}
 
-	schema := fmt.Sprintf("{ \"type\": \"%s\" }", typ)
 	required := true
 
 	return &v1alpha1.ImportDefinition{
 		FieldValueDefinition: v1alpha1.FieldValueDefinition{
 			Name:   name,
-			Schema: v1alpha1.JSONSchemaDefinition(schema),
+			Schema: v1alpha1.JSONSchemaDefinition(fmt.Sprintf("{ \"type\": \"%s\" }", typ)),
 		},
 		Required: &required,
 	}, nil
@@ -306,14 +249,24 @@ func (o *addManifestDeployItemOptions) existsExecutionFile() (bool, error) {
 }
 
 func (o *addManifestDeployItemOptions) createExecutionFile() error {
-	f, err := os.Create(util.ExecutionFilePath(o.componentPath, o.deployItemName))
+	err := o.writeExecution()
+	if err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(util.ExecutionFilePath(o.componentPath, o.deployItemName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 
 	defer f.Close()
 
-	err = o.writeExecution(f)
+	manifests, err := o.getManifests()
+	if err != nil {
+		return err
+	}
+
+	_, err = f.WriteString(manifests)
 
 	return err
 }
@@ -328,27 +281,17 @@ const manifestExecutionTemplate = `deployItems:
     apiVersion: manifest.deployer.landscaper.gardener.cloud/v1alpha2
     kind: ProviderConfiguration
     updateStrategy: {{.UpdateStrategy}}
-    {{- getManifests }}
 `
 
-func (o *addManifestDeployItemOptions) writeExecution(f *os.File) error {
-	funcs := map[string]interface{}{
-		"getManifests": func() (string, error) {
-			data, err := o.getManifestsYaml()
-			if err != nil {
-				return "", err
-			}
-
-			data, err = indentLines(data, 4)
-			if err != nil {
-				return "", err
-			}
-
-			return string(data), nil
-		},
+func (o *addManifestDeployItemOptions) writeExecution() error {
+	f, err := os.Create(util.ExecutionFilePath(o.componentPath, o.deployItemName))
+	if err != nil {
+		return err
 	}
 
-	t, err := template.New("").Funcs(funcs).Parse(manifestExecutionTemplate)
+	defer f.Close()
+
+	t, err := template.New("").Parse(manifestExecutionTemplate)
 	if err != nil {
 		return err
 	}
@@ -360,7 +303,6 @@ func (o *addManifestDeployItemOptions) writeExecution(f *os.File) error {
 		UpdateStrategy string
 	}{
 		ClusterParam:   o.clusterParam,
-		TargetNsParam:  o.targetNsParam,
 		DeployItemName: o.deployItemName,
 		UpdateStrategy: o.updateStrategy,
 	}
@@ -373,25 +315,20 @@ func (o *addManifestDeployItemOptions) writeExecution(f *os.File) error {
 	return nil
 }
 
-func indentLines(data []byte, n int) ([]byte, error) {
-	prefix := strings.Repeat(" ", n)
-
-	writer := bytes.Buffer{}
-
-	reader := bytes.NewReader(data)
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(bufio.ScanLines)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		writer.WriteString("\n" + prefix + line)
+func (o *addManifestDeployItemOptions) getManifests() (string, error) {
+	data, err := o.getManifestsYaml()
+	if err != nil {
+		return "", err
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
+	stringData := string(data)
+	stringData = indentLines(stringData, 4)
+	return stringData, nil
+}
 
-	return writer.Bytes(), nil
+func indentLines(data string, n int) string {
+	indent := strings.Repeat(" ", n)
+	return indent + strings.ReplaceAll(data, "\n", "\n"+indent)
 }
 
 func (o *addManifestDeployItemOptions) getManifestsYaml() ([]byte, error) {
@@ -408,6 +345,8 @@ func (o *addManifestDeployItemOptions) getManifestsYaml() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	data = o.replaceUUIDsByImportTemplates(data)
 
 	return data, nil
 }
@@ -437,15 +376,63 @@ func (o *addManifestDeployItemOptions) readManifest(filename string) (*manifest.
 		return nil, err
 	}
 
-	jsonData, err := yaml.YAMLToJSON(yamlData)
+	var m interface{}
+	err = yaml.Unmarshal(yamlData, &m)
 	if err != nil {
 		return nil, err
 	}
 
-	return &manifest.Manifest{
+	m = o.replaceParamsByUUIDs(m)
+
+	// render to string
+	uuidData, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+
+	m2 := &manifest.Manifest{
 		Policy: manifest.ManifestPolicy(o.policy),
 		Manifest: &runtime.RawExtension{
-			Raw: jsonData,
+			Raw: uuidData,
 		},
-	}, nil
+	}
+
+	return m2, nil
+}
+
+func (o *addManifestDeployItemOptions) replaceParamsByUUIDs(in interface{}) interface{} {
+	switch m := in.(type) {
+	case map[string]interface{}:
+		for k := range m {
+			m[k] = o.replaceParamsByUUIDs(m[k])
+		}
+		return m
+
+	case []interface{}:
+		for k := range m {
+			m[k] = o.replaceParamsByUUIDs(m[k])
+		}
+		return m
+
+	case string:
+		newValue, ok := o.replacement[m]
+		if ok {
+			return newValue
+		}
+		return m
+
+	default:
+		return m
+	}
+}
+
+func (o *addManifestDeployItemOptions) replaceUUIDsByImportTemplates(data []byte) []byte {
+	s := string(data)
+
+	for paramName, uuid := range o.replacement {
+		newValue := fmt.Sprintf("{{ .imports.%s }}", paramName)
+		s = strings.ReplaceAll(s, uuid, newValue)
+	}
+
+	return []byte(s)
 }

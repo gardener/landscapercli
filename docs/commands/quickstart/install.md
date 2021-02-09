@@ -1,6 +1,6 @@
 # Quickstart Install
 
-The quickstart install command allows to install the landscaper (and optionaly an OCI registry) in a specified kubernetes cluster, such as a minikube, kind or garden shoot cluster. This is the quickest way to get the landscaper up and running.
+The quickstart install command allows to install the landscaper (and optionally an OCI registry) in a specified kubernetes cluster, such as a minikube, kind or garden shoot cluster. This is the quickest way to get the landscaper up and running.
 
 ## Prerequisites
 - K8s cluster
@@ -15,7 +15,7 @@ To install a specific version of the landscaper chart, use the `landscaper-chart
 For more details on the cli usage, consult [landscaper-cli_quickstart_install reference](../../reference/landscaper-cli_quickstart_install.md).
 
 ### Interact with OCI registry
-If you decide to install the OCI registry, you have to use port-forwading, since it will not be exposed externaly. 
+If you decide to install the OCI registry, you have to use port-forwarding, since it will not be exposed externaly. 
 You can forward the port 5000 of the registry pod to your localhost with the following commnad:
 ```
 kubectl port-forward oci-registry-<pod-id> 5000:5000 -n landscaper

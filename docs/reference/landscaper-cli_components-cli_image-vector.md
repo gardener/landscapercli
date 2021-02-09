@@ -21,7 +21,7 @@ command to add resource from a image vector and retrieve from a component descri
 
 ### SEE ALSO
 
-* [landscaper-cli components-cli](landscaper-cli_components-cli.md)	 - components cli
+* [landscaper-cli components-cli](landscaper-cli_components-cli.md)	 - commands of the components cli
 * [landscaper-cli components-cli image-vector add](landscaper-cli_components-cli_image-vector_add.md)	 - Adds all resources of a image vector to the component descriptor
 * [landscaper-cli components-cli image-vector generate-overwrite](landscaper-cli_components-cli_image-vector_generate-overwrite.md)	 - Get parses a component descriptor and returns the defined image vector
 

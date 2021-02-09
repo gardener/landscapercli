@@ -1,0 +1,12 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Blueprint
+
+imports: []
+
+exports: []
+
+exportExecutions: []
+
+subinstallations: []
+
+deployExecutions: []

@@ -1,0 +1,50 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Blueprint
+
+imports:
+- default:
+    value: null
+  name: targetcluster
+  required: true
+  targetType: landscaper.gardener.cloud/kubernetes-cluster
+- default:
+    value: null
+  name: nginxnamespace
+  required: true
+  schema:
+    type: string
+- default:
+    value: null
+  name: echoservernamespace
+  required: true
+  schema:
+    type: string
+- default:
+    value: null
+  name: password1
+  required: true
+  schema:
+    type: string
+- default:
+    value: null
+  name: password2
+  required: true
+  schema:
+    type: string
+
+exports: []
+
+exportExecutions: []
+
+subinstallations: []
+
+deployExecutions:
+- file: /deploy-execution-nginx.yaml
+  name: nginx
+  type: GoTemplate
+- file: /deploy-execution-echo.yaml
+  name: echo
+  type: GoTemplate
+- file: /deploy-execution-secrets.yaml
+  name: secrets
+  type: GoTemplate

@@ -15,8 +15,6 @@ import (
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
-	"github.com/gardener/landscaper/apis/core/v1alpha1"
-
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -28,16 +26,18 @@ import (
 )
 
 const addHelmLSDeployItemUse = `deployitem \
-    [component directory path] \
     [deployitem name] \
    `
 
 const addHelmLSDeployItemExample = `
 landscaper-cli component add helm-ls deployitem \
-  . \
   nginx \
+  --component-directory ~/myComponent \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
-  --chart-version v0.1.0`
+  --resource-version v0.1.0
+  --cluster-param target-cluster
+  --target-ns-param target-namespace
+`
 
 const addHelmLSDeployItemShort = `
 Command to add a deploy item skeleton to the blueprint of a component`
@@ -53,7 +53,7 @@ type addHelmLsDeployItemOptions struct {
 	ociReference       string
 	chartDirectoryPath string
 
-	chartVersion string
+	resourceVersion string
 
 	clusterParam  string
 	targetNsParam string
@@ -66,7 +66,7 @@ func NewAddHelmLSDeployItemCommand(ctx context.Context) *cobra.Command {
 		Use:     addHelmLSDeployItemUse,
 		Example: addHelmLSDeployItemExample,
 		Short:   addHelmLSDeployItemShort,
-		Args:    cobra.ExactArgs(2),
+		Args:    cobra.ExactArgs(1),
 
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -79,7 +79,11 @@ func NewAddHelmLSDeployItemCommand(ctx context.Context) *cobra.Command {
 				os.Exit(1)
 			}
 
-			fmt.Printf("Successfully added deploy item")
+			fmt.Printf("Deploy item added")
+			fmt.Printf("  \n- deploy item definition in blueprint folder in file %s created", util.ExecutionFileName(opts.deployItemName))
+			fmt.Printf("  \n- file reference to deploy item definition added to blueprint")
+			fmt.Printf("  \n- import definitions added to blueprint")
+			fmt.Printf("  \n- helm chart resource added to resources.yaml")
 		},
 	}
 
@@ -89,13 +93,16 @@ func NewAddHelmLSDeployItemCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *addHelmLsDeployItemOptions) Complete(args []string) error {
-	o.componentPath = args[0]
-	o.deployItemName = args[1]
+	o.deployItemName = args[0]
 
 	return o.validate()
 }
 
 func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.componentPath,
+		"component-directory",
+		".",
+		"path to component directory")
 	fs.StringVar(&o.ociReference,
 		"oci-reference",
 		"",
@@ -103,15 +110,15 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.chartDirectoryPath,
 		"chart-directory",
 		"",
-		"path to chart directory")
-	fs.StringVar(&o.chartVersion,
-		"chart-version",
+		"path to chart directory (the parent folder of the folder containing the helm chart :-))")
+	fs.StringVar(&o.resourceVersion,
+		"resource-version",
 		"",
 		"helm chart version")
 	fs.StringVar(&o.clusterParam,
 		"cluster-param",
 		"targetCluster",
-		"target cluster")
+		"import parameter name for the target resource containing the access data of the target cluster")
 	fs.StringVar(&o.targetNsParam,
 		"target-ns-param",
 		"",
@@ -132,8 +139,12 @@ func (o *addHelmLsDeployItemOptions) validate() error {
 		return fmt.Errorf("both oci-reference and chart-directory are set, exactly one needs to be specified")
 	}
 
-	if o.chartVersion == "" {
-		return fmt.Errorf("chart-version is missing")
+	if o.resourceVersion == "" {
+		return fmt.Errorf("resource-version is missing")
+	}
+
+	if o.clusterParam == "" {
+		return fmt.Errorf("cluster-param is missing")
 	}
 
 	if o.targetNsParam == "" {
@@ -155,7 +166,9 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 		return err
 	}
 
-	if o.existsExecution(blueprint) {
+	blueprintBuilder := blueprints.NewBlueprintBuilder(blueprint)
+
+	if blueprintBuilder.ExistsDeployExecution(o.deployItemName) {
 		return fmt.Errorf("The blueprint already contains a deploy item %s\n", o.deployItemName)
 	}
 
@@ -163,7 +176,6 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 	if err != nil {
 		return err
 	}
-
 	if exists {
 		return fmt.Errorf("Deploy execution file %s already exists\n", util.ExecutionFilePath(o.componentPath, o.deployItemName))
 	}
@@ -173,8 +185,9 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 		return err
 	}
 
-	o.addExecution(blueprint)
-	o.addImports(blueprint)
+	blueprintBuilder.AddDeployExecution(o.deployItemName)
+	blueprintBuilder.AddImportForTarget(o.clusterParam)
+	blueprintBuilder.AddImportForElementaryType(o.targetNsParam, "string")
 
 	return blueprints.NewBlueprintWriter(blueprintPath).Write(blueprint)
 }
@@ -198,66 +211,6 @@ func (o *addHelmLsDeployItemOptions) addResource() error {
 	err = resourceWriter.Write(resources)
 
 	return err
-}
-
-func (o *addHelmLsDeployItemOptions) existsExecution(blueprint *v1alpha1.Blueprint) bool {
-	for i := range blueprint.DeployExecutions {
-		execution := &blueprint.DeployExecutions[i]
-		if execution.Name == o.deployItemName {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (o *addHelmLsDeployItemOptions) addExecution(blueprint *v1alpha1.Blueprint) {
-	blueprint.DeployExecutions = append(blueprint.DeployExecutions, v1alpha1.TemplateExecutor{
-		Name: o.deployItemName,
-		Type: v1alpha1.GOTemplateType,
-		File: "/" + util.ExecutionFileName(o.deployItemName),
-	})
-}
-
-func (o *addHelmLsDeployItemOptions) addImports(blueprint *v1alpha1.Blueprint) {
-	o.addTargetImport(blueprint, o.clusterParam)
-	o.addStringImport(blueprint, o.targetNsParam)
-}
-
-func (o *addHelmLsDeployItemOptions) addTargetImport(blueprint *v1alpha1.Blueprint, name string) {
-	for i := range blueprint.Imports {
-		if blueprint.Imports[i].Name == name {
-			return
-		}
-	}
-
-	required := true
-
-	blueprint.Imports = append(blueprint.Imports, v1alpha1.ImportDefinition{
-		FieldValueDefinition: v1alpha1.FieldValueDefinition{
-			Name:       name,
-			TargetType: string(v1alpha1.KubernetesClusterTargetType),
-		},
-		Required: &required,
-	})
-}
-
-func (o *addHelmLsDeployItemOptions) addStringImport(blueprint *v1alpha1.Blueprint, name string) {
-	for i := range blueprint.Imports {
-		if blueprint.Imports[i].Name == name {
-			return
-		}
-	}
-
-	required := true
-
-	blueprint.Imports = append(blueprint.Imports, v1alpha1.ImportDefinition{
-		FieldValueDefinition: v1alpha1.FieldValueDefinition{
-			Name:   name,
-			Schema: v1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
-		},
-		Required: &required,
-	})
 }
 
 func (o *addHelmLsDeployItemOptions) existsExecutionFile() (bool, error) {
@@ -289,7 +242,7 @@ func (o *addHelmLsDeployItemOptions) createExecutionFile() error {
 	return err
 }
 
-const executionTemplate = `deployItems:
+const executionTemplateExternalRef = `deployItems:
 - name: {{.DeployItemName}}
   type: landscaper.gardener.cloud/helm
   target:
@@ -308,8 +261,35 @@ const executionTemplate = `deployItems:
     namespace: {{"{{"}} .imports.{{.TargetNsParam}} {{"}}"}}
 `
 
+const executionTemplateLocally = `deployItems:
+- name: {{.DeployItemName}}
+  type: landscaper.gardener.cloud/helm
+  target:
+    name: {{"{{"}} .imports.{{.ClusterParam}}.metadata.name {{"}}"}}
+    namespace: {{"{{"}} .imports.{{.ClusterParam}}.metadata.namespace {{"}}"}}
+  config:
+    apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
+    kind: ProviderConfiguration
+
+    chart:
+      fromResource: 
+{{"{{"}} toYaml .componentDescriptorDef | indent 8 {{"}}"}}
+        resourceName: {{.DeployItemName}}-chart
+
+    updateStrategy: patch
+
+    name: {{.DeployItemName}}
+    namespace: {{"{{"}} .imports.{{.TargetNsParam}} {{"}}"}}
+`
+
 func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
-	t, err := template.New("").Parse(executionTemplate)
+	templateString := executionTemplateExternalRef
+
+	if o.chartDirectoryPath != "" {
+		templateString = executionTemplateLocally
+	}
+
+	t, err := template.New("").Parse(templateString)
 	if err != nil {
 		return err
 	}
@@ -358,7 +338,7 @@ func (o *addHelmLsDeployItemOptions) createOciResource() (*cdresources.ResourceO
 		Resource: cd.Resource{
 			IdentityObjectMeta: cd.IdentityObjectMeta{
 				Name:    o.deployItemName + "-" + "chart",
-				Version: o.chartVersion,
+				Version: o.resourceVersion,
 				Type:    helm,
 			},
 			Relation: cd.ExternalRelation,
@@ -378,7 +358,7 @@ func (o *addHelmLsDeployItemOptions) createDirectoryResource() (*cdresources.Res
 		Resource: cd.Resource{
 			IdentityObjectMeta: cd.IdentityObjectMeta{
 				Name:    o.deployItemName + "-" + "chart",
-				Version: o.chartVersion,
+				Version: o.resourceVersion,
 				Type:    helm,
 			},
 			Relation: cd.ExternalRelation,

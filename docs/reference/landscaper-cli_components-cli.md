@@ -1,6 +1,6 @@
 ## landscaper-cli components-cli
 
-components cli
+commands of the components cli
 
 ### Options
 

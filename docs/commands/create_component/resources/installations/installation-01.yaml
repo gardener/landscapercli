@@ -1,0 +1,29 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Installation
+metadata:
+  name: demo-installation
+  namespace: demo-namespace
+spec:
+  componentDescriptor:
+    ref:
+      repositoryContext:
+        type: ociRegistry
+        baseUrl: eu.gcr.io/sap-gcp-cp-k8s-stable-hub/examples/landscaper/temp
+      componentName: github.com/gardener/landscapercli/nginx
+      version: v0.1.0
+
+  blueprint:
+    ref:
+      resourceName: blueprint
+
+  imports:
+    targets:
+      - name: targetcluster
+        # the "#" forces the landscaper to use the target with the name "rg-cluster" in the same namespace
+        target: "#rg-cluster"
+
+  importDataMappings:
+    nginxnamespace: nginx1
+    echoservernamespace: nginx1
+    password1: pw1
+    password2: pw2

@@ -23,4 +23,5 @@ command to add parts to a component
 
 * [landscaper-cli components](landscaper-cli_components.md)	 - command to interact with components based on blueprints
 * [landscaper-cli components add helm-ls](landscaper-cli_components_add_helm-ls.md)	 - command to add parts to a component concerning a helm landscaper deployment
+* [landscaper-cli components add manifest](landscaper-cli_components_add_manifest.md)	 - command to add parts to a component concerning a manifest deployment
 
