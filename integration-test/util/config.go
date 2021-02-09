@@ -1,4 +1,4 @@
-package config
+package util
 
 import "time"
 
@@ -8,4 +8,5 @@ type Config struct {
 	TestNamespace       string
 	MaxRetries          int
 	SleepTime           time.Duration
+	RegistryBaseURL     string
 }

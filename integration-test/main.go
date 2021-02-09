@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"time"
 
+	componentclilog "github.com/gardener/component-cli/pkg/logger"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,8 +21,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/landscapercli/cmd/quickstart"
-	"github.com/gardener/landscapercli/integration-test/config"
 	"github.com/gardener/landscapercli/integration-test/tests"
+	inttestutil "github.com/gardener/landscapercli/integration-test/util"
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
 )
@@ -35,11 +36,17 @@ func init() {
 	_ = lsv1alpha1.AddToScheme(scheme)
 }
 
-func runTestSuite(k8sClient client.Client, config *config.Config, target *lsv1alpha1.Target, helmChartRef string) error {
+func runTestSuite(k8sClient client.Client, config *inttestutil.Config, target *lsv1alpha1.Target, helmChartRef string) error {
 	fmt.Println("========== RunQuickstartInstallTest() ==========")
 	err := tests.RunQuickstartInstallTest(k8sClient, target, helmChartRef, config)
 	if err != nil {
 		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)
+	}
+
+	fmt.Println("========== RunInstallationCreateTest() ==========")
+	err = tests.RunInstallationCreateTest(config)
+	if err != nil {
+		return fmt.Errorf("RunInstallationCreateTest() failed: %w", err)
 	}
 
 	// Plug new test cases in here:
@@ -71,6 +78,7 @@ func run() error {
 		return fmt.Errorf("cannot create logger: %w", err)
 	}
 	logger.SetLogger(log)
+	componentclilog.SetLogger(log)
 
 	cfg, err := clientcmd.BuildConfigFromFlags("", config.Kubeconfig)
 	if err != nil {
@@ -104,15 +112,16 @@ func run() error {
 		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
 	}
 
-	fmt.Println("Waiting for Landscaper pods to get ready")
+	fmt.Println("Waiting for pods to get ready")
 	timeout, err := util.CheckAndWaitUntilAllPodsAreReady(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
-		return fmt.Errorf("error while waiting for Landscaper pods: %w", err)
+		return fmt.Errorf("error while waiting for pods: %w", err)
 	}
 	if timeout {
-		return fmt.Errorf("timeout while waiting for landscaper pods")
+		return fmt.Errorf("timeout while waiting for pods")
 	}
 
+	// TODO: fix error handling. no error is thrown if port is already in use.
 	fmt.Println("========== Starting port-forward to OCI registry ==========")
 	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, config.LandscaperNamespace, config.Kubeconfig)
 	if err != nil {
@@ -122,7 +131,7 @@ func run() error {
 		// Disable port-forward
 		killPortforwardErr := portforwardCmd.Process.Kill()
 		if killPortforwardErr != nil {
-			fmt.Println("cannot kill port-forward process:", err)
+			fmt.Println("cannot kill port-forward process:", killPortforwardErr)
 		}
 	}()
 
@@ -153,7 +162,7 @@ func run() error {
 	return nil
 }
 
-func parseConfig() *config.Config {
+func parseConfig() *inttestutil.Config {
 	var kubeconfig, landscaperNamespace, testNamespace string
 	var maxRetries int
 
@@ -163,12 +172,15 @@ func parseConfig() *config.Config {
 	flag.IntVar(&maxRetries, "max-retries", 10, "max retries (every 5s) for all waiting operations")
 	flag.Parse()
 
-	config := config.Config{
+	registryBaseURL := fmt.Sprintf("oci-registry.%s.svc.cluster.local:5000", landscaperNamespace)
+
+	config := inttestutil.Config{
 		Kubeconfig:          kubeconfig,
 		LandscaperNamespace: landscaperNamespace,
 		TestNamespace:       testNamespace,
 		MaxRetries:          maxRetries,
 		SleepTime:           5 * time.Second,
+		RegistryBaseURL:     registryBaseURL,
 	}
 
 	return &config
@@ -260,7 +272,7 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 	return helmChartRef, nil
 }
 
-func runQuickstartUninstall(config *config.Config) error {
+func runQuickstartUninstall(config *inttestutil.Config) error {
 	uninstallArgs := []string{
 		"--kubeconfig",
 		config.Kubeconfig,
@@ -278,16 +290,16 @@ func runQuickstartUninstall(config *config.Config) error {
 	return nil
 }
 
-func runQuickstartInstall(config *config.Config) error {
+func runQuickstartInstall(config *inttestutil.Config) error {
 	const landscaperValues = `
-      landscaper:
-        registryConfig: # contains optional oci secrets
-          allowPlainHttpRegistries: true
-          secrets: {}
-        deployers:
-        - container
-        - helm
-    `
+landscaper:
+  registryConfig: # contains optional oci secrets
+    allowPlainHttpRegistries: true
+    secrets: {}
+  deployers:
+  - container
+  - helm
+`
 
 	tmpFile, err := ioutil.TempFile(".", "landscaper-values-")
 	defer func() {
@@ -297,7 +309,7 @@ func runQuickstartInstall(config *config.Config) error {
 		}
 	}()
 
-	err = ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValues), 0644)
+	err = ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValues), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("cannot write to file: %w", err)
 	}
