@@ -7,10 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var _ assert.TestingT = MyTesting{}
-type MyTesting struct {}
+// DummyTestingT is a utility struct for using assertions from "github.com/stretchr/testify/assert"
+// in the integration tests (outside of unit tests)
+type DummyTestingT struct{}
 
-func (t MyTesting) Errorf(format string, args ...interface{}) {
+var _ assert.TestingT = DummyTestingT{}
+
+func (t DummyTestingT) Errorf(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 }
 

@@ -64,6 +64,7 @@ func (t *installationCreateTest) run() error {
 	}
 
 	fmt.Println("Executing landscaper-cli installations create")
+
 	cmd := installations.NewCreateCommand(ctx)
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -103,9 +104,8 @@ func (t *installationCreateTest) run() error {
 					Version:       t.componentVersion,
 					ComponentName: t.componentName,
 					RepositoryContext: &cdv2.RepositoryContext{
-						Type: cdv2.OCIRegistryType,
-						// TODO: this is not nice. the URL inside of the CD artifact and the URL for invoking the "landscaper-cli installations create" are different
-						BaseURL: "localhost:5000",
+						Type:    cdv2.OCIRegistryType,
+						BaseURL: t.registryBaseURL,
 					},
 				},
 			},
@@ -141,7 +141,9 @@ func (t *installationCreateTest) run() error {
 		},
 	}
 
-	ok := assert.Equal(inttestutil.MyTesting{}, expectedInstallation, actualInstallation)
+	fmt.Println("Checking generated installation")
+
+	ok := assert.Equal(inttestutil.DummyTestingT{}, expectedInstallation, actualInstallation)
 	if !ok {
 		return fmt.Errorf("")
 	}
@@ -154,14 +156,14 @@ func (t *installationCreateTest) run() error {
 # {
 #   "type": "string"
 # }`
-	ok = assert.Equal(inttestutil.MyTesting{}, expectedSchema, dataImportsNode.Content[0].Content[0].HeadComment)
+	ok = assert.Equal(inttestutil.DummyTestingT{}, expectedSchema, dataImportsNode.Content[0].Content[0].HeadComment)
 	if !ok {
 		return fmt.Errorf("schema comments for spec.imports.data are invalid")
 	}
 
 	_, targetImportsNode := util.FindNodeByPath(rootNode, "spec.imports.targets")
 	expectedSchema = "# Target type: landscaper.gardener.cloud/kubernetes-cluster"
-	ok = assert.Equal(inttestutil.MyTesting{}, expectedSchema, targetImportsNode.Content[0].Content[0].HeadComment)
+	ok = assert.Equal(inttestutil.DummyTestingT{}, expectedSchema, targetImportsNode.Content[0].Content[0].HeadComment)
 	if !ok {
 		return fmt.Errorf("schema comments for spec.imports.targets are invalid")
 	}
@@ -172,14 +174,14 @@ func (t *installationCreateTest) run() error {
 # {
 #   "type": "string"
 # }`
-	ok = assert.Equal(inttestutil.MyTesting{}, expectedSchema, dataExportsNode.HeadComment)
+	ok = assert.Equal(inttestutil.DummyTestingT{}, expectedSchema, dataExportsNode.HeadComment)
 	if !ok {
 		return fmt.Errorf("schema comments for spec.exports.data are invalid")
 	}
 
 	_, targetExportsNode := util.FindNodeByPath(rootNode, "spec.exports.targets")
 	expectedSchema = "# Target type: landscaper.gardener.cloud/kubernetes-cluster"
-	ok = assert.Equal(inttestutil.MyTesting{}, expectedSchema, targetExportsNode.Content[0].Content[0].HeadComment)
+	ok = assert.Equal(inttestutil.DummyTestingT{}, expectedSchema, targetExportsNode.Content[0].Content[0].HeadComment)
 	if !ok {
 		return fmt.Errorf("schema comments for spec.exports.targets are invalid")
 	}
@@ -192,7 +194,7 @@ func (t *installationCreateTest) createDummyBlueprint() *lsv1alpha1.Blueprint {
 		Imports: []lsv1alpha1.ImportDefinition{
 			{
 				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name: "dummyDataImport",
+					Name:   "dummyDataImport",
 					Schema: lsv1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
 				},
 			},
@@ -206,7 +208,7 @@ func (t *installationCreateTest) createDummyBlueprint() *lsv1alpha1.Blueprint {
 		Exports: []lsv1alpha1.ExportDefinition{
 			{
 				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name: "dummyDataExport",
+					Name:   "dummyDataExport",
 					Schema: lsv1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
 				},
 			},

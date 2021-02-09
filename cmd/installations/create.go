@@ -53,12 +53,12 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 		Short:   "create an installation template for a component in an OCI registry",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
-				fmt.Println(err.Error())
+				cmd.PrintErr(err.Error())
 				os.Exit(1)
 			}
 
-			if err := opts.run(ctx, logger.Log, osfs.New(), cmd); err != nil {
-				fmt.Println(err.Error())
+			if err := opts.run(ctx, cmd, logger.Log, osfs.New()); err != nil {
+				cmd.PrintErr(err.Error())
 				os.Exit(1)
 			}
 		},
@@ -69,7 +69,7 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 	return cmd
 }
 
-func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem, cmd *cobra.Command) error {
+func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logger, fs vfs.FileSystem) error {
 	repoCtx := cdv2.RepositoryContext{
 		Type:    cdv2.OCIRegistryType,
 		BaseURL: o.baseUrl,
@@ -106,12 +106,12 @@ func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem
 
 		manifest, err := ociClient.GetManifest(ctx, ref)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot get manifest: %w", err)
 		}
 
 		err = ociClient.Fetch(ctx, ref, manifest.Layers[0], &data)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot get manifest layer: %w", err)
 		}
 	} else {
 		_, err = blobResolver.Resolve(ctx, blueprintRes, &data)
@@ -122,36 +122,36 @@ func (o *createOpts) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem
 
 	memFS := memoryfs.New()
 	if err := utils.ExtractTarGzip(&data, memFS, "/"); err != nil {
-		return err
+		return fmt.Errorf("cannot extract blueprint blob: %w", err)
 	}
 
 	blueprintData, err := vfs.ReadFile(memFS, lsv1alpha1.BlueprintFileName)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot read %s: %w", lsv1alpha1.BlueprintFileName, err)
 	}
 
 	blueprint := &lsv1alpha1.Blueprint{}
 	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(blueprintData, nil, blueprint); err != nil {
-		return err
+		return fmt.Errorf("cannot decode blueprint: %w", err)
 	}
 
-	installation := buildInstallation(o.name, cd, blueprintRes, blueprint, &repoCtx)
+	installation := buildInstallation(o.name, cd, blueprintRes, blueprint)
 
 	var marshaledYaml []byte
 	if o.renderSchemaInfo {
 		commentedYaml, err := annotateInstallationWithSchemaComments(installation, blueprint)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot add JSON schema comment: %w", err)
 		}
 
 		marshaledYaml, err = util.MarshalYaml(commentedYaml)
 		if err != nil {
-			return fmt.Errorf("cannot marshal yaml: %w", err)
+			return fmt.Errorf("cannot marshal installation yaml: %w", err)
 		}
 	} else {
 		marshaledYaml, err = yaml.Marshal(installation)
 		if err != nil {
-			return fmt.Errorf("cannot marshal yaml: %w", err)
+			return fmt.Errorf("cannot marshal installation yaml: %w", err)
 		}
 	}
 
@@ -189,13 +189,13 @@ func (o *createOpts) Complete(args []string) error {
 func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installation, blueprint *lsv1alpha1.Blueprint) (*yamlv3.Node, error) {
 	out, err := yaml.Marshal(installation)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot marshal installation yaml: %w", err)
 	}
 
 	commentedInstallationYaml := &yamlv3.Node{}
 	err = yamlv3.Unmarshal(out, commentedInstallationYaml)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot unmarshal installation yaml: %w", err)
 	}
 
 	err = addImportSchemaComments(commentedInstallationYaml, blueprint)
@@ -302,7 +302,7 @@ func (o *createOpts) AddFlags(fs *pflag.FlagSet) {
 	o.OciOptions.AddFlags(fs)
 }
 
-func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes cdv2.Resource, blueprint *lsv1alpha1.Blueprint, repoCtx *cdv2.RepositoryContext) *lsv1alpha1.Installation {
+func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes cdv2.Resource, blueprint *lsv1alpha1.Blueprint) *lsv1alpha1.Installation {
 	dataImports := []lsv1alpha1.DataImport{}
 	targetImports := []lsv1alpha1.TargetImportExport{}
 	for _, imp := range blueprint.Imports {
@@ -346,7 +346,7 @@ func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes c
 		Spec: lsv1alpha1.InstallationSpec{
 			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
 				Reference: &lsv1alpha1.ComponentDescriptorReference{
-					RepositoryContext: repoCtx,
+					RepositoryContext: &cd.RepositoryContexts[0],
 					ComponentName:     cd.ObjectMeta.Name,
 					Version:           cd.ObjectMeta.Version,
 				},
