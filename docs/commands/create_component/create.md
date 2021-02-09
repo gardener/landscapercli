@@ -41,7 +41,7 @@ landscaper-cli component create github.com/gardener/landscapercli/nginx v0.1.0 -
 ```
 
 The result of this example could be found in the folder
-*[01-step-component-created](resouces/01-step-component-created)*. You see that the
+*[01-step-component-created](resources/01-step-component-created)*. You see that the
 resources.yaml file already contains a reference to the blueprint which will be included into the component 
 descriptor when the component is complete and uploaded to an OCI registry later. 
 
@@ -99,20 +99,20 @@ landscaper-cli component add helm-ls deployitem nginx \
 ```
 
 Applying the command on the component skeleton in the folder 
-*[01-step-component-created](resouces/01-step-component-created)* results in the resources stored in the folder
-*[02-step-add-helm-chart-in-oci](resouces/02-step-add-helm-chart-in-oci)*.
+*[01-step-component-created](resources/01-step-component-created)* results in the resources stored in the folder
+*[02-step-add-helm-chart-in-oci](resources/02-step-add-helm-chart-in-oci)*.
 
-In the file *[blueprint.yaml](resouces/02-step-add-helm-chart-in-oci/demo-component/blueprint/blueprint.yaml)* you
+In the file *[blueprint.yaml](resources/02-step-add-helm-chart-in-oci/demo-component/blueprint/blueprint.yaml)* you
 find a new entry under *deployExecutions* referencing to the file 
-*[deploy-execution-nginx.yaml](resouces/02-step-add-helm-chart-in-oci/demo-component/blueprint/deploy-execution-nginx.yaml)*
+*[deploy-execution-nginx.yaml](resources/02-step-add-helm-chart-in-oci/demo-component/blueprint/deploy-execution-nginx.yaml)*
 which contains the specification of the new deploy item which adds the ngnix application to the blueprint as a new
 deploy item. Furthermore in the imports section of the
-*[blueprint.yaml](resouces/02-step-add-helm-chart-in-oci/demo-component/blueprint/blueprint.yaml)* you find the
+*[blueprint.yaml](resources/02-step-add-helm-chart-in-oci/demo-component/blueprint/blueprint.yaml)* you find the
 import parameters *target-cluster* and *nginx-namespace*. These import parameters are referenced at dedicated positions in
-*[deploy-execution-nginx.yaml](resouces/02-step-add-helm-chart-in-oci/demo-component/blueprint/deploy-execution-nginx.yaml)*
+*[deploy-execution-nginx.yaml](resources/02-step-add-helm-chart-in-oci/demo-component/blueprint/deploy-execution-nginx.yaml)*
 to later provide their values to the adequate parts of the deploy item specification.
 
-In the file *[resources.yaml](resouces/02-step-add-helm-chart-in-oci/demo-component/resources.yaml)* you
+In the file *[resources.yaml](resources/02-step-add-helm-chart-in-oci/demo-component/resources.yaml)* you
 find a new entry for the added nginx helm chart resource.
 
 ### 2.2 Add an Application provided as local Helm Chart
@@ -138,12 +138,12 @@ is for specifying the path to the directory where the chart is stored.
 Example:
 
 In this example, we want to add an echo server application, which is provided as a helm chart stored in the folder
-*[echo-server](resouces/charts/echo-server)*. 
+*[echo-server](resources/charts/echo-server)*. 
 
 ```
 landscaper-cli component add helm-ls deployitem echo \
   --component-directory ~/demo-component \
-  --chart-directory ../resouces/charts \
+  --chart-directory ../resources/charts \
   --resource-version v0.3.0 \
   --cluster-param targetcluster \
   --target-ns-param echoservernamespace
@@ -157,23 +157,23 @@ Attention: The values of the flag *chart-directory* is not the complete path to 
 folder above.
 
 Applying the command on the component folder in
-*[02-step-add-helm-chart-in-oci](resouces/02-step-add-helm-chart-in-oci)* results in the resources stored 
+*[02-step-add-helm-chart-in-oci](resources/02-step-add-helm-chart-in-oci)* results in the resources stored 
 in the folder
-*[03-step-add-local-helm-chart](resouces/03-step-add-local-helm-chart)*.
+*[03-step-add-local-helm-chart](resources/03-step-add-local-helm-chart)*.
 
-In the file *[blueprint.yaml](resouces/03-step-add-local-helm-chart/demo-component/blueprint/blueprint.yaml)* you
+In the file *[blueprint.yaml](resources/03-step-add-local-helm-chart/demo-component/blueprint/blueprint.yaml)* you
 find a new entry under *deployExecutions*, referencing to the file
-*[deploy-execution-echo.yaml](resouces/03-step-add-local-helm-chart/demo-component/blueprint/deploy-execution-echo.yaml)*
+*[deploy-execution-echo.yaml](resources/03-step-add-local-helm-chart/demo-component/blueprint/deploy-execution-echo.yaml)*
 which contains the specification of the new deploy item adding the echo server application to the blueprint. 
 
 In the imports section of the 
-*[blueprint.yaml](resouces/03-step-add-local-helm-chart/demo-component/blueprint/blueprint.yaml)* you find the
+*[blueprint.yaml](resources/03-step-add-local-helm-chart/demo-component/blueprint/blueprint.yaml)* you find the
 new import parameter *echo-server-namespace*. This import parameter as well as the parameter *target-cluster* 
 are referenced at dedicated positions in
-*[deploy-execution-echo.yaml](resouces/03-step-add-local-helm-chart/demo-component/blueprint/deploy-execution-echo.yaml)*
+*[deploy-execution-echo.yaml](resources/03-step-add-local-helm-chart/demo-component/blueprint/deploy-execution-echo.yaml)*
 to later provide their values to the adequate parts of the deploy item specification.
 
-In the file *[resources.yaml](resouces/03-step-add-local-helm-chart/demo-component/resources.yaml)* you
+In the file *[resources.yaml](resources/03-step-add-local-helm-chart/demo-component/resources.yaml)* you
 find a new entry for the added echo server helm chart resource. You see here the input type *dir* which means 
 that during the later upload of the component to the OCI registry the complete chart folder is added as a
 separate layer of the OCI artifact. 
@@ -211,67 +211,67 @@ The meaning of the arguments and flags is as follows:
 Example:
 
 Assume we want to add a deploy item which provisions the two secrets stored in the folder 
-*[set1](resouces/manifests/set1)*. It should be possible that the passwords in the secrets could be set when the
+*[set1](resources/manifests/set1)*. It should be possible that the passwords in the secrets could be set when the
 component is deployed. The corresponding command looks as the following:
 
 ```
 landscaper-cli component add manifest deployitem secrets \
   --component-directory ~/demo-component \
-  --manifest-file ../resouces/manifests/set1/demo-secret-1.yaml \
-  --manifest-file ../resouces/manifests/set1/demo-secret-2.yaml \
+  --manifest-file ../resources/manifests/set1/demo-secret-1.yaml \
+  --manifest-file ../resources/manifests/set1/demo-secret-2.yaml \
   --import-param password1:string \
   --import-param password2:string \
   --cluster-param targetcluster
 ```
 
 Again, we use the same parameter name for *cluster-param*. We define two import parameters which match the corresponding
-field values in the *[secret yaml files](resouces/manifests/set1)*.
+field values in the *[secret yaml files](resources/manifests/set1)*.
 
 Applying the command on the component folder in
-*[03-step-add-local-helm-chart](resouces/03-step-add-local-helm-chart)* results in the resources stored
-in the folder *[04-step-add-secret-manifests](resouces/04-step-add-secret-manifests)*.
+*[03-step-add-local-helm-chart](resources/03-step-add-local-helm-chart)* results in the resources stored
+in the folder *[04-step-add-secret-manifests](resources/04-step-add-secret-manifests)*.
 
-In the file *[blueprint.yaml](resouces/04-step-add-secret-manifests/demo-component/blueprint/blueprint.yaml)* you
+In the file *[blueprint.yaml](resources/04-step-add-secret-manifests/demo-component/blueprint/blueprint.yaml)* you
 find a new entry under *deployExecutions* referencing to the file
-*[deploy-execution-secrets.yaml](resouces/04-step-add-secret-manifests/demo-component/blueprint/deploy-execution-secrets.yaml)*
+*[deploy-execution-secrets.yaml](resources/04-step-add-secret-manifests/demo-component/blueprint/deploy-execution-secrets.yaml)*
 which contains the specification of the new deploy item added to the blueprint which deploys two secrets.
 
 In the imports section of the
-*[blueprint.yaml](resouces/04-step-add-secret-manifests/demo-component/blueprint/blueprint.yaml)* you find the
+*[blueprint.yaml](resources/04-step-add-secret-manifests/demo-component/blueprint/blueprint.yaml)* you find the
 new import parameters *password-1* and *password-2*. These import parameters are referenced at dedicated positions in
-*[deploy-execution-secrets.yaml](resouces/04-step-add-secret-manifests/demo-component/blueprint/deploy-execution-secrets.yaml)*
+*[deploy-execution-secrets.yaml](resources/04-step-add-secret-manifests/demo-component/blueprint/deploy-execution-secrets.yaml)*
 to later provide their values to the adequate parts of the manifest specification. The so called *dedicated positions*
 are all those field values in the manifests with the same string as the import parameter name.
 
-Nothing was added to the file *[resources.yaml](resouces/04-step-add-secret-manifests/demo-component/resources.yaml)* 
+Nothing was added to the file *[resources.yaml](resources/04-step-add-secret-manifests/demo-component/resources.yaml)* 
 because all manifests are already part of the 
-*[blueprint.yaml](resouces/04-step-add-secret-manifests/demo-component/blueprint/blueprint.yaml)*.
+*[blueprint.yaml](resources/04-step-add-secret-manifests/demo-component/blueprint/blueprint.yaml)*.
 
 ## 3 Upload Component into an OCI Registry
 
-Now we describe how to upload the locally developed *[component](resouces/04-step-add-secret-manifests)* into an OCI registry.
+Now we describe how to upload the locally developed *[component](resources/04-step-add-secret-manifests)* into an OCI registry.
 
 ### 3.1 Add Resources to Component Descriptor
 
-In a first step, we add the resources in file *[resources.yaml](resouces/04-step-add-secret-manifests/demo-component/resources.yaml)* 
+In a first step, we add the resources in file *[resources.yaml](resources/04-step-add-secret-manifests/demo-component/resources.yaml)* 
 to the component descriptor with the following command:
 
 ```shell script
 landscaper-cli components-cli component-archive resources add \
-   .../landscapercli/docs/commands/create_component/resouces/05-step-prepare-push/demo-component \
-   -r .../landscapercli/docs/commands/create_component/resouces/05-step-prepare-push/demo-component/resources.yaml
+   .../landscapercli/docs/commands/create_component/resources/05-step-prepare-push/demo-component \
+   -r .../landscapercli/docs/commands/create_component/resources/05-step-prepare-push/demo-component/resources.yaml
 ```
 
 Applying the command on the component folder in
-*[04-step-add-secret-manifests](resouces/04-step-add-secret-manifests)* results in the resources stored
-in the folder *[05-step-prepare-push](resouces/05-step-prepare-push)*.
+*[04-step-add-secret-manifests](resources/04-step-add-secret-manifests)* results in the resources stored
+in the folder *[05-step-prepare-push](resources/05-step-prepare-push)*.
 
 The command packs all resources with *input.type=dir* into a *blobs* directory. We have removed the *blobs* directory
 from the repository because the generated files will interfere with the *go get* command, so you will not see them in 
 the example folder. 
 
 Moreover, it adds all resources to the
-*[component-descriptor.yaml](resouces/05-step-prepare-push/demo-component/component-descriptor.yaml)*.
+*[component-descriptor.yaml](resources/05-step-prepare-push/demo-component/component-descriptor.yaml)*.
 
 **Remark:**
 The resources in the *blobs* directory will be stored together with the component descriptor in one OCI artifact.
@@ -279,7 +279,7 @@ The resources in the *blobs* directory will be stored together with the componen
 ### 3.2 Maintain Base URL of the OCI Registry
 
 Set the field *component.repositoryContexts.baseUrl* of the 
-*[component-descriptor.yaml](resouces/05-step-prepare-push/demo-component/component-descriptor.yaml)*
+*[component-descriptor.yaml](resources/05-step-prepare-push/demo-component/component-descriptor.yaml)*
 to the base URL of the OCI registry into which you want to upload the component, e.g.
 
 ```yaml
@@ -304,7 +304,7 @@ landscaper-cli components-cli ca remote push \
     eu.gcr.io/some-path \
     github.com/gardener/landscapercli/nginx \
     v0.1.0 \
-    .../landscapercli/docs/commands/create_component/resouces/05-step-prepare-push/demo-component
+    .../landscapercli/docs/commands/create_component/resources/05-step-prepare-push/demo-component
 ```
 
 In this case, the push command has the following arguments:
@@ -312,7 +312,7 @@ In this case, the push command has the following arguments:
 * *eu.gcr.io/some-path*: the base URL of the OCI registry as defined in the component-descriptor.yaml
 * *github.com/gardener/landscapercli/nginx*: the component name as defined in the component-descriptor.yaml
 * *v0.1.0*: the component version as defined in the component-descriptor.yaml
-* *.../landscapercli/docs/commands/create_component/resouces/05-step-prepare-push/demo-component*: the path to the component directory
+* *.../landscapercli/docs/commands/create_component/resources/05-step-prepare-push/demo-component*: the path to the component directory
 
 After the push, the OCI registry contains the following artefact:
 
