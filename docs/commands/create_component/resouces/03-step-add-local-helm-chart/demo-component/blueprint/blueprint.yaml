@@ -4,18 +4,18 @@ kind: Blueprint
 imports:
 - default:
     value: null
-  name: target-cluster
+  name: targetcluster
   required: true
   targetType: landscaper.gardener.cloud/kubernetes-cluster
 - default:
     value: null
-  name: nginx-namespace
+  name: nginxnamespace
   required: true
   schema:
     type: string
 - default:
     value: null
-  name: echo-server-namespace
+  name: echoservernamespace
   required: true
   schema:
     type: string

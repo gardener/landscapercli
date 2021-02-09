@@ -94,8 +94,8 @@ landscaper-cli component add helm-ls deployitem nginx \
   --component-directory ~/demo-component \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
   --resource-version v0.2.0 \
-  --cluster-param target-cluster \
-  --target-ns-param nginx-namespace
+  --cluster-param targetcluster \
+  --target-ns-param nginxnamespace
 ```
 
 Applying the command on the component skeleton in the folder 
@@ -145,8 +145,8 @@ landscaper-cli component add helm-ls deployitem echo \
   --component-directory ~/demo-component \
   --chart-directory ../resouces/charts/echo-server \
   --resource-version v0.3.0 \
-  --cluster-param target-cluster \
-  --target-ns-param echo-server-namespace
+  --cluster-param targetcluster \
+  --target-ns-param echoservernamespace
 ```
 
 In the example, we use the same parameter name for *cluster-param*. Therefore, both the nginx and the echo-server applications
@@ -216,9 +216,9 @@ landscaper-cli component add manifest deployitem secrets \
   --component-directory ~/demo-component \
   --manifest-file ../resouces/manifests/set1/demo-secret-1.yaml \
   --manifest-file ../resouces/manifests/set1/demo-secret-2.yaml \
-  --import-param password-1:string \
-  --import-param password-2:string \
-  --cluster-param target-cluster
+  --import-param password1:string \
+  --import-param password2:string \
+  --cluster-param targetcluster
 ```
 
 Again, we use the same parameter name for *cluster-param*. We define two import parameters which match the corresponding

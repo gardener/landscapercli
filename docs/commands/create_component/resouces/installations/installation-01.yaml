@@ -18,12 +18,12 @@ spec:
 
   imports:
     targets:
-      - name: target-cluster
+      - name: targetcluster
         # the "#" forces the landscaper to use the target with the name "rg-cluster" in the same namespace
         target: "#rg-cluster"
 
   importDataMappings:
-    nginx-namespace: nginx1
-    echo-server-namespace: nginx1
-    password-1: pw1
-    password-2: pw2
+    nginxnamespace: nginx1
+    echoservernamespace: nginx1
+    password1: pw1
+    password2: pw2
