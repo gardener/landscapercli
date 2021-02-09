@@ -110,7 +110,7 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.chartDirectoryPath,
 		"chart-directory",
 		"",
-		"path to chart directory")
+		"path to chart directory (the parent folder of the folder containing the helm chart :-))")
 	fs.StringVar(&o.resourceVersion,
 		"resource-version",
 		"",
@@ -242,7 +242,7 @@ func (o *addHelmLsDeployItemOptions) createExecutionFile() error {
 	return err
 }
 
-const executionTemplate = `deployItems:
+const executionTemplateExternalRef = `deployItems:
 - name: {{.DeployItemName}}
   type: landscaper.gardener.cloud/helm
   target:
@@ -261,8 +261,35 @@ const executionTemplate = `deployItems:
     namespace: {{"{{"}} .imports.{{.TargetNsParam}} {{"}}"}}
 `
 
+const executionTemplateLocally = `deployItems:
+- name: {{.DeployItemName}}
+  type: landscaper.gardener.cloud/helm
+  target:
+    name: {{"{{"}} .imports.{{.ClusterParam}}.metadata.name {{"}}"}}
+    namespace: {{"{{"}} .imports.{{.ClusterParam}}.metadata.namespace {{"}}"}}
+  config:
+    apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
+    kind: ProviderConfiguration
+
+    chart:
+      fromResource: 
+{{"{{"}} toYaml .componentDescriptorDef | indent 8 {{"}}"}}
+        resourceName: {{.DeployItemName}}-chart
+
+    updateStrategy: patch
+
+    name: {{.DeployItemName}}
+    namespace: {{"{{"}} .imports.{{.TargetNsParam}} {{"}}"}}
+`
+
 func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
-	t, err := template.New("").Parse(executionTemplate)
+	templateString := executionTemplateExternalRef
+
+	if o.chartDirectoryPath != "" {
+		templateString = executionTemplateLocally
+	}
+
+	t, err := template.New("").Parse(templateString)
 	if err != nil {
 		return err
 	}

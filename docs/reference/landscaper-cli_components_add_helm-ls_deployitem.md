@@ -26,7 +26,7 @@ landscaper-cli component add helm-ls deployitem \
 ### Options
 
 ```
-      --chart-directory string       path to chart directory
+      --chart-directory string       path to chart directory (the parent folder of the folder containing the helm chart :-))
       --cluster-param string         import parameter name for the target resource containing the access data of the target cluster (default "targetCluster")
       --component-directory string   path to component directory (default ".")
   -h, --help                         help for deployitem

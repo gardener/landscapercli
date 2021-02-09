@@ -9,7 +9,9 @@ deployItems:
     kind: ProviderConfiguration
 
     chart:
-      ref: {{ with (getResource .cd "name" "echo-chart") }} {{ .access.imageReference }} {{ end }}
+      fromResource:
+{{ toYaml .componentDescriptorDef | indent 8 }}
+        resourceName: echo-chart
 
     updateStrategy: patch
 
