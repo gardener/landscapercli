@@ -48,9 +48,11 @@ type createOpts struct {
 func NewCreateCommand(ctx context.Context) *cobra.Command {
 	opts := &createOpts{}
 	cmd := &cobra.Command{
-		Use:     "create",
+		Use:     "create [baseURL] [componentName] [componentVersion]",
+		Args:    cobra.ExactArgs(3),
 		Aliases: []string{"c"},
-		Short:   "create an installation template for a component in an OCI registry",
+		Example: "landscaper-cli installations create my-registry:5000 github.com/my-component v0.1.0",
+		Short:   "create an installation template for a component which is stored in an OCI registry",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				cmd.PrintErr(err.Error())

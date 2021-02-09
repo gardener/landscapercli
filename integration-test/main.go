@@ -43,10 +43,10 @@ func runTestSuite(k8sClient client.Client, config *inttestutil.Config, target *l
 		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)
 	}
 
-	fmt.Println("========== RunInstallationCreateTest() ==========")
-	err = tests.RunInstallationCreateTest(config)
+	fmt.Println("========== RunInstallationsCreateTest() ==========")
+	err = tests.RunInstallationsCreateTest(config)
 	if err != nil {
-		return fmt.Errorf("RunInstallationCreateTest() failed: %w", err)
+		return fmt.Errorf("RunInstallationsCreateTest() failed: %w", err)
 	}
 
 	// Plug new test cases in here:
