@@ -7,6 +7,7 @@ input:
   type: dir
   path: ./blueprint
   mediaType: application/vnd.gardener.landscaper.blueprint.v1+tar+gzip
+  compress: true
 ...
 ---
 type: helm
@@ -25,4 +26,5 @@ relation: external
 input: 
   type: dir
   path: .../landscapercli/docs/commands/create_component/resouces/charts/echo-server
+  compress: true
 ...

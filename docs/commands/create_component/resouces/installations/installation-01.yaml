@@ -18,7 +18,7 @@ spec:
 
   imports:
     targets:
-      - name: cluster
+      - name: target-cluster
         # the "#" forces the landscaper to use the target with the name "rg-cluster" in the same namespace
         target: "#rg-cluster"
 
