@@ -66,7 +66,7 @@ func (t *installationCreateTest) run() error {
 	fmt.Println("Executing landscaper-cli installations create")
 
 	cmd := installations.NewCreateCommand(ctx)
-	outBuf := new(bytes.Buffer)
+	outBuf := &bytes.Buffer{}
 	cmd.SetOut(outBuf)
 	args := []string{
 		"localhost:5000",
