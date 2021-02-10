@@ -37,7 +37,7 @@ The flag *component-directory* is optional with the current folder as default.
 Example:
 
 ```
-landscaper-cli component create github.com/gardener/landscapercli/nginx v0.1.0 --component-directory ~/demo-component
+landscaper-cli component create github.com/gardener/landscapercli/nginx v0.1.0 --component-directory .../demo-component
 ```
 
 The result of this example could be found in the folder
@@ -91,11 +91,11 @@ Example:
 
 ```
 landscaper-cli component add helm-ls deployitem nginx \
-  --component-directory ~/demo-component \
+  --component-directory .../demo-component \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
   --resource-version v0.2.0 \
-  --cluster-param targetcluster \
-  --target-ns-param nginxnamespace
+  --cluster-param target-cluster \
+  --target-ns-param nginx-namespace
 ```
 
 Applying the command on the component skeleton in the folder 
@@ -142,19 +142,16 @@ In this example, we want to add an echo server application, which is provided as
 
 ```
 landscaper-cli component add helm-ls deployitem echo \
-  --component-directory ~/demo-component \
-  --chart-directory ../resources/charts \
+  --component-directory .../demo-component \
+  --chart-directory ../resources/charts/echo-server \
   --resource-version v0.3.0 \
-  --cluster-param targetcluster \
-  --target-ns-param echoservernamespace
+  --cluster-param target-cluster \
+  --target-ns-param echo-server-namespace
 ```
 
 In the example, we use the same parameter name for *cluster-param*. Therefore, both the nginx and the echo-server applications
 will be deployed to the same cluster with the resulting blueprint/component. We use a different *target-ns-parameter*,
 which allow the later deployment of the applications into different namespaces.
-
-Attention: The values of the flag *chart-directory* is not the complete path to the folder containing the chart but the 
-folder above.
 
 Applying the command on the component folder in
 *[02-step-add-helm-chart-in-oci](resources/02-step-add-helm-chart-in-oci)* results in the resources stored 
@@ -219,9 +216,9 @@ landscaper-cli component add manifest deployitem secrets \
   --component-directory ~/demo-component \
   --manifest-file ../resources/manifests/set1/demo-secret-1.yaml \
   --manifest-file ../resources/manifests/set1/demo-secret-2.yaml \
-  --import-param password1:string \
-  --import-param password2:string \
-  --cluster-param targetcluster
+  --import-param password-1:string \
+  --import-param password-2:string \
+  --cluster-param target-cluster
 ```
 
 Again, we use the same parameter name for *cluster-param*. We define two import parameters which match the corresponding

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import helm
 import os
 from subprocess import Popen, PIPE, STDOUT, run
 import sys
@@ -32,6 +32,8 @@ else:
     result = run(command)
     result.check_returncode()
 
+# ensure latest helm version
+helm_client = helm.HelmClient()
 os.chdir(os.path.join(root_path, source_path, "integration-test"))
 
 factory = ctx().cfg_factory()

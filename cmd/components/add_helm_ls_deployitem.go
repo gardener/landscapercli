@@ -8,9 +8,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"os"
+	"path/filepath"
 	"regexp"
+	"text/template"
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
@@ -32,10 +33,20 @@ const addHelmLSDeployItemUse = `deployitem \
 const addHelmLSDeployItemExample = `
 landscaper-cli component add helm-ls deployitem \
   nginx \
-  --component-directory ~/myComponent \
+  --component-directory .../myComponent \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
-  --resource-version v0.1.0
-  --cluster-param target-cluster
+  --resource-version v0.1.0 \
+  --cluster-param target-cluster \
+  --target-ns-param target-namespace
+
+or 
+
+landscaper-cli component add helm-ls deployitem \
+  nginx \
+  --component-directory .../myComponent \
+  --chart-directory .../charts/echo-server \
+  --resource-version v0.1.0 \
+  --cluster-param target-cluster \
   --target-ns-param target-namespace
 `
 
@@ -95,7 +106,16 @@ func NewAddHelmLSDeployItemCommand(ctx context.Context) *cobra.Command {
 func (o *addHelmLsDeployItemOptions) Complete(args []string) error {
 	o.deployItemName = args[0]
 
-	return o.validate()
+	err := o.validate()
+	if err != nil {
+		return err
+	}
+
+	if o.chartDirectoryPath != "" {
+		o.chartDirectoryPath = filepath.Dir(o.chartDirectoryPath)
+	}
+
+	return nil
 }
 
 func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
@@ -110,7 +130,7 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.chartDirectoryPath,
 		"chart-directory",
 		"",
-		"path to chart directory (the parent folder of the folder containing the helm chart :-))")
+		"path to chart directory")
 	fs.StringVar(&o.resourceVersion,
 		"resource-version",
 		"",
@@ -246,8 +266,8 @@ const executionTemplateExternalRef = `deployItems:
 - name: {{.DeployItemName}}
   type: landscaper.gardener.cloud/helm
   target:
-    name: {{"{{"}} .imports.{{.ClusterParam}}.metadata.name {{"}}"}}
-    namespace: {{"{{"}} .imports.{{.ClusterParam}}.metadata.namespace {{"}}"}}
+    name: {{.TargetNameExpression}}
+    namespace: {{.TargetNamespaceExpression}}
   config:
     apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
     kind: ProviderConfiguration
@@ -258,15 +278,15 @@ const executionTemplateExternalRef = `deployItems:
     updateStrategy: patch
 
     name: {{.DeployItemName}}
-    namespace: {{"{{"}} .imports.{{.TargetNsParam}} {{"}}"}}
+    namespace: {{.ApplicationNamespaceExpression}}
 `
 
 const executionTemplateLocally = `deployItems:
 - name: {{.DeployItemName}}
   type: landscaper.gardener.cloud/helm
   target:
-    name: {{"{{"}} .imports.{{.ClusterParam}}.metadata.name {{"}}"}}
-    namespace: {{"{{"}} .imports.{{.ClusterParam}}.metadata.namespace {{"}}"}}
+    name: {{.TargetNameExpression}}
+    namespace: {{.TargetNamespaceExpression}}
   config:
     apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
     kind: ProviderConfiguration
@@ -279,7 +299,7 @@ const executionTemplateLocally = `deployItems:
     updateStrategy: patch
 
     name: {{.DeployItemName}}
-    namespace: {{"{{"}} .imports.{{.TargetNsParam}} {{"}}"}}
+    namespace: {{.ApplicationNamespaceExpression}}
 `
 
 func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
@@ -295,13 +315,15 @@ func (o *addHelmLsDeployItemOptions) writeExecution(f *os.File) error {
 	}
 
 	data := struct {
-		ClusterParam   string
-		TargetNsParam  string
-		DeployItemName string
+		ApplicationNamespaceExpression string
+		TargetNameExpression           string
+		TargetNamespaceExpression      string
+		DeployItemName                 string
 	}{
-		ClusterParam:   o.clusterParam,
-		TargetNsParam:  o.targetNsParam,
-		DeployItemName: o.deployItemName,
+		ApplicationNamespaceExpression: blueprints.GetImportExpression(o.targetNsParam),
+		TargetNameExpression:           blueprints.GetTargetNameExpression(o.clusterParam),
+		TargetNamespaceExpression:      blueprints.GetTargetNamespaceExpression(o.clusterParam),
+		DeployItemName:                 o.deployItemName,
 	}
 
 	err = t.Execute(f, data)

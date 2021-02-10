@@ -21,7 +21,7 @@ import (
 	"github.com/gardener/landscapercli/pkg/util"
 )
 
-func RunInstallationCreateTest(config *inttestutil.Config) error {
+func RunInstallationsCreateTest(config *inttestutil.Config) error {
 	const (
 		installationName = "test-installation"
 		componentName    = "github.com/dummy-cd"
@@ -29,7 +29,7 @@ func RunInstallationCreateTest(config *inttestutil.Config) error {
 		blueprintName    = "dummy-blueprint"
 	)
 
-	test := installationCreateTest{
+	test := installationsCreateTest{
 		registryBaseURL:  config.RegistryBaseURL,
 		installationName: installationName,
 		componentName:    componentName,
@@ -46,7 +46,7 @@ func RunInstallationCreateTest(config *inttestutil.Config) error {
 	return nil
 }
 
-type installationCreateTest struct {
+type installationsCreateTest struct {
 	registryBaseURL  string
 	installationName string
 	componentName    string
@@ -54,7 +54,7 @@ type installationCreateTest struct {
 	blueprintName    string
 }
 
-func (t *installationCreateTest) run() error {
+func (t *installationsCreateTest) run() error {
 	ctx := context.TODO()
 
 	fmt.Println("Creating and uploading dummy component to OCI registry")
@@ -189,7 +189,7 @@ func (t *installationCreateTest) run() error {
 	return nil
 }
 
-func (t *installationCreateTest) createDummyBlueprint() *lsv1alpha1.Blueprint {
+func (t *installationsCreateTest) createDummyBlueprint() *lsv1alpha1.Blueprint {
 	bp := &lsv1alpha1.Blueprint{
 		Imports: []lsv1alpha1.ImportDefinition{
 			{
@@ -224,7 +224,7 @@ func (t *installationCreateTest) createDummyBlueprint() *lsv1alpha1.Blueprint {
 	return bp
 }
 
-func (t *installationCreateTest) createAndUploadDummyComponent() error {
+func (t *installationsCreateTest) createAndUploadDummyComponent() error {
 	ctx := context.TODO()
 
 	cdDir, err := ioutil.TempDir(".", "dummy-cd-*")
