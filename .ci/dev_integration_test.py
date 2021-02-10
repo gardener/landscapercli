@@ -12,6 +12,7 @@ source_path = os.environ['SOURCE_PATH']
 os.environ['ROOT_PATH'] = root_path
 os.environ['LANDSCAPE'] = "dev"
 os.environ['NAMESPACE'] = "landscapercli-release-test"
+os.environ['HELM_V3_VERSION'] = "v3.2.4"
 
 
 hub_kubeconfig = os.path.join(
