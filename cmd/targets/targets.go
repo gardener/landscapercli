@@ -10,7 +10,7 @@ func NewTargetsCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "targets",
 		Aliases: []string{"t"},
-		Short:   "commands to interact with targets",
+		Short:   "commands for interacting with targets",
 	}
 
 	cmd.AddCommand(NewCreateCommand(ctx))

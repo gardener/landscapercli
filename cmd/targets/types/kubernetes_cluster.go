@@ -28,6 +28,8 @@ func init() {
 }
 
 type kubernetesClusterOpts struct {
+	name                 string
+	namespace            string
 	kubeconfigPath       string
 	targetKubeconfigPath string
 }
@@ -36,7 +38,7 @@ func NewKubernetesClusterCommand(ctx context.Context) *cobra.Command {
 	opts := &kubernetesClusterOpts{}
 	cmd := &cobra.Command{
 		Use:     "kubernetes-cluster",
-		Aliases: []string{"k8s"},
+		Aliases: []string{"k8s-cluster"},
 		Short:   "create a target of type " + core.GroupName + "/kubernetes-cluster",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -91,6 +93,8 @@ func (o *kubernetesClusterOpts) run(ctx context.Context, cmd *cobra.Command, log
 }
 
 func (o *kubernetesClusterOpts) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&o.name, "name", "", "name of the target")
+	fs.StringVar(&o.namespace, "namespace", "", "namespace where target is created")
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
 	fs.StringVar(&o.targetKubeconfigPath, "target-kubeconfig", "", "path to the kubeconfig of the target cluster")
 }
