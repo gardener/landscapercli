@@ -23,6 +23,13 @@ landscaper-cli:
       traits:
         pull-request: ~
         draft_release: ~
+    integration-test:
+      steps:
+        run_integration_test:
+          execute:
+          - "dev_integration_test.py"
+          - "--target-clustername int-test"
+          output_dir: 'integration_test'
     release:
       steps:
         run_integration_test:
