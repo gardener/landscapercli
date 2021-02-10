@@ -139,7 +139,7 @@ func run() error {
 		return fmt.Errorf("upload of echo-server helm chart failed: %w", err)
 	}
 
-	target, err := util.BuildTarget(config.Kubeconfig)
+	target, err := util.BuildKubernetesClusterTarget("test-target", "", config.Kubeconfig)
 	if err != nil {
 		return fmt.Errorf("cannot build target: %w", err)
 	}

@@ -406,7 +406,7 @@ func findNode(nodes []*yamlv3.Node, name string) (*yamlv3.Node, *yamlv3.Node) {
 	return keyNode, valueNode
 }
 
-func BuildTarget(kubeconfig string) (*lsv1alpha1.Target, error) {
+func BuildKubernetesClusterTarget(name, namespace, kubeconfig string) (*lsv1alpha1.Target, error) {
 	kubeconfigContent, err := ioutil.ReadFile(kubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read kubeconfig: %w", err)
@@ -423,7 +423,8 @@ func BuildTarget(kubeconfig string) (*lsv1alpha1.Target, error) {
 
 	target := &lsv1alpha1.Target{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-target",
+			Name: name,
+			Namespace: namespace,
 		},
 		Spec: lsv1alpha1.TargetSpec{
 			Type:          lsv1alpha1.KubernetesClusterTargetType,
