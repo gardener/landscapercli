@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -13,7 +12,6 @@ import (
 	componentclilog "github.com/gardener/component-cli/pkg/logger"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -141,7 +139,7 @@ func run() error {
 		return fmt.Errorf("upload of echo-server helm chart failed: %w", err)
 	}
 
-	target, err := buildTarget(config.Kubeconfig)
+	target, err := util.BuildTarget(config.Kubeconfig)
 	if err != nil {
 		return fmt.Errorf("cannot build target: %w", err)
 	}
@@ -184,34 +182,6 @@ func parseConfig() *inttestutil.Config {
 	}
 
 	return &config
-}
-
-func buildTarget(kubeconfig string) (*lsv1alpha1.Target, error) {
-	kubeconfigContent, err := ioutil.ReadFile(kubeconfig)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read kubeconfig: %w", err)
-	}
-
-	config := map[string]interface{}{
-		"kubeconfig": string(kubeconfigContent),
-	}
-
-	marshalledConfig, err := json.Marshal(config)
-	if err != nil {
-		return nil, fmt.Errorf("%w", err)
-	}
-
-	target := &lsv1alpha1.Target{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-target",
-		},
-		Spec: lsv1alpha1.TargetSpec{
-			Type:          lsv1alpha1.KubernetesClusterTargetType,
-			Configuration: marshalledConfig,
-		},
-	}
-
-	return target, nil
 }
 
 func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigPath string) (*exec.Cmd, error) {
