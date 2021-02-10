@@ -25,6 +25,6 @@ version: v0.3.0
 relation: external
 input: 
   type: dir
-  path: .../landscapercli/docs/commands/create_component/resources/charts
+  path: /Users/d040602/kubernetes/golandprojects/landscapercli/docs/commands/create_component/resources/charts
   compress: true
 ...

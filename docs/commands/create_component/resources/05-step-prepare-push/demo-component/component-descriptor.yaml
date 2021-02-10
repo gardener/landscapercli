@@ -3,11 +3,11 @@ component:
   name: github.com/gardener/landscapercli/nginx
   provider: internal
   repositoryContexts:
-  - baseUrl: "eu.gcr.io/some-path"
+  - baseUrl: ""
     type: ociRegistry
   resources:
   - access:
-      filename: sha256:e5d9adf683bf1b301e08cf74dd4b94f72148523b988c6484f9a1383b93d6b3f5
+      filename: sha256:457eaeb093316d7a8f9380474a562158a5b6845ea6a604cdf7c41c73f329efb0
       mediaType: application/vnd.gardener.landscaper.blueprint.v1+tar+gzip
       type: localFilesystemBlob
     name: blueprint
@@ -22,8 +22,8 @@ component:
     type: helm
     version: v0.2.0
   - access:
-      filename: sha256:65c76b4839307b07d96b59e4f4729e96b857ddb13091f0631c56e584223493c9
-      mediaType: application/x-tar
+      filename: sha256:4d9683652114a7d9163eb2dbc3c66d0d8396c99c68ac94f9ce82303ab38d75aa
+      mediaType: application/gzip
       type: localFilesystemBlob
     name: echo-chart
     relation: external
