@@ -23,7 +23,7 @@ spec:
         target: "#rg-cluster"
 
   importDataMappings:
-    nginxnamespace: nginx1
-    echoservernamespace: nginx1
-    password1: pw1
-    password2: pw2
+    nginx-namespace: nginx1
+    echo-server-namespace: nginx1
+    password-1: pw1
+    password-2: pw2
