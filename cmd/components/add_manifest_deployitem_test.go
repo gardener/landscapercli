@@ -2,31 +2,10 @@ package components
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
-	"text/template"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestTemplate(t *testing.T) {
-	templateString := `the cluster is {{ index .imports "target-cluster" }}`
-
-	temp, err := template.New("").Parse(templateString)
-	assert.Nil(t, err, "error when parsing template")
-
-	data := map[string]interface{}{
-		"imports": map[string]interface{}{
-			"target-cluster": "{{ .rg }}",
-		},
-	}
-
-	f := &bytes.Buffer{}
-	err = temp.Execute(f, data)
-	assert.Nil(t, err, "error during template execution")
-
-	fmt.Println(f.String())
-}
 
 func TestWriteExecution(t *testing.T) {
 	const deployItem1 = `deployItems:
@@ -44,8 +23,8 @@ func TestWriteExecution(t *testing.T) {
 - name: testdeployitem
   type: landscaper.gardener.cloud/kubernetes-manifest
   target:
-    name: {{ .imports.testtarget.metadata.name }}
-    namespace: {{ .imports.testtarget.metadata.namespace }}
+    name: {{ index .imports "testtarget" "metadata" "name" }}
+    namespace: {{ index .imports "testtarget" "metadata" "namespace" }}
   config:
     apiVersion: manifest.deployer.landscaper.gardener.cloud/v1alpha2
     kind: ProviderConfiguration
