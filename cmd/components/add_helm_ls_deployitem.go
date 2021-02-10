@@ -106,7 +106,7 @@ func NewAddHelmLSDeployItemCommand(ctx context.Context) *cobra.Command {
 func (o *addHelmLsDeployItemOptions) Complete(args []string) error {
 	o.deployItemName = args[0]
 
-	err:= o.validate()
+	err := o.validate()
 	if err != nil {
 		return err
 	}
