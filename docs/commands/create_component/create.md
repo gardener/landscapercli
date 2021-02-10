@@ -15,7 +15,7 @@ with the following structure:
 component-dir
 ├── blueprint
 │      └── blueprint.yaml
-└── component-descriptor.yaml
+├── component-descriptor.yaml
 └── resources.yaml
 ```
 
