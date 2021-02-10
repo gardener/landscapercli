@@ -6,6 +6,21 @@ It defines a set of cloud artifacts (e.g. kubernetes applications, cloud infrast
 installed. Such a component could be easily uploaded into an OCI registry and subsequently used with different
 configuration settings to install the specified actifacts into a landscaper controlled cloud environment. 
 
+If you just want to copy and execute the example commands below without any modifications, do the following steps:
+
+- Clone the [Landscaper CLI Git repository](https://github.com/gardener/landscapercli).  
+- Define a variable *LS_ROOT_DIR* for the root directory of your cloned repository: 
+
+  ```
+  export LS_ROOT_DIR=<path to the root directory of the landscapercli clone>
+  ```
+
+- Define a variable *LS_COMPONENT_DIR* for the directory in which you want to develop the demo component: 
+
+  ```
+  export LS_COMPONENT_DIR=<path to the directory of the demo component>
+  ```
+
 # 1 Create Component Skeleton
 
 The *component create command* set up the skeleton of a landscaper component with a blueprint in the local file system 
@@ -37,7 +52,8 @@ The flag *component-directory* is optional with the current folder as default.
 Example:
 
 ```
-landscaper-cli component create github.com/gardener/landscapercli/nginx v0.1.0 --component-directory .../demo-component
+landscaper-cli component create github.com/gardener/landscapercli/nginx v0.1.0 \
+  --component-directory $LS_COMPONENT_DIR/demo-component
 ```
 
 The result of this example could be found in the folder
@@ -54,11 +70,14 @@ With our new component we want to deploy applications and other cloud artifacts 
 Therefore, we need to add such applications/artifacts to the component. This is done by adding the 
 applications/artifacts as deploy items to it. 
 
-
 ### 2.1 Add an Application provided as a Helm Chart stored in an OCI Registry
 
 In the next step we want to add an nginx application provided as a helm chart as a deploy item to the component. 
-We assume the Helm Chart is stored in an OCI registry. 
+The deploy item gets the type *landscaper.gardener.cloud/helm*. This means that it will be handled by the *[Landscaper 
+helm deployer](https://github.com/gardener/landscaper/blob/master/docs/deployer/helm.md)*. It uses helm templating to
+render the resources of the helm chart, and applies them to the target cluster. 
+
+In this section we assume the helm chart is stored in an OCI registry. 
 
 The general syntax of the command is:
 
@@ -91,7 +110,7 @@ Example:
 
 ```
 landscaper-cli component add helm-ls deployitem nginx \
-  --component-directory .../demo-component \
+  --component-directory $LS_COMPONENT_DIR/demo-component \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
   --resource-version v0.2.0 \
   --cluster-param target-cluster \
@@ -143,8 +162,8 @@ In this example, we want to add an echo server application, which is provided as
 
 ```
 landscaper-cli component add helm-ls deployitem echo \
-  --component-directory .../demo-component \
-  --chart-directory ../resources/charts/echo-server \
+  --component-directory $LS_COMPONENT_DIR/demo-component \
+  --chart-directory $LS_ROOT_DIR/docs/commands/create_component/resources/charts/echo-server \
   --resource-version v0.3.0 \
   --cluster-param target-cluster \
   --target-ns-param echo-server-namespace
@@ -214,9 +233,9 @@ component is deployed. The corresponding command looks as the following:
 
 ```
 landscaper-cli component add manifest deployitem secrets \
-  --component-directory ~/demo-component \
-  --manifest-file ../resources/manifests/set1/demo-secret-1.yaml \
-  --manifest-file ../resources/manifests/set1/demo-secret-2.yaml \
+  --component-directory $LS_COMPONENT_DIR/demo-component \
+  --manifest-file $LS_ROOT_DIR/docs/commands/create_component/resources/manifests/set1/demo-secret-1.yaml \
+  --manifest-file $LS_ROOT_DIR/docs/commands/create_component/resources/manifests/set1/demo-secret-2.yaml \
   --import-param password-1:string \
   --import-param password-2:string \
   --cluster-param target-cluster
@@ -256,8 +275,8 @@ to the component descriptor with the following command:
 
 ```shell script
 landscaper-cli components-cli component-archive resources add \
-   .../landscapercli/docs/commands/create_component/resources/05-step-prepare-push/demo-component \
-   -r .../landscapercli/docs/commands/create_component/resources/05-step-prepare-push/demo-component/resources.yaml
+   $LS_COMPONENT_DIR/demo-component \
+   -r $LS_COMPONENT_DIR/demo-component/resources.yaml
 ```
 
 Applying the command on the component folder in
@@ -276,16 +295,18 @@ The resources in the *blobs* directory will be stored together with the componen
 
 ### 3.2 Maintain Base URL of the OCI Registry
 
-Set the field *component.repositoryContexts.baseUrl* of the 
-*[component-descriptor.yaml](resources/05-step-prepare-push/demo-component/component-descriptor.yaml)*
+Set the field *component.repositoryContexts.baseUrl* in the file *$LS_COMPONENT_DIR/component-descriptor.yaml*
 to the base URL of the OCI registry into which you want to upload the component, e.g.
 
 ```yaml
 component:
   repositoryContexts:
-  - baseUrl: eu.gcr.io/some-path
+  - baseUrl: eu.gcr.io/<some-path>
     type: ociRegistry
 ```
+
+You can find an example in the file
+*[component-descriptor.yaml](resources/05-step-prepare-push/demo-component/component-descriptor.yaml)*.
 
 The component will be uploaded to the OCI registry to the namespace/repository
 
@@ -295,22 +316,25 @@ The component will be uploaded to the OCI registry to the namespace/repository
 
 ### 3.3 Upload Component
 
-Next, we upload the component to the OCI registry with the following command:
+Next, we upload the component to the OCI registry with the following command. 
+Note that you must adjust the base URL of the OCI registry.
+
+If your OCI registry requires authentication, see [login-to-oci-registry](../../login-to-oci-registry.md).
 
 ```shell script
 landscaper-cli components-cli ca remote push \
-    eu.gcr.io/some-path \
+    eu.gcr.io/<some-path> \
     github.com/gardener/landscapercli/nginx \
     v0.1.0 \
-    .../landscapercli/docs/commands/create_component/resources/05-step-prepare-push/demo-component
+    $LS_COMPONENT_DIR/demo-component
 ```
 
 In this case, the push command has the following arguments:
 
-* *eu.gcr.io/some-path*: the base URL of the OCI registry as defined in the component-descriptor.yaml
+* *eu.gcr.io/<some-path>*: the base URL of the OCI registry as defined in the component-descriptor.yaml
 * *github.com/gardener/landscapercli/nginx*: the component name as defined in the component-descriptor.yaml
 * *v0.1.0*: the component version as defined in the component-descriptor.yaml
-* *.../landscapercli/docs/commands/create_component/resources/05-step-prepare-push/demo-component*: the path to the component directory
+* *$LS_COMPONENT_DIR/demo-component*: the path to the component directory
 
 After the push, the OCI registry contains the following artefact:
 
@@ -323,11 +347,8 @@ the nginx helm chart, because this is only referenced and stored as a separate O
 
 
 ## Todo
+
 - Create Installation
-
-- check if paths beginning with ~ are working
-
-- Support access to container registries with authentication?
 
 - Describe that the current helm deploy mechanism is not helm but only helm template plus apply
 
