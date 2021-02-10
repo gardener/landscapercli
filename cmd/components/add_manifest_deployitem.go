@@ -165,10 +165,37 @@ func (o *addManifestDeployItemOptions) validate() error {
 		return fmt.Errorf("cluster-param is missing")
 	}
 
+	if o.files == nil || len(*(o.files)) == 0 {
+		return fmt.Errorf("no manifest files specified")
+	}
+
+	for _, path := range *(o.files) {
+		fileInfo, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("manifest file %s does not exist", path)
+			}
+			return err
+		}
+		if fileInfo.IsDir() {
+			return fmt.Errorf("manifest file %s is a directory", path)
+		}
+	}
+
+	err := o.checkIfDeployItemNotAlreadyAdded()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (o *addManifestDeployItemOptions) run(ctx context.Context, log logr.Logger) error {
+	err := o.createExecutionFile()
+	if err != nil {
+		return err
+	}
+
 	blueprintPath := util.BlueprintDirectoryPath(o.componentPath)
 	blueprint, err := blueprints.NewBlueprintReader(blueprintPath).Read()
 	if err != nil {
@@ -181,24 +208,24 @@ func (o *addManifestDeployItemOptions) run(ctx context.Context, log logr.Logger)
 		return fmt.Errorf("The blueprint already contains a deploy item %s\n", o.deployItemName)
 	}
 
-	exists, err := o.existsExecutionFile()
-	if err != nil {
-		return err
-	}
-	if exists {
-		return fmt.Errorf("Deploy execution file %s already exists\n", util.ExecutionFilePath(o.componentPath, o.deployItemName))
-	}
-
-	err = o.createExecutionFile()
-	if err != nil {
-		return err
-	}
-
 	blueprintBuilder.AddDeployExecution(o.deployItemName)
 	blueprintBuilder.AddImportForTarget(o.clusterParam)
 	blueprintBuilder.AddImports(o.importDefinitions)
 
 	return blueprints.NewBlueprintWriter(blueprintPath).Write(blueprint)
+}
+
+func (o *addManifestDeployItemOptions) checkIfDeployItemNotAlreadyAdded() error {
+	_, err := os.Stat(util.ExecutionFilePath(o.componentPath, o.deployItemName))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	return fmt.Errorf("Deploy item was already added. The corresponding deploy execution file %s already exists\n",
+		util.ExecutionFilePath(o.componentPath, o.deployItemName))
 }
 
 // parseImportDefinition creates a new ImportDefinition from a given parameter definition string.
@@ -233,23 +260,12 @@ func (o *addManifestDeployItemOptions) parseImportDefinition(paramDef string) (*
 	}, nil
 }
 
-func (o *addManifestDeployItemOptions) existsExecutionFile() (bool, error) {
-	fileInfo, err := os.Stat(util.ExecutionFilePath(o.componentPath, o.deployItemName))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	if fileInfo.IsDir() {
-		return false, fmt.Errorf("There already exists a directory %s\n", util.ExecutionFileName(o.deployItemName))
-	}
-
-	return true, nil
-}
-
 func (o *addManifestDeployItemOptions) createExecutionFile() error {
+	manifests, err := o.getManifests()
+	if err != nil {
+		return err
+	}
+
 	f, err := os.Create(util.ExecutionFilePath(o.componentPath, o.deployItemName))
 	if err != nil {
 		return err
@@ -258,11 +274,6 @@ func (o *addManifestDeployItemOptions) createExecutionFile() error {
 	defer f.Close()
 
 	err = o.writeExecution(f)
-	if err != nil {
-		return err
-	}
-
-	manifests, err := o.getManifests()
 	if err != nil {
 		return err
 	}

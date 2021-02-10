@@ -133,7 +133,8 @@ landscaper-cli component add helm-ls deployitem [deploy-item-name] \
 ```
 
 The meaning of the arguments and flags is the same as in the chapter before. The new flag *chart-directory* 
-is for specifying the path to the directory where the chart is stored.
+is for specifying the path to the directory where the chart is stored. It is important that the parent directory
+of the chart directory does not possess other children than the chart directory.
 
 Example:
 

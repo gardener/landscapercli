@@ -82,6 +82,46 @@ func (o *createOptions) validate() error {
 		return fmt.Errorf("component version %s is not semver compatible", o.componentVersion)
 	}
 
+	fileInfo, err := os.Stat(o.componentPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	// Check that the path points to a directory
+	if !fileInfo.IsDir() {
+		return fmt.Errorf("component-directory is not a directory")
+	}
+
+	_, err = os.Stat(util.BlueprintDirectoryPath(o.componentPath))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		return fmt.Errorf("blueprint file or folder already exists in %s ", util.BlueprintDirectoryPath(o.componentPath))
+	}
+
+	_, err = os.Stat(util.ResourcesFilePath(o.componentPath))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		return fmt.Errorf("resources.yaml file already exists in %s ", util.ResourcesFilePath(o.componentPath))
+	}
+
+	_, err = os.Stat(util.ComponentDescriptorFilePath(o.componentPath))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		return fmt.Errorf("resources.yaml file already exists in %s ", util.ResourcesFilePath(o.componentPath))
+	}
+
 	return nil
 }
 
@@ -93,7 +133,7 @@ func (o *createOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 func (o *createOptions) run(ctx context.Context, log logr.Logger) error {
-	err := o.checkPreconditions()
+	err := o.createComponentDir()
 	if err != nil {
 		return err
 	}
@@ -129,9 +169,8 @@ func (o *createOptions) run(ctx context.Context, log logr.Logger) error {
 	return nil
 }
 
-func (o *createOptions) checkPreconditions() error {
-	// Check that the component directory exists
-	fileInfo, err := os.Stat(o.componentPath)
+func (o *createOptions) createComponentDir() error {
+	_, err := os.Stat(o.componentPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = os.MkdirAll(o.componentPath, 0755)
@@ -139,7 +178,7 @@ func (o *createOptions) checkPreconditions() error {
 				return err
 			}
 
-			fileInfo, err = os.Stat(o.componentPath)
+			_, err = os.Stat(o.componentPath)
 			if err != nil {
 				return err
 			}
@@ -147,38 +186,6 @@ func (o *createOptions) checkPreconditions() error {
 		} else {
 			return err
 		}
-	}
-
-	// Check that the path points to a directory
-	if !fileInfo.IsDir() {
-		return fmt.Errorf("Path is not a directory")
-	}
-
-	_, err = os.Stat(util.BlueprintDirectoryPath(o.componentPath))
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-	} else {
-		return fmt.Errorf("blueprint file or folder already exists in %s ", util.BlueprintDirectoryPath(o.componentPath))
-	}
-
-	_, err = os.Stat(util.ResourcesFilePath(o.componentPath))
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-	} else {
-		return fmt.Errorf("resources.yaml file already exists in %s ", util.ResourcesFilePath(o.componentPath))
-	}
-
-	_, err = os.Stat(util.ComponentDescriptorFilePath(o.componentPath))
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-	} else {
-		return fmt.Errorf("resources.yaml file already exists in %s ", util.ResourcesFilePath(o.componentPath))
 	}
 
 	return nil
