@@ -2,18 +2,23 @@ package targets
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )
 
+type createOpts struct {
+	name      string
+	namespace string
+}
+
 func NewCreateCommand(ctx context.Context) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "create",
 		Aliases: []string{"c"},
 		Short:   "create a target",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("creating target...")
-		},
 	}
+
+	cmd.AddCommand(NewKubernetesClusterCommand(ctx))
+
+	return cmd
 }
