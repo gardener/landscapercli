@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"text/template"
 
@@ -32,10 +33,20 @@ const addHelmLSDeployItemUse = `deployitem \
 const addHelmLSDeployItemExample = `
 landscaper-cli component add helm-ls deployitem \
   nginx \
-  --component-directory ~/myComponent \
+  --component-directory .../myComponent \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
-  --resource-version v0.1.0
-  --cluster-param target-cluster
+  --resource-version v0.1.0 \
+  --cluster-param target-cluster \
+  --target-ns-param target-namespace
+
+or 
+
+landscaper-cli component add helm-ls deployitem \
+  nginx \
+  --component-directory .../myComponent \
+  --chart-directory .../charts/echo-server \
+  --resource-version v0.1.0 \
+  --cluster-param target-cluster \
   --target-ns-param target-namespace
 `
 
@@ -95,7 +106,16 @@ func NewAddHelmLSDeployItemCommand(ctx context.Context) *cobra.Command {
 func (o *addHelmLsDeployItemOptions) Complete(args []string) error {
 	o.deployItemName = args[0]
 
-	return o.validate()
+	err:= o.validate()
+	if err != nil {
+		return err
+	}
+
+	if o.chartDirectoryPath != "" {
+		o.chartDirectoryPath = filepath.Dir(o.chartDirectoryPath)
+	}
+
+	return nil
 }
 
 func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
@@ -110,7 +130,7 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.chartDirectoryPath,
 		"chart-directory",
 		"",
-		"path to chart directory (the parent folder of the folder containing the helm chart :-))")
+		"path to chart directory")
 	fs.StringVar(&o.resourceVersion,
 		"resource-version",
 		"",

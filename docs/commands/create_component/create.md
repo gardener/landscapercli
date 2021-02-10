@@ -143,7 +143,7 @@ In this example, we want to add an echo server application, which is provided as
 ```
 landscaper-cli component add helm-ls deployitem echo \
   --component-directory .../demo-component \
-  --chart-directory ../resources/charts \
+  --chart-directory ../resources/charts/echo-server \
   --resource-version v0.3.0 \
   --cluster-param target-cluster \
   --target-ns-param echo-server-namespace
@@ -152,9 +152,6 @@ landscaper-cli component add helm-ls deployitem echo \
 In the example, we use the same parameter name for *cluster-param*. Therefore, both the nginx and the echo-server applications
 will be deployed to the same cluster with the resulting blueprint/component. We use a different *target-ns-parameter*,
 which allow the later deployment of the applications into different namespaces.
-
-Attention: The values of the flag *chart-directory* is not the complete path to the folder containing the chart but the 
-folder above.
 
 Applying the command on the component folder in
 *[02-step-add-helm-chart-in-oci](resources/02-step-add-helm-chart-in-oci)* results in the resources stored 
