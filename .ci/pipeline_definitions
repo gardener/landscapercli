@@ -24,6 +24,8 @@ landscaper-cli:
         pull-request: ~
         draft_release: ~
     integration-test:
+      repo:
+        trigger: false
       steps:
         run_integration_test:
           execute:
