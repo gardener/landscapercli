@@ -15,6 +15,7 @@ import (
 	"github.com/gardener/landscapercli/cmd/components"
 	"github.com/gardener/landscapercli/cmd/installations"
 	"github.com/gardener/landscapercli/cmd/quickstart"
+	"github.com/gardener/landscapercli/cmd/targets"
 	"github.com/gardener/landscapercli/cmd/version"
 	"github.com/gardener/landscapercli/pkg/logger"
 
@@ -44,6 +45,7 @@ func NewLandscaperCliCommand(ctx context.Context) *cobra.Command {
 	cmd.AddCommand(blueprints.NewBlueprintsCommand(ctx))
 	cmd.AddCommand(quickstart.NewQuickstartCommand(ctx))
 	cmd.AddCommand(installations.NewInstallationsCommand(ctx))
+	cmd.AddCommand(targets.NewTargetsCommand(ctx))
 
 	// Integrate commands of the component cli
 	componentsCliCommand := componentcli.NewComponentsCliCommand(ctx)
