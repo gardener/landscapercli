@@ -38,15 +38,19 @@ if os.path.isfile("/bin/helm3"):
 else:
     # ensure latest helm version
     helm_client = helm.HelmClient()
-    print("Helm was installed to path '" + helm_client.bin_path + "'")
+    print(f"Helm was installed to path '{helm_client.bin_path}'")
     os.environ['HELM_EXECUTABLE'] = helm_client.bin_path
-    os.environ['PATH'] = helm_client.int_test_tools_dir + ":" + os.environ['PATH']
+    os.environ['PATH'] = f"{helm_client.int_test_tools_dir}:{os.environ['PATH']}"
 print(f"'helm version' PATH={os.environ['PATH']}")
 helm_version = run([os.environ['HELM_EXECUTABLE'], "version"])
 
 kubectl_client = kubectl.KubectlClient()
 if kubectl_client.int_test_tools_dir:
-    os.environ['PATH'] = kubectl_client.int_test_tools_dir + ":" + os.environ['PATH']
+    os.environ['PATH'] = f"{kubectl_client.int_test_tools_dir}:{os.environ['PATH']}"
+print(f"-- List of directory {kubectl_client.int_test_tools_dir}")
+from pathlib import Path
+print(*Path(kubectl_client.int_test_tools_dir).iterdir(), sep="\n")
+print(f"-- End List of directory {kubectl_client.int_test_tools_dir}")
 print(f"'kubectl version' PATH={os.environ['PATH']}")
 kubectl_version = run(["kubectl", "version"])
     
