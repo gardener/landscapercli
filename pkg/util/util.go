@@ -52,6 +52,14 @@ func ExecCommandBlocking(command string) error {
 
 	arr := strings.Split(command, " ")
 
+	if arr[0] == "helm" {
+		helmPath := os.Getenv("HELM_EXECUTABLE")
+		if helmPath != "" {
+			arr[0] = helmPath
+			fmt.Printf("Using helm binary: %s\n", arr[0])
+		}
+	}
+
 	cmd := exec.Command(arr[0], arr[1:]...)
 	cmd.Env = []string{"HELM_EXPERIMENTAL_OCI=1", "HOME=" + os.Getenv("HOME"), "PATH=" + os.Getenv("PATH")}
 	out, err := cmd.CombinedOutput()
@@ -70,6 +78,14 @@ func ExecCommandNonBlocking(command string) (*exec.Cmd, error) {
 	fmt.Printf("Executing: %s\n", command)
 
 	arr := strings.Split(command, " ")
+
+	if arr[0] == "helm" {
+		helmPath := os.Getenv("HELM_EXECUTABLE")
+		if helmPath != "" {
+			arr[0] = helmPath
+			fmt.Printf("Using helm binary: %s\n", arr[0])
+		}
+	}
 
 	cmd := exec.Command(arr[0], arr[1:]...)
 	cmd.Env = []string{"HELM_EXPERIMENTAL_OCI=1", "HOME=" + os.Getenv("HOME"), "PATH=" + os.Getenv("PATH")}
