@@ -75,7 +75,7 @@ func (o *kubernetesClusterOpts) run(ctx context.Context, cmd *cobra.Command, log
 
 	marshaledYaml, err := yaml.Marshal(target)
 	if err != nil {
-		return fmt.Errorf("cannot marshal installation yaml: %w", err)
+		return fmt.Errorf("cannot marshal target yaml: %w", err)
 	}
 
 	cmd.Println(string(marshaledYaml))
