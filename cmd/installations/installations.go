@@ -19,7 +19,7 @@ func NewInstallationsCommand(ctx context.Context) *cobra.Command {
 	}
 
 	cmd.AddCommand(NewCreateCommand(ctx))
-	cmd.AddCommand(NewSetInputParametersCommand(ctx))
+	cmd.AddCommand(NewSetImportParametersCommand(ctx))
 
 	return cmd
 }

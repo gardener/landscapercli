@@ -2,7 +2,6 @@ package installations
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
@@ -67,12 +66,12 @@ func TestImportParameterFilling(t *testing.T) {
 	replaceImportsWithInputParameters(&installation, &inputParametersOptions{inputParameters: inputParameters})
 
 	t.Run("String replacements", func(t *testing.T) {
-		assert.Equal(t, json.RawMessage(fmt.Sprintf(`%s`, inputParameters["stringValue"])), installation.Spec.ImportDataMappings["stringValue"])
-		assert.Equal(t, json.RawMessage(fmt.Sprintf(`%s`, inputParameters["stringValueWithSpace"])), installation.Spec.ImportDataMappings["stringValueWithSpace"])
+		assert.Equal(t, json.RawMessage(inputParameters["stringValue"]), installation.Spec.ImportDataMappings["stringValue"])
+		assert.Equal(t, json.RawMessage(inputParameters["stringValueWithSpace"]), installation.Spec.ImportDataMappings["stringValueWithSpace"])
 	})
 	t.Run("Number replacements", func(t *testing.T) {
-		assert.Equal(t, json.RawMessage(fmt.Sprintf(`%s`, inputParameters["intValue"])), installation.Spec.ImportDataMappings["intValue"])
-		assert.Equal(t, json.RawMessage(fmt.Sprintf(`%s`, inputParameters["floatValue"])), installation.Spec.ImportDataMappings["floatValue"])
+		assert.Equal(t, json.RawMessage(inputParameters["intValue"]), installation.Spec.ImportDataMappings["intValue"])
+		assert.Equal(t, json.RawMessage(inputParameters["floatValue"]), installation.Spec.ImportDataMappings["floatValue"])
 	})
 	t.Run("Correct removing of imports.data and adding to importDataMapping list", func(t *testing.T) {
 		assert.Equal(t, 4, len(installation.Spec.ImportDataMappings))

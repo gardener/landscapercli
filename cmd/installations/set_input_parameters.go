@@ -13,9 +13,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/yaml"
 
-	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
+
+	"github.com/gardener/landscapercli/pkg/logger"
 )
 
 type inputParametersOptions struct {
@@ -25,11 +26,11 @@ type inputParametersOptions struct {
 	inputParameters map[string]string
 }
 
-//NewSetInputParametersCommand sets input parameters from an installation to hardcoded values (as importDataMappings)
-func NewSetInputParametersCommand(ctx context.Context) *cobra.Command {
+//NewSetImportParametersCommand sets input parameters from an installation to hardcoded values (as importDataMappings)
+func NewSetImportParametersCommand(ctx context.Context) *cobra.Command {
 	opts := &inputParametersOptions{}
 	cmd := &cobra.Command{
-		Use:     "set-input-parameters",
+		Use:     "set-import-parameters",
 		Aliases: []string{"sip"},
 		Short:   "set import parameters for an installation. Enquote string values in double quotation marks.",
 		Example: "landscapercli installation set-input-parameters <path-to-installation>.yaml importName1=\"string-value\" importName2=42",
@@ -87,7 +88,7 @@ func replaceImportsWithInputParameters(installation *lsv1alpha1.Installation, o 
 	//find all imports.data that are specified in inputParameters
 	for _, importData := range installation.Spec.Imports.Data {
 		if inputParameter, ok := o.inputParameters[importData.Name]; ok {
-			validImportDataMappings[importData.Name] = json.RawMessage(fmt.Sprintf(`%s`, inputParameter))
+			validImportDataMappings[importData.Name] = json.RawMessage(inputParameter)
 		}
 	}
 
