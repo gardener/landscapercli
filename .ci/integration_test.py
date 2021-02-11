@@ -35,16 +35,9 @@ else:
 # ensure latest helm version
 helm_client = helm.HelmClient()
 print("Helm was installed to path '" + helm_client.bin_path + "'")
-os.environ['PATH'] = helm_client.bin_path + ":" + os.environ['PATH']
-print(f"new environment: {os.environ}")
+os.environ['HELM_EXECUTABLE'] = helm_client.bin_path
 print("helm version:")
-which_helm = run(["which", "helm"])
-helm_version = run(["helm", "version"])
-print("new helm symlink /bin/helm=" + helm_client.bin_path)
-os.symlink("/bin/helm", helm_client.bin_path)
-print("helm version:")
-which_helm = run(["which", "helm"])
-helm_version = run(["helm", "version"])
+helm_version = run([os.environ['HELM_EXECUTABLE'], "version"])
 
 
 os.chdir(os.path.join(root_path, source_path, "integration-test"))
