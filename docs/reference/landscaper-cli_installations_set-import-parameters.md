@@ -1,11 +1,21 @@
-## landscaper-cli installations
+## landscaper-cli installations set-import-parameters
 
-commands to interact with installations
+set import parameters for an installation. Enquote string values in double quotation marks.
+
+```
+landscaper-cli installations set-import-parameters [flags]
+```
+
+### Examples
+
+```
+landscapercli installation set-input-parameters <path-to-installation>.yaml importName1="string-value" importName2=42
+```
 
 ### Options
 
 ```
-  -h, --help   help for installations
+  -h, --help   help for set-import-parameters
 ```
 
 ### Options inherited from parent commands
@@ -21,7 +31,5 @@ commands to interact with installations
 
 ### SEE ALSO
 
-* [landscaper-cli](landscaper-cli.md)	 - landscaper cli
-* [landscaper-cli installations create](landscaper-cli_installations_create.md)	 - create an installation template for a component which is stored in an OCI registry
-* [landscaper-cli installations set-import-parameters](landscaper-cli_installations_set-import-parameters.md)	 - set import parameters for an installation. Enquote string values in double quotation marks.
+* [landscaper-cli installations](landscaper-cli_installations.md)	 - commands to interact with installations
 
