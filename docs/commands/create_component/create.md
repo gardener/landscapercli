@@ -323,7 +323,7 @@ installed with the landscaper quickstart command this looks as follows:
 ```yaml
 component:
   repositoryContexts:
-  - baseUrl: oci-registry.<OCI registry namespace>.svc.cluster.local`
+  - baseUrl: oci-registry.<OCI registry namespace>.svc.cluster.local
     type: ociRegistry
 ```
 
