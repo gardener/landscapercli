@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import helm
+import kubectl
 import os
 from subprocess import Popen, PIPE, STDOUT, run
 import sys
@@ -42,6 +43,8 @@ else:
 print("helm version:")
 helm_version = run([os.environ['HELM_EXECUTABLE'], "version"])
 
+kubectl_client = kubectl.KubectlClient()
+    
 os.chdir(os.path.join(root_path, source_path, "integration-test"))
 
 factory = ctx().cfg_factory()
