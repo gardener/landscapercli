@@ -9,7 +9,7 @@ helm pull --untar https://storage.googleapis.com/sap-hub-test/echo-server-1.1.0.
 2. Create a Port Forwarding to the OCI registry
 (not required if a publicly exposed OCI registry is used)
 ```
-kubectl port-forward oci-registry-<pod-id> 5000:5000
+kubectl port-forward -n <namespace of OCI registry> oci-registry-<pod-id> 5000:5000
 ```
 
 3. Save and upload the helm chart to the OCI registry

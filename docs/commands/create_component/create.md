@@ -314,6 +314,19 @@ The component will be uploaded to the OCI registry to the namespace/repository
 [baseUrl]/component-descriptors/[component-name]
 ```
 
+#### Base URL for OCI Registry whithout external endpoint (e.g. installed via quickstart)
+
+If you are using an OCI registry without external access point such as the one installed by the command 
+`landscaper-cli quickstart install` you need to configure the cluster internal access URL. For the OCI registry
+installed with the landscaper quickstart command this looks as follows: 
+
+```yaml
+component:
+  repositoryContexts:
+  - baseUrl: oci-registry.<OCI registry namespace>.svc.cluster.local`
+    type: ociRegistry
+```
+
 ### 3.3 Upload Component
 
 Next, we upload the component to the OCI registry with the following command. 
@@ -345,12 +358,30 @@ eu.gcr.io/some-path/component-descriptors/github.com/gardener/landscapercli/ngin
 It contains the component descriptor, the blueprint, and the helm chart of the echo server.  It does not contain 
 the nginx helm chart, because this is only referenced and stored as a separate OCI artifact.
 
+### Upload Component to an OCI registry without external endpoint (e.g. installed via quickstart)
+
+If you have the OCI registry installed with the command `landscaper-cli quickstart install` you need to 
+setup a port forwarding:
+
+```
+kubectl port-forward -n <namespace of OCI registry> oci-registry-<pod-id> 5000:5000
+```
+
+Then you could upload the component via:
+
+```shell script
+landscaper-cli components-cli ca remote push \
+    localhost:5000 \
+    github.com/gardener/landscapercli/nginx \
+    v0.1.0 \
+    $LS_COMPONENT_DIR/demo-component
+```
+
+Now you could create a landscaper installation referencing the component developed here.
 
 ## Todo
 
 - Create Installation
-
-- Describe that the current helm deploy mechanism is not helm but only helm template plus apply
 
 
 
