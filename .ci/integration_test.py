@@ -32,13 +32,15 @@ else:
     result = run(command)
     result.check_returncode()
 
-# ensure latest helm version
-helm_client = helm.HelmClient()
-print("Helm was installed to path '" + helm_client.bin_path + "'")
-os.environ['HELM_EXECUTABLE'] = helm_client.bin_path
+if os.path.isfile("/bin/helm3"):
+    os.environ['HELM_EXECUTABLE'] = "/bin/helm3"
+else:
+    # ensure latest helm version
+    helm_client = helm.HelmClient()
+    print("Helm was installed to path '" + helm_client.bin_path + "'")
+    os.environ['HELM_EXECUTABLE'] = helm_client.bin_path
 print("helm version:")
 helm_version = run([os.environ['HELM_EXECUTABLE'], "version"])
-
 
 os.chdir(os.path.join(root_path, source_path, "integration-test"))
 
