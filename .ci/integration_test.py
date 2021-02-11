@@ -40,10 +40,15 @@ else:
     helm_client = helm.HelmClient()
     print("Helm was installed to path '" + helm_client.bin_path + "'")
     os.environ['HELM_EXECUTABLE'] = helm_client.bin_path
-print("helm version:")
+    os.environ['PATH'] = helm_client.int_test_tools_dir + ":" + os.environ['PATH']
+print(f"'helm version' PATH={os.environ['PATH']}")
 helm_version = run([os.environ['HELM_EXECUTABLE'], "version"])
 
 kubectl_client = kubectl.KubectlClient()
+if kubectl_client.int_test_tools_dir:
+    os.environ['PATH'] = kubectl_client.int_test_tools_dir + ":" + os.environ['PATH']
+print(f"'kubectl version' PATH={os.environ['PATH']}")
+kubectl_version = run(["kubectl", "version"])
     
 os.chdir(os.path.join(root_path, source_path, "integration-test"))
 

@@ -24,8 +24,13 @@ class KubectlClient:
         self.bin_path = 'kubectl'
         if not test_kubectl_binary(self.bin_path):
             tempdir = tempfile.gettempdir()
-            print(f"kubectl not found in path, installing it to {tempdir}")
-            self.bin_path = f"{tempdir}/kubectl"
+            self.int_test_tools_dir = f"{tempdir}/int-test-tools"
+            if not os.path.exists(self.int_test_tools_dir):
+                os.makedirs(self.int_test_tools_dir)
+            print(f"kubectl not found in path, installing it to {self.int_test_tools_dir}")
+            self.bin_path = f"{self.int_test_tools_dir}/kubectl"
+        else:
+            self.int_test_tools_dir = ""
 
     def _get_kubectl_binary(self):
         if os.path.isabs(self.bin_path) and not os.path.isfile(self.bin_path):
