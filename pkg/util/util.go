@@ -3,7 +3,9 @@ package util
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -402,4 +404,33 @@ func findNode(nodes []*yamlv3.Node, name string) (*yamlv3.Node, *yamlv3.Node) {
 	}
 
 	return keyNode, valueNode
+}
+
+func BuildKubernetesClusterTarget(name, namespace, kubeconfig string) (*lsv1alpha1.Target, error) {
+	kubeconfigContent, err := ioutil.ReadFile(kubeconfig)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read kubeconfig: %w", err)
+	}
+
+	config := lsv1alpha1.KubernetesClusterTargetConfig{
+		Kubeconfig: string(kubeconfigContent),
+	}
+
+	marshalledConfig, err := json.Marshal(config)
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
+	}
+
+	target := &lsv1alpha1.Target{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: lsv1alpha1.TargetSpec{
+			Type:          lsv1alpha1.KubernetesClusterTargetType,
+			Configuration: marshalledConfig,
+		},
+	}
+
+	return target, nil
 }
