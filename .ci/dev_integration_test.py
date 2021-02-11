@@ -13,7 +13,6 @@ os.environ['ROOT_PATH'] = root_path
 os.environ['LANDSCAPE'] = "dev"
 os.environ['NAMESPACE'] = "landscapercli-release-test"
 
-
 hub_kubeconfig = os.path.join(
     root_path, source_path,
     ".ci",

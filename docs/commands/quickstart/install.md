@@ -16,7 +16,7 @@ For more details on the cli usage, consult [landscaper-cli_quickstart_install re
 
 ### Interact with OCI registry
 If you decide to install the OCI registry, you have to use port-forwarding, since it will not be exposed externaly. 
-You can forward the port 5000 of the registry pod to your localhost with the following commnad:
+You can forward the port 5000 of the registry pod to your localhost with the following command:
 ```
 kubectl port-forward oci-registry-<pod-id> 5000:5000 -n landscaper
 ```

@@ -66,6 +66,8 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 		},
 	}
 
+	cmd.SetOut(os.Stdout)
+
 	opts.AddFlags(cmd.Flags())
 
 	return cmd

@@ -3,7 +3,7 @@ component:
   name: github.com/gardener/landscapercli/nginx
   provider: internal
   repositoryContexts:
-  - baseUrl: ""
+  - baseUrl: "eu.gcr.io/sap-gcp-cp-k8s-stable-hub/examples/landscaper/temp"
     type: ociRegistry
   resources:
   - access:

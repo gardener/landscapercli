@@ -7,6 +7,70 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestParseImportDefinition(t *testing.T) {
+	tests := []struct {
+		name           string
+		paramDef       string
+		expectedName   string
+		expectedSchema string
+		expectError    bool
+	}{
+		{
+			name:           "parse-string-parameter-definition",
+			paramDef:       "namespace:string",
+			expectedName:   "namespace",
+			expectedSchema: `{ "type": "string" }`,
+		},
+		{
+			name:           "parse-integer-parameter-definition",
+			paramDef:       "replicas:integer",
+			expectedName:   "replicas",
+			expectedSchema: `{ "type": "integer" }`,
+		},
+		{
+			name:           "parse-boolean-parameter-definition",
+			paramDef:       "ready:boolean",
+			expectedName:   "ready",
+			expectedSchema: `{ "type": "boolean" }`,
+		},
+		{
+			name:        "parse-parameter-definition-with-unsupported-schema",
+			paramDef:    "z:complex-number",
+			expectError: true,
+		},
+		{
+			name:        "parse-parameter-definition-without-schema",
+			paramDef:    "replicas",
+			expectError: true,
+		},
+		{
+			name:        "parse-parameter-definition-with-empty-name",
+			paramDef:    ":replicas",
+			expectError: true,
+		},
+		{
+			name:        "parse-parameter-definition-with-empty-schema",
+			paramDef:    "replicas:",
+			expectError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			o := addManifestDeployItemOptions{}
+			importDefinition, err := o.parseImportDefinition(test.paramDef)
+			if test.expectError {
+				assert.NotNil(t, err, "expected an error when parsing parameter definition")
+			} else {
+				actualSchema := string(importDefinition.Schema)
+				assert.Nil(t, err, "error parsing parameter definition")
+				assert.Equal(t, test.expectedName, importDefinition.Name, "unexpected parameter name")
+				assert.Equal(t, test.expectedSchema, actualSchema, "unexpected parameter schema")
+			}
+		})
+	}
+}
+
 func TestWriteExecution(t *testing.T) {
 	const deployItem1 = `deployItems:
 - name: test-deployitem

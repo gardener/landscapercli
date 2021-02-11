@@ -8,10 +8,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"text/template"
+
+	"github.com/Masterminds/semver/v3"
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
@@ -163,12 +166,41 @@ func (o *addHelmLsDeployItemOptions) validate() error {
 		return fmt.Errorf("resource-version is missing")
 	}
 
+	_, err := semver.NewVersion(o.resourceVersion)
+	if err != nil {
+		return fmt.Errorf("resource-version %s is not semver compatible", o.resourceVersion)
+	}
+
 	if o.clusterParam == "" {
 		return fmt.Errorf("cluster-param is missing")
 	}
 
 	if o.targetNsParam == "" {
 		return fmt.Errorf("target-ns-param is missing")
+	}
+
+	if o.chartDirectoryPath != "" {
+		fileInfo, err := os.Stat(o.chartDirectoryPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("chart-directory does not exist")
+			}
+			return err
+		}
+		if !fileInfo.IsDir() {
+			return fmt.Errorf("chart-directory is not a directory")
+		}
+
+		parentPath := filepath.Dir(o.chartDirectoryPath)
+		files, _ := ioutil.ReadDir(parentPath)
+		if len(files) > 1 {
+			return fmt.Errorf("the parent of the chart-directory does not contain only the chart-directory")
+		}
+	}
+
+	err = o.checkIfDeployItemNotAlreadyAdded()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -190,14 +222,6 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 
 	if blueprintBuilder.ExistsDeployExecution(o.deployItemName) {
 		return fmt.Errorf("The blueprint already contains a deploy item %s\n", o.deployItemName)
-	}
-
-	exists, err := o.existsExecutionFile()
-	if err != nil {
-		return err
-	}
-	if exists {
-		return fmt.Errorf("Deploy execution file %s already exists\n", util.ExecutionFilePath(o.componentPath, o.deployItemName))
 	}
 
 	err = o.createExecutionFile()
@@ -233,20 +257,17 @@ func (o *addHelmLsDeployItemOptions) addResource() error {
 	return err
 }
 
-func (o *addHelmLsDeployItemOptions) existsExecutionFile() (bool, error) {
-	fileInfo, err := os.Stat(util.ExecutionFilePath(o.componentPath, o.deployItemName))
+func (o *addHelmLsDeployItemOptions) checkIfDeployItemNotAlreadyAdded() error {
+	_, err := os.Stat(util.ExecutionFilePath(o.componentPath, o.deployItemName))
 	if err != nil {
 		if os.IsNotExist(err) {
-			return false, nil
+			return nil
 		}
-		return false, err
+		return err
 	}
 
-	if fileInfo.IsDir() {
-		return false, fmt.Errorf("There already exists a directory %s\n", util.ExecutionFileName(o.deployItemName))
-	}
-
-	return true, nil
+	return fmt.Errorf("Deploy item was already added. The corresponding deploy execution file %s already exists\n",
+		util.ExecutionFilePath(o.componentPath, o.deployItemName))
 }
 
 func (o *addHelmLsDeployItemOptions) createExecutionFile() error {
