@@ -7,12 +7,13 @@ import (
 	"os"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
-	"github.com/gardener/landscapercli/pkg/logger"
-	"github.com/gardener/landscapercli/pkg/util"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/yaml"
+
+	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/util"
 )
 
 type kubernetesClusterOpts struct {

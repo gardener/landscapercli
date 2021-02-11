@@ -3,8 +3,9 @@ package targets
 import (
 	"context"
 
-	"github.com/gardener/landscapercli/cmd/targets/types"
 	"github.com/spf13/cobra"
+
+	"github.com/gardener/landscapercli/cmd/targets/types"
 )
 
 func NewCreateCommand(ctx context.Context) *cobra.Command {

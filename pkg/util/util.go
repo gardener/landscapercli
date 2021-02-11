@@ -423,7 +423,7 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfig string) (*lsv1alph
 
 	target := &lsv1alpha1.Target{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:      name,
 			Namespace: namespace,
 		},
 		Spec: lsv1alpha1.TargetSpec{
