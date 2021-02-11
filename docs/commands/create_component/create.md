@@ -9,13 +9,15 @@ configuration settings to install the specified actifacts into a landscaper cont
 If you just want to copy and execute the example commands below without any modifications, do the following steps:
 
 - Clone the [Landscaper CLI Git repository](https://github.com/gardener/landscapercli).  
-- Define a variable *LS_ROOT_DIR* for the root directory of your cloned repository: 
+  
+- Define a variable *LS_ROOT_DIR* for the root directory of your cloned repository. 
 
   ```
   export LS_ROOT_DIR=<path to the root directory of the landscapercli clone>
   ```
 
-- Define a variable *LS_COMPONENT_DIR* for the directory in which you want to develop the demo component: 
+- Define a variable *LS_COMPONENT_DIR* for the directory in which you want to develop components. In this 
+  directory a subfolder for the example component will be created later. 
 
   ```
   export LS_COMPONENT_DIR=<path to the directory of the demo component>
