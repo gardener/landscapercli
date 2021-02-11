@@ -412,8 +412,8 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfig string) (*lsv1alph
 		return nil, fmt.Errorf("cannot read kubeconfig: %w", err)
 	}
 
-	config := map[string]interface{}{
-		"kubeconfig": string(kubeconfigContent),
+	config := lsv1alpha1.KubernetesClusterTargetConfig{
+		Kubeconfig: string(kubeconfigContent),
 	}
 
 	marshalledConfig, err := json.Marshal(config)

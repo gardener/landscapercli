@@ -2,35 +2,22 @@ package types
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
-	"github.com/gardener/landscaper/apis/core"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
-
-var (
-	scheme = runtime.NewScheme()
-)
-
-func init() {
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = lsv1alpha1.AddToScheme(scheme)
-}
 
 type kubernetesClusterOpts struct {
 	name                 string
 	namespace            string
-	kubeconfigPath       string
 	targetKubeconfigPath string
 }
 
@@ -38,8 +25,11 @@ func NewKubernetesClusterCommand(ctx context.Context) *cobra.Command {
 	opts := &kubernetesClusterOpts{}
 	cmd := &cobra.Command{
 		Use:     "kubernetes-cluster",
+		Args:    cobra.NoArgs,
 		Aliases: []string{"k8s-cluster"},
-		Short:   "create a target of type " + core.GroupName + "/kubernetes-cluster",
+		Example: "landscaper-cli targets create kubernetes-cluster --name my-target --namespace my-namespace " +
+			"--target-kubeconfig  [path to target kubeconfig]",
+		Short: "create a target of type " + string(lsv1alpha1.KubernetesClusterTargetType),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				cmd.PrintErr(err.Error())
@@ -53,48 +43,47 @@ func NewKubernetesClusterCommand(ctx context.Context) *cobra.Command {
 		},
 	}
 
-	opts.AddFlags(cmd.Flags())
-
 	cmd.SetOut(os.Stdout)
+
+	opts.AddFlags(cmd.Flags())
 
 	return cmd
 }
 
 func (o *kubernetesClusterOpts) Complete(args []string) error {
+	if o.name == "" {
+		return errors.New("a target name must be defined")
+	}
+
+	if o.namespace == "" {
+		return errors.New("a target namespace must be defined")
+	}
+
+	if o.targetKubeconfigPath == "" {
+		return errors.New("a target kubeconfig must be defined")
+	}
+
 	return nil
 }
 
 func (o *kubernetesClusterOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logger) error {
-	cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfigPath)
-	if err != nil {
-		return fmt.Errorf("cannot parse K8s config: %w", err)
-	}
-
-	k8sClient, err := client.New(cfg, client.Options{
-		Scheme: scheme,
-	})
-	if err != nil {
-		return fmt.Errorf("cannot build K8s client: %w", err)
-	}
-
-	target, err := util.BuildKubernetesClusterTarget("target-name", "target-ns", o.targetKubeconfigPath)
+	target, err := util.BuildKubernetesClusterTarget(o.name, o.namespace, o.targetKubeconfigPath)
 	if err != nil {
 		return fmt.Errorf("cannot build target object: %w", err)
 	}
 
-	err = k8sClient.Create(ctx, target, &client.CreateOptions{})
+	marshaledYaml, err := yaml.Marshal(target)
 	if err != nil {
-		return fmt.Errorf("cannot create target: %w", err)
+		return fmt.Errorf("cannot marshal installation yaml: %w", err)
 	}
 
-	cmd.Println("Target successfully created")
+	cmd.Println(string(marshaledYaml))
 
 	return nil
 }
 
 func (o *kubernetesClusterOpts) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "name of the target")
-	fs.StringVar(&o.namespace, "namespace", "", "namespace where target is created")
-	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
-	fs.StringVar(&o.targetKubeconfigPath, "target-kubeconfig", "", "path to the kubeconfig of the target cluster")
+	fs.StringVar(&o.namespace, "namespace", "", "namespace of the target")
+	fs.StringVar(&o.targetKubeconfigPath, "target-kubeconfig", "", "path to the kubeconfig where the created target object will point to")
 }
