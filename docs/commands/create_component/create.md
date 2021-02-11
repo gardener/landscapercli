@@ -323,7 +323,7 @@ installed with the landscaper quickstart command this looks as follows:
 ```yaml
 component:
   repositoryContexts:
-  - baseUrl: oci-registry.<OCI registry namespace>.svc.cluster.local
+  - baseUrl: oci-registry.<OCI registry namespace>.svc.cluster.local:5000
     type: ociRegistry
 ```
 
@@ -379,9 +379,13 @@ landscaper-cli components-cli ca remote push \
 
 Now you could create a landscaper installation referencing the component developed here.
 
-## Todo
+An example installation referencing the developed component in an OCI registry setup with the quickstart
+command could be found in the file 
+*[installation-for-quickstart-oci-registry](resources/installations/installation-for-quickstart-oci-registry.yaml)*.
 
-- Create Installation
+An example installation referencing the developed component in a normal OCI registry could be found in the file
+*[installation-for-normal-oci-registry](resources/installations/installation-for-normal-oci-registry.yaml)*.
+Be aware that the used baseUrl must be replaced by your location.
 
 
 
