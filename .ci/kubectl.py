@@ -84,7 +84,8 @@ class KubectlClient:
     @ensure_kubectl_binary
     def version(self):
         command = [self.bin_path]
-        command.extend(['version --client'])
+        command.extend(['version'])
+        command.extend(['--client'])
         print(f"  Run {' '.join(command)}")
         result = subprocess.run(command, capture_output=True, text=True)
         print(result.stdout)
