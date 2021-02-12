@@ -47,6 +47,12 @@ func runTestSuite(k8sClient client.Client, config *inttestutil.Config, target *l
 		return fmt.Errorf("RunInstallationsCreateTest() failed: %w", err)
 	}
 
+	fmt.Println("========== RunComponentCreateTest() ==========")
+	err = tests.RunComponentCreateTest(k8sClient, target, config)
+	if err != nil {
+		return fmt.Errorf("RunComponentCreateTest() failed: %w", err)
+	}
+
 	// Plug new test cases in here:
 	// 1. Create new file in ./tests directory, which exports a single function for running your test.
 	//    Your test should perform a cleanup before and after running.
@@ -269,6 +275,7 @@ landscaper:
   deployers:
   - container
   - helm
+  - manifest
 `
 
 	tmpFile, err := ioutil.TempFile(".", "landscaper-values-")
