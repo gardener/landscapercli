@@ -53,7 +53,7 @@ print(*Path(kubectl_client.int_test_tools_dir).iterdir(), sep="\n")
 print(f"-- End List of directory {kubectl_client.int_test_tools_dir}")
 print(f"'kubectl version' PATH={os.environ['PATH']}")
 kubectl_client.version()
-kubectl_version = run(["kubectl", "version"])
+kubectl_version = run(["kubectl", "version", "--client"])
     
 os.chdir(os.path.join(root_path, source_path, "integration-test"))
 
