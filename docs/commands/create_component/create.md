@@ -362,8 +362,9 @@ the nginx helm chart, because this is only referenced and stored as a separate O
 
 ### Upload Component to an OCI registry without external endpoint (e.g. installed via quickstart)
 
-If you have the OCI registry installed with the command `landscaper-cli quickstart install` you need to 
-setup a port forwarding:
+If you have installed the OCI registry with the command `landscaper-cli quickstart install` and decided
+not to create an external https endpoint you need to setup a port forwarding
+(see *Interact with OCI registry* in [install.md](../quickstart/install.md#interact-with-oci-registry)), :
 
 ```
 kubectl port-forward -n <namespace of OCI registry> oci-registry-<pod-id> 5000:5000
