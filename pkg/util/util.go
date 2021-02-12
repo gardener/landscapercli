@@ -73,8 +73,15 @@ func ExecCommandBlocking(command string) error {
 	return nil
 }
 
+type CmdResult struct {
+	Error  error
+	Stdout string
+	StdErr string
+}
+
 // ExecCommandNonBlocking executes a command without without blocking. Returns a Cmd that can be used to stop the command.
-func ExecCommandNonBlocking(command string) (*exec.Cmd, error) {
+// When the command has stopped or failed, the result is written into the channel resultCh.
+func ExecCommandNonBlocking(command string, resultCh chan<- CmdResult) (*exec.Cmd, error) {
 	fmt.Printf("Executing: %s\n", command)
 
 	arr := strings.Split(command, " ")
@@ -87,15 +94,31 @@ func ExecCommandNonBlocking(command string) (*exec.Cmd, error) {
 		}
 	}
 
+	outbuf := bytes.Buffer{}
+	errbuf := bytes.Buffer{}
+
 	cmd := exec.Command(arr[0], arr[1:]...)
 	cmd.Env = []string{"HELM_EXPERIMENTAL_OCI=1", "HOME=" + os.Getenv("HOME"), "PATH=" + os.Getenv("PATH")}
-	err := cmd.Start()
+	cmd.Stderr = &outbuf
+	cmd.Stdout = &errbuf
 
+	err := cmd.Start()
 	if err != nil {
 		fmt.Printf("Failed with error: %s:\n", err)
 		return nil, err
 	}
-	fmt.Println("Executed sucessfully!")
+	fmt.Println("Started sucessfully!")
+
+	go func() {
+		exitErr := cmd.Wait()
+		res := CmdResult{
+			Error:  exitErr,
+			Stdout: outbuf.String(),
+			StdErr: outbuf.String(),
+		}
+		resultCh <- res
+		close(resultCh)
+	}()
 
 	return cmd, nil
 }

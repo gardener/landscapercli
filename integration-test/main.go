@@ -125,12 +125,20 @@ func run() error {
 		return fmt.Errorf("timeout while waiting for pods")
 	}
 
-	// TODO: fix error handling. no error is thrown if port is already in use.
 	fmt.Println("========== Starting port-forward to OCI registry ==========")
-	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, config.LandscaperNamespace, config.Kubeconfig)
+	resultChan := make(chan util.CmdResult)
+	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, config.LandscaperNamespace, config.Kubeconfig, resultChan)
 	if err != nil {
-		return fmt.Errorf("port-forward to OCI registry failed: %w", err)
+		return fmt.Errorf("cannot start port-forward to OCI: %w", err)
 	}
+
+	go func() {
+		result := <-resultChan
+		if result.Error != nil {
+			fmt.Printf("port-forward to OCI registry failed: %s:\n%s\n", result.Error.Error(), result.StdErr)
+		}
+	}()
+
 	defer func() {
 		// Disable port-forward
 		killPortforwardErr := portforwardCmd.Process.Kill()
@@ -190,7 +198,7 @@ func parseConfig() *inttestutil.Config {
 	return &config
 }
 
-func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigPath string) (*exec.Cmd, error) {
+func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigPath string, ch chan<- util.CmdResult) (*exec.Cmd, error) {
 	ctx := context.TODO()
 	ociRegistryPods := corev1.PodList{}
 	err := k8sClient.List(
@@ -214,7 +222,7 @@ func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigP
 		return nil, fmt.Errorf("expected 1 OCI registry pod, found %d", len(ociRegistryPods.Items))
 	}
 
-	portforwardCmd, err := util.ExecCommandNonBlocking("kubectl port-forward " + ociRegistryPods.Items[0].Name + " 5000:5000 --kubeconfig " + kubeconfigPath + " --namespace " + namespace)
+	portforwardCmd, err := util.ExecCommandNonBlocking("kubectl port-forward "+ociRegistryPods.Items[0].Name+" 5000:5000 --kubeconfig "+kubeconfigPath+" --namespace "+namespace, ch)
 	if err != nil {
 		return nil, fmt.Errorf("kubectl port-forward failed: %w", err)
 	}
