@@ -35,12 +35,18 @@ landscaper-cli quickstart add-oci-endpoint \
 This command creates an external https endpoint with basic authentication. Be aware that this endpoint is accessible
 from everywhere. Therefore, use some strong password.
 
-If the URL of the API server of the k8s cluster is *https://api.<cluster-domain>* then the endpoint is 
-*https://oci.ingress.<cluster-domain>*, e.g. 
+If the URL of the API server of the k8s cluster is *https://api.cluster-domain* then the endpoint is 
+*https://oci.ingress.cluster-domain*, e.g. 
 
 ```
 API-Server: https://api.mycluster.myproject.shoot.live.k8s-hana.ondemand.com
 OCI Endpoint: https://oci.ingress.mycluster.myproject.shoot.live.k8s-hana.ondemand.com
+```
+
+You could check the endpoint with, e.g. the *curl* command:
+
+```
+curl --location --request GET https://oci.ingress.mycluster.myproject.shoot.live.k8s-hana.ondemand.com/v2/_catalog -u "testuser:some-pw" 
 ```
 
 #### Alternative 2: Continue with port forwarding
@@ -50,7 +56,7 @@ You can forward the port 5000 of the registry pod to your localhost with the fol
 ```
 kubectl port-forward oci-registry-<pod-id> 5000:5000 -n landscaper
 ```
-Afterwards, you can use the tools of your choice to push artifacts against the localhost:5000 registry url.
+Afterwards, you can use the tools of your choice to push artifacts against the localhost:5000 registry url, e.g. 
 
 TODO: verify special /etc/hosts domain name for docker push
 
@@ -71,6 +77,7 @@ landscaper:
   deployers:
   - container
   - helm
+  - manifest
 #  - mock
 
 ```
