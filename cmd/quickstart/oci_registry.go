@@ -99,6 +99,36 @@ func (r *ociRegistry) uninstall(ctx context.Context) error {
 		}
 	}
 
+	fmt.Printf("Deleting Ingress %s in namespace %s\n", ingressName, r.namespace)
+	err = r.k8sClient.ExtensionsV1beta1().Ingresses(r.namespace).Delete(ctx, ingressName, metav1.DeleteOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			fmt.Println("OCI-Ingress not found...Skipping")
+		} else {
+			return err
+		}
+	}
+
+	fmt.Printf("Deleting Ingress tls secret %s in namespace %s\n", tlsSecretName, r.namespace)
+	err = r.k8sClient.CoreV1().Secrets(r.namespace).Delete(ctx, tlsSecretName, metav1.DeleteOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			fmt.Println("OCI-Ingress tls secret not found...Skipping")
+		} else {
+			return err
+		}
+	}
+
+	fmt.Printf("Deleting Ingress authentication secret %s in namespace %s\n", authSecretName, r.namespace)
+	err = r.k8sClient.CoreV1().Secrets(r.namespace).Delete(ctx, authSecretName, metav1.DeleteOptions{})
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			fmt.Println("OCI-Ingress authentication secret not found...Skipping")
+		} else {
+			return err
+		}
+	}
+
 	return nil
 }
 

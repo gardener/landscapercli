@@ -14,6 +14,7 @@ func NewQuickstartCommand(ctx context.Context) *cobra.Command {
 	}
 
 	cmd.AddCommand(NewInstallCommand(ctx))
+	cmd.AddCommand(NewAddOciEndpointCommand(ctx))
 	cmd.AddCommand(NewUninstallCommand(ctx))
 
 	return cmd

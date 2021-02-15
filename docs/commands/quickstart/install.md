@@ -15,12 +15,43 @@ To install a specific version of the landscaper chart, use the `landscaper-chart
 For more details on the cli usage, consult [landscaper-cli_quickstart_install reference](../../reference/landscaper-cli_quickstart_install.md).
 
 ### Interact with OCI registry
-If you decide to install the OCI registry, you have to use port-forwarding, since it will not be exposed externaly. 
+
+If you have installed the OCI registry with the quickstart command there is not external https endpoint to access it.
+You have two alternatives to continue:
+
+#### Alternative 1: Generate an external endpoint
+If you have installed the OCI registry on a Gardener managed k8s shoot cluster with nginx enabled you could execute
+the following command to create an external https endpoint. The command requires *htpasswd* installed on your computer.
+
+```
+landscaper-cli quickstart add-oci-endpoint \
+    --kubeconfig ./kubconfig.yaml \
+    --namespace landscaper \
+    --user testuser \
+    --password some-pw
+```
+
+
+This command creates an external https endpoint with basic authentication. Be aware that this endpoint is accessible
+from everywhere. Therefore, use some strong password.
+
+If the URL of the API server of the k8s cluster is *https://api.<cluster-domain>* then the endpoint is 
+*https://oci.ingress.<cluster-domain>*, e.g. 
+
+```
+API-Server: https://api.mycluster.myproject.shoot.live.k8s-hana.ondemand.com
+OCI Endpoint: https://oci.ingress.mycluster.myproject.shoot.live.k8s-hana.ondemand.com
+```
+
+#### Alternative 2: Continue with port forwarding
+
+Without an external endpoint for the OCI registry, you have to use port-forwarding. 
 You can forward the port 5000 of the registry pod to your localhost with the following command:
 ```
 kubectl port-forward oci-registry-<pod-id> 5000:5000 -n landscaper
 ```
-Afterwards, you can use the tools of your choice to push artifacts against the localhost:5000 registry url. 
+Afterwards, you can use the tools of your choice to push artifacts against the localhost:5000 registry url.
+
 TODO: verify special /etc/hosts domain name for docker push
 
 ### Landscaper Values
