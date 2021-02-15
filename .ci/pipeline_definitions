@@ -26,6 +26,9 @@ landscaper-cli:
     integration-test:
       repo:
         trigger: false
+      traits:
+        cronjob:
+          interval: '2h'
       steps:
         run_integration_test:
           execute:
