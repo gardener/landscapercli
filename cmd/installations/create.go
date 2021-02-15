@@ -32,8 +32,8 @@ import (
 )
 
 type createOpts struct {
-	// baseUrl is the oci registry where the component is stored.
-	baseUrl string
+	// baseURL is the oci registry where the component is stored.
+	baseURL string
 	// componentName is the unique name of the component in the registry.
 	componentName string
 	// version is the component version in the oci registry.
@@ -41,8 +41,10 @@ type createOpts struct {
 	// OciOptions contains all exposed options to configure the oci client.
 	OciOptions ociopts.Options
 
-	name             string
-	renderSchemaInfo bool
+	// name of the blueprint resource in the component descriptor (optional if only one blueprint resource is specified in the component descriptor)
+	blueprintResourceName string
+	name                  string
+	renderSchemaInfo      bool
 }
 
 func NewCreateCommand(ctx context.Context) *cobra.Command {
@@ -76,7 +78,7 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logger, fs vfs.FileSystem) error {
 	repoCtx := cdv2.RepositoryContext{
 		Type:    cdv2.OCIRegistryType,
-		BaseURL: o.baseUrl,
+		BaseURL: o.baseURL,
 	}
 	ociRef, err := cdoci.OCIRef(repoCtx, o.componentName, o.version)
 	if err != nil {
@@ -94,10 +96,30 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		return fmt.Errorf("unable to to fetch component descriptor %s: %w", ociRef, err)
 	}
 
-	var blueprintRes cdv2.Resource
+	blueprintResources := map[string]cdv2.Resource{}
 	for _, resource := range cd.ComponentSpec.Resources {
 		if resource.IdentityObjectMeta.Type == lsv1alpha1.BlueprintResourceType || resource.IdentityObjectMeta.Type == lsv1alpha1.OldBlueprintType {
-			blueprintRes = resource
+			blueprintResources[resource.Name] = resource
+		}
+	}
+
+	var blueprintRes cdv2.Resource
+	numberOfBlueprints := len(blueprintResources)
+	if numberOfBlueprints == 0 {
+		return fmt.Errorf("no blueprint resources defined in the component descriptor")
+	} else if numberOfBlueprints == 1 && o.blueprintResourceName == "" {
+		// access the only blueprint in the map. the flag blueprint-resource-name is ignored in this case.
+		for _, entry := range blueprintResources {
+			blueprintRes = entry
+		}
+	} else {
+		if o.blueprintResourceName == "" {
+			return fmt.Errorf("the blueprint resource name must be defined since multiple blueprint resources exist in the component descriptor")
+		}
+		ok := false
+		blueprintRes, ok = blueprintResources[o.blueprintResourceName]
+		if !ok {
+			return fmt.Errorf("blueprint %s is not defined as a resource in the component descriptor", o.blueprintResourceName)
 		}
 	}
 
@@ -165,7 +187,7 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 }
 
 func (o *createOpts) Complete(args []string) error {
-	o.baseUrl = args[0]
+	o.baseURL = args[0]
 	o.componentName = args[1]
 	o.version = args[2]
 
@@ -178,7 +200,7 @@ func (o *createOpts) Complete(args []string) error {
 		return fmt.Errorf("unable to create cache directory %s: %w", o.OciOptions.CacheDir, err)
 	}
 
-	if len(o.baseUrl) == 0 {
+	if len(o.baseURL) == 0 {
 		return errors.New("the base url must be defined")
 	}
 	if len(o.componentName) == 0 {
@@ -302,7 +324,8 @@ func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 
 func (o *createOpts) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "my-installation", "name of the installation")
-	fs.BoolVar(&o.renderSchemaInfo, "render-schema-info", false, "render schema information of the component's imports and exports as comments into the installation")
+	fs.BoolVar(&o.renderSchemaInfo, "render-schema-info", true, "render schema information of the component's imports and exports as comments into the installation")
+	fs.StringVar(&o.blueprintResourceName, "blueprint-resource-name", "", "name of the blueprint resource in the component descriptor (optional if only one blueprint resource is specified in the component descriptor)")
 	o.OciOptions.AddFlags(fs)
 }
 
