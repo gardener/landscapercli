@@ -75,7 +75,6 @@ func (t *installationsCreateTest) run() error {
 		"--name",
 		t.installationName,
 		"--allow-plain-http",
-		"--render-schema-info",
 	}
 	cmd.SetArgs(args)
 
