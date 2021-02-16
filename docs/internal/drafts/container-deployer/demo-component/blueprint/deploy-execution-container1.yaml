@@ -1,0 +1,18 @@
+deployItems:
+- name: container1
+  type: landscaper.gardener.cloud/container
+  target:
+    name: {{ index .imports "target-cluster" "metadata" "name" }}
+    namespace: {{ index .imports "target-cluster" "metadata" "namespace" }}
+  config:
+    apiVersion: container.deployer.landscaper.gardener.cloud/v1alpha1
+    kind: ProviderConfiguration
+    
+    image: alpine
+    command: ["sh", "-c"]
+    args:
+    - |
+      env
+      ls -laR $CONTENT_PATH
+      echo "testparam: ttt" > $EXPORTS_PATH
+    

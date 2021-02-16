@@ -1,0 +1,20 @@
+component:
+  componentReferences: []
+  name: github.com/gardener/landscapercli/examplecont
+  provider: internal
+  repositoryContexts:
+  - baseUrl: eu.gcr.io/sap-gcp-cp-k8s-stable-hub/examples/landscaper/temp
+    type: ociRegistry
+  resources:
+  - access:
+      filename: sha256:d10184ab865da4aba386cd7f78622fb345fb568c2fab7e98b973dd8b28ad123d
+      mediaType: application/vnd.gardener.landscaper.blueprint.v1+tar+gzip
+      type: localFilesystemBlob
+    name: blueprint
+    relation: local
+    type: blueprint
+    version: v0.1.0
+  sources: []
+  version: v0.1.0
+meta:
+  schemaVersion: v2

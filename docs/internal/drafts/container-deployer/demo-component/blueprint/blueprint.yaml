@@ -1,0 +1,34 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Blueprint
+
+imports:
+- default:
+    value: null
+  name: target-cluster
+  required: true
+  targetType: landscaper.gardener.cloud/kubernetes-cluster
+- default:
+    value: null
+  name: password-1
+  required: true
+  schema:
+    type: string
+
+exportExecutions:
+- name: default
+  type: GoTemplate
+  template: |
+    exports:
+      testparam: {{ .values.deployitems.container1.testparam }}
+
+exports:
+- name: testparam
+  schema:
+    type: string
+
+subinstallations: []
+
+deployExecutions:
+- file: /deploy-execution-container1.yaml
+  name: container1
+  type: GoTemplate
