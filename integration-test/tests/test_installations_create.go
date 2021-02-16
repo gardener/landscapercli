@@ -89,6 +89,18 @@ func (t *installationsCreateTest) run() error {
 		return fmt.Errorf("cannot unmarshal output of landscaper-cli installations create: %w", err)
 	}
 
+	t.testInstallationForCorrectStructure(&actualInstallation, outBuf)
+
+	//set import parameters
+
+	//apply to cluster
+
+	//check if instalaltion is successful
+
+	return nil
+}
+
+func (t *installationsCreateTest) testInstallationForCorrectStructure(actualInstallation *lsv1alpha1.Installation, outBuf *bytes.Buffer) error {
 	expectedInstallation := lsv1alpha1.Installation{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Installation",
@@ -148,8 +160,10 @@ func (t *installationsCreateTest) run() error {
 	}
 
 	rootNode := &yamlv3.Node{}
-	err = yamlv3.Unmarshal(outBuf.Bytes(), rootNode)
-
+	err := yamlv3.Unmarshal(outBuf.Bytes(), rootNode)
+	if err != nil {
+		return err
+	}
 	_, dataImportsNode := util.FindNodeByPath(rootNode, "spec.imports.data")
 	expectedSchema := `# JSON schema
 # {
@@ -184,7 +198,6 @@ func (t *installationsCreateTest) run() error {
 	if !ok {
 		return fmt.Errorf("schema comments for spec.exports.targets are invalid")
 	}
-
 	return nil
 }
 
