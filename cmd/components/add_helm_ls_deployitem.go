@@ -36,9 +36,9 @@ const addHelmLSDeployItemUse = `deployitem \
 const addHelmLSDeployItemExample = `
 landscaper-cli component add helm-ls deployitem \
   nginx \
+  --resource-version v0.1.0 \
   --component-directory .../myComponent \
   --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
-  --resource-version v0.1.0 \
   --cluster-param target-cluster \
   --target-ns-param target-namespace
 
@@ -125,7 +125,7 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.componentPath,
 		"component-directory",
 		".",
-		"path to component directory")
+		"path to component directory (optional, default is current directory)")
 	fs.StringVar(&o.ociReference,
 		"oci-reference",
 		"",
@@ -137,7 +137,7 @@ func (o *addHelmLsDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.resourceVersion,
 		"resource-version",
 		"",
-		"helm chart version")
+		"resource version")
 	fs.StringVar(&o.clusterParam,
 		"cluster-param",
 		"targetCluster",

@@ -132,7 +132,7 @@ func (o *addManifestDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.componentPath,
 		"component-directory",
 		".",
-		"path to component directory")
+		"path to component directory (optional, default is current directory)")
 	o.files = fs.StringArray(
 		"manifest-file",
 		[]string{},

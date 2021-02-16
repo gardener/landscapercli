@@ -9,14 +9,24 @@ deployItems:
     kind: ProviderConfiguration
 
     importValues:
-      password: {{ .imports.password1 }}
+      word: {{ .imports.word }}
+      sleepTimeBefore: {{ .imports.sleepTimeBefore }}
+      sleepTimeAfter: {{ .imports.sleepTimeAfter }}
 
-    image: alpine
+    image: dwdraju/alpine-curl-jq
     command: ["sh", "-c"]
     args:
     - |
-      env
-      ls -laR $CONTENT_PATH
-      sleep 600
-
-    
+      apk update
+      apk add jq
+      sleep $(cat $IMPORTS_PATH | jq .sleepTimeBefore)
+      inputWord=$(cat $IMPORTS_PATH | jq .word)
+      [[ ! -f $STATE_PATH/state.txt ]] && echo "" > $STATE_PATH/state.txt
+      stateWord=$(cat $STATE_PATH/state.txt)
+      newWord="$stateWord $inputWord"
+      echo $newWord > $STATE_PATH/state.txt
+      newWord=$(sed 's/"//g' $STATE_PATH/state.txt)
+      echo $newWord > $STATE_PATH/state.txt
+      output="{\"sentence\": \"$newWord\"}"
+      echo $output > $EXPORTS_PATH
+      sleep $(cat $IMPORTS_PATH | jq .sleepTimeAfter)

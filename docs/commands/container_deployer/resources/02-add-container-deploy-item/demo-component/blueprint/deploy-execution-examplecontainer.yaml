@@ -1,0 +1,15 @@
+deployItems:
+- name: examplecontainer
+  type: landscaper.gardener.cloud/container
+  config:
+    apiVersion: container.deployer.landscaper.gardener.cloud/v1alpha1
+    kind: ProviderConfiguration
+    image: your-registry/your-path/containerexample:0.1.0
+    args: []
+    command:
+    - ./script.sh
+    importValues:
+      word: {{ index .imports "word" }}
+      sleepTimeBefore: {{ index .imports "sleepTimeBefore" }}
+      sleepTimeAfter: {{ index .imports "sleepTimeAfter" }}
+    
