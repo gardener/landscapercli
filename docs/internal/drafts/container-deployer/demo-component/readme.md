@@ -14,7 +14,7 @@ eu.gcr.io/sap-gcp-cp-k8s-stable-hub/examples/landscaper/temp \
 github.com/gardener/landscapercli/examplecont \
 v0.1.0 \
 $LS_COMPONENT_DIR/demo-component`
-``
+```
 
 **Open shell in pod:**
 
