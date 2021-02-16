@@ -33,8 +33,8 @@ func NewSetImportParametersCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "set-import-parameters",
 		Aliases: []string{"sip"},
-		Short:   "set import parameters for an installation. Enquote string values with spaces in double quotation marks.",
-		Example: `landscapercli installation set-input-parameters <path-to-installation>.yaml importName1="string value with spaces" importName2=42`,
+		Short:   "Set import parameters for an installation. Quote values containing spaces in double quotation marks.",
+		Example: `landscaper-cli installations set-import-parameters <path-to-installation>.yaml importName1="string value with spaces" importName2=42`,
 		Args:    cobra.MinimumNArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.validateArguments(args); err != nil {

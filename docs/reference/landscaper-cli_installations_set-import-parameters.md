@@ -1,6 +1,6 @@
 ## landscaper-cli installations set-import-parameters
 
-set import parameters for an installation. Enquote string values in double quotation marks.
+Set import parameters for an installation. Quote values containing spaces in double quotation marks.
 
 ```
 landscaper-cli installations set-import-parameters [flags]
@@ -9,7 +9,7 @@ landscaper-cli installations set-import-parameters [flags]
 ### Examples
 
 ```
-landscapercli installation set-input-parameters <path-to-installation>.yaml importName1="string-value" importName2=42
+landscaper-cli installations set-import-parameters <path-to-installation>.yaml importName1="string value with spaces" importName2=42
 ```
 
 ### Options

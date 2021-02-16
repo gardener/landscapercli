@@ -23,5 +23,5 @@ commands to interact with installations
 
 * [landscaper-cli](landscaper-cli.md)	 - landscaper cli
 * [landscaper-cli installations create](landscaper-cli_installations_create.md)	 - create an installation template for a component which is stored in an OCI registry
-* [landscaper-cli installations set-import-parameters](landscaper-cli_installations_set-import-parameters.md)	 - set import parameters for an installation. Enquote string values in double quotation marks.
+* [landscaper-cli installations set-import-parameters](landscaper-cli_installations_set-import-parameters.md)	 - Set import parameters for an installation. Quote values containing spaces in double quotation marks.
 
