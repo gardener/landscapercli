@@ -64,7 +64,6 @@ func (t *installationsCreateTest) run() error {
 	}
 
 	fmt.Println("Executing landscaper-cli installations create")
-
 	cmd := installations.NewCreateCommand(ctx)
 	outBuf := &bytes.Buffer{}
 	cmd.SetOut(outBuf)
@@ -89,9 +88,44 @@ func (t *installationsCreateTest) run() error {
 		return fmt.Errorf("cannot unmarshal output of landscaper-cli installations create: %w", err)
 	}
 
-	t.testInstallationForCorrectStructure(&actualInstallation, outBuf)
+	t.testInstallationForCorrectStructure(actualInstallation, outBuf)
 
 	//set import parameters
+	installationsDir, err := ioutil.TempDir(".", "dummy-installation-*")
+	if err != nil {
+		return fmt.Errorf("cannot create component descriptor directory: %w", err)
+	}
+	defer func() {
+		removeErr := os.RemoveAll(installationsDir)
+		if removeErr != nil {
+			fmt.Printf("cannot remove temporary directory %s: %s", installationsDir, removeErr.Error())
+		}
+	}()
+
+	err = ioutil.WriteFile(path.Join(installationsDir, "installation-generated.yaml"), outBuf.Bytes(), os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("cannot write component descriptor file: %w", err)
+	}
+
+	fmt.Println("Executing landscaper-cli installations create")
+	cmdImportParams := installations.NewSetImportParametersCommand(ctx)
+	outBufImportParams := &bytes.Buffer{}
+	cmdImportParams.SetOut(outBufImportParams)
+	argsImportParams := []string{
+		path.Join(installationsDir, "installation-generated.yaml"),
+		"dummyDataImport=testValue",
+	}
+	cmdImportParams.SetArgs(argsImportParams)
+
+	err = cmdImportParams.Execute()
+	if err != nil {
+		return fmt.Errorf("landscaper-cli installations set-import-parameters failed: %w", err)
+	}
+
+	err = ioutil.WriteFile(path.Join(installationsDir, "installation-set-import-params.yaml"), outBufImportParams.Bytes(), os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("cannot write component descriptor file: %w", err)
+	}
 
 	//apply to cluster
 
@@ -100,7 +134,7 @@ func (t *installationsCreateTest) run() error {
 	return nil
 }
 
-func (t *installationsCreateTest) testInstallationForCorrectStructure(actualInstallation *lsv1alpha1.Installation, outBuf *bytes.Buffer) error {
+func (t *installationsCreateTest) testInstallationForCorrectStructure(actualInstallation lsv1alpha1.Installation, outBuf *bytes.Buffer) error {
 	expectedInstallation := lsv1alpha1.Installation{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Installation",
