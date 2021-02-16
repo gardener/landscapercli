@@ -9,7 +9,7 @@ imports:
   targetType: landscaper.gardener.cloud/kubernetes-cluster
 - default:
     value: null
-  name: password-1
+  name: password1
   required: true
   schema:
     type: string

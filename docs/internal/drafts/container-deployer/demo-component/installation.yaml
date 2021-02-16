@@ -23,4 +23,4 @@ spec:
         target: "#rg-cluster"
 
   importDataMappings:
-    password-1: pw1
+    password1: pw1

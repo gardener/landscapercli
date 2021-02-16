@@ -7,12 +7,16 @@ deployItems:
   config:
     apiVersion: container.deployer.landscaper.gardener.cloud/v1alpha1
     kind: ProviderConfiguration
-    
+
+    importValues:
+      password: {{ .imports.password1 }}
+
     image: alpine
     command: ["sh", "-c"]
     args:
     - |
       env
       ls -laR $CONTENT_PATH
+      sleep 600
 
     
