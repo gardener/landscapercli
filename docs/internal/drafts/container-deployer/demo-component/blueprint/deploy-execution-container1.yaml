@@ -14,5 +14,5 @@ deployItems:
     - |
       env
       ls -laR $CONTENT_PATH
-      echo "testparam: ttt" > $EXPORTS_PATH
+
     
