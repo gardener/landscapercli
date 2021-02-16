@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
@@ -23,7 +24,7 @@ type inputParametersOptions struct {
 	installationPath string
 
 	//input parameters that should be used for the import values
-	inputParameters map[string]string
+	importParameters map[string]string
 }
 
 //NewSetImportParametersCommand sets input parameters from an installation to hardcoded values (as importDataMappings)
@@ -32,8 +33,8 @@ func NewSetImportParametersCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "set-import-parameters",
 		Aliases: []string{"sip"},
-		Short:   "set import parameters for an installation. Enquote string values in double quotation marks.",
-		Example: "landscapercli installation set-input-parameters <path-to-installation>.yaml importName1=\"string-value\" importName2=42",
+		Short:   "set import parameters for an installation. Enquote string values with spaces in double quotation marks.",
+		Example: `landscapercli installation set-input-parameters <path-to-installation>.yaml importName1="string value with spaces" importName2=42`,
 		Args:    cobra.MinimumNArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.validateArguments(args); err != nil {
@@ -55,10 +56,13 @@ func NewSetImportParametersCommand(ctx context.Context) *cobra.Command {
 func (o *inputParametersOptions) validateArguments(args []string) error {
 	o.installationPath = args[0]
 
-	o.inputParameters = make(map[string]string)
+	o.importParameters = make(map[string]string)
 	for _, v := range args[1:] {
 		keyValue := strings.SplitN(v, "=", 2)
-		o.inputParameters[keyValue[0]] = keyValue[1]
+		if len(keyValue) != 2 {
+			return fmt.Errorf("cannot split the import parameter %s at the = character.\nDid you enquote the value if it contains spaces?", keyValue)
+		}
+		o.importParameters[keyValue[0]] = keyValue[1]
 	}
 	return nil
 }
@@ -75,7 +79,7 @@ func (o *inputParametersOptions) run(ctx context.Context, log logr.Logger, cmd *
 
 	marshaledYaml, err := yaml.Marshal(installation)
 	if err != nil {
-		return fmt.Errorf("cannot marshal yaml: %w\nDid you enquote the value if it is a string?", err)
+		return fmt.Errorf("cannot marshal yaml: %w", err)
 	}
 	cmd.Println(string(marshaledYaml))
 
@@ -87,8 +91,8 @@ func replaceImportsWithInputParameters(installation *lsv1alpha1.Installation, o 
 
 	//find all imports.data that are specified in inputParameters
 	for _, importData := range installation.Spec.Imports.Data {
-		if inputParameter, ok := o.inputParameters[importData.Name]; ok {
-			validImportDataMappings[importData.Name] = json.RawMessage(inputParameter)
+		if importParameter, ok := o.importParameters[importData.Name]; ok {
+			validImportDataMappings[importData.Name] = createJSONRawMessageValueWithStringOrNumericType(importParameter)
 		}
 	}
 
@@ -107,6 +111,14 @@ func replaceImportsWithInputParameters(installation *lsv1alpha1.Installation, o 
 			}
 		}
 	}
+}
+
+func createJSONRawMessageValueWithStringOrNumericType(parameter string) json.RawMessage {
+	if _, err := strconv.ParseFloat(parameter, 64); err == nil {
+		return json.RawMessage(parameter)
+	}
+	return json.RawMessage(fmt.Sprintf(`"%s"`, parameter))
+
 }
 
 func readInstallationFromFile(o *inputParametersOptions, installation *lsv1alpha1.Installation) error {

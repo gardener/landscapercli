@@ -21,7 +21,7 @@ landscaper-cli installations create my-registry:5000 github.com/my-component v0.
   -h, --help                             help for create
       --name string                      name of the installation (default "my-installation")
       --registry-config string           path to the dockerconfig.json with the oci registry authentication information
-      --render-schema-info               render schema information of the component's imports and exports as comments into the installation
+      --render-schema-info               render schema information of the component's imports and exports as comments into the installation (default true)
 ```
 
 ### Options inherited from parent commands
