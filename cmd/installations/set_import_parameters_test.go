@@ -59,15 +59,15 @@ func TestImportParameterFilling(t *testing.T) {
 	inputParameters := map[string]string{
 		"intValue":             "10",
 		"floatValue":           "10.1",
-		"stringValue":          "\"testValue\"",
-		"stringValueWithSpace": "\"test Value\"",
+		"stringValue":          "testValue",
+		"stringValueWithSpace": "test Value",
 	}
 
-	replaceImportsWithInputParameters(&installation, &inputParametersOptions{inputParameters: inputParameters})
+	replaceImportsWithInputParameters(&installation, &inputParametersOptions{importParameters: inputParameters})
 
 	t.Run("String replacements", func(t *testing.T) {
-		assert.Equal(t, json.RawMessage(inputParameters["stringValue"]), installation.Spec.ImportDataMappings["stringValue"])
-		assert.Equal(t, json.RawMessage(inputParameters["stringValueWithSpace"]), installation.Spec.ImportDataMappings["stringValueWithSpace"])
+		assert.Equal(t, json.RawMessage(`"testValue"`), installation.Spec.ImportDataMappings["stringValue"])
+		assert.Equal(t, json.RawMessage(`"test Value"`), installation.Spec.ImportDataMappings["stringValueWithSpace"])
 	})
 	t.Run("Number replacements", func(t *testing.T) {
 		assert.Equal(t, json.RawMessage(inputParameters["intValue"]), installation.Spec.ImportDataMappings["intValue"])
