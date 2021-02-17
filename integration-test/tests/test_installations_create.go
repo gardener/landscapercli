@@ -11,9 +11,13 @@ import (
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/pkg/kubernetes"
 	"github.com/stretchr/testify/assert"
 	yamlv3 "gopkg.in/yaml.v3"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscapercli/cmd/installations"
@@ -21,25 +25,41 @@ import (
 	"github.com/gardener/landscapercli/pkg/util"
 )
 
-func RunInstallationsCreateTest(config *inttestutil.Config) error {
+func RunInstallationsCreateTest(k8sClient client.Client, config *inttestutil.Config) error {
 	const (
 		installationName = "test-installation"
 		componentName    = "github.com/dummy-cd"
 		componentVersion = "v0.1.0"
 		blueprintName    = "dummy-blueprint"
+		testNamespace    = "testnamespace-create-installation"
 	)
 
 	test := installationsCreateTest{
+		k8sClient:        k8sClient,
 		registryBaseURL:  config.RegistryBaseURL,
 		installationName: installationName,
 		componentName:    componentName,
 		componentVersion: componentVersion,
 		blueprintName:    blueprintName,
+		testNamespace:    testNamespace,
 	}
 
-	err := test.run()
+	fmt.Printf("Creating namespace %s\n", testNamespace)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: testNamespace,
+		},
+	}
+	ctx := context.TODO()
+	err := k8sClient.Create(ctx, namespace, &client.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("cannot create namespace %s: %w", testNamespace, err)
+	}
+
+	err = test.run()
 	if err != nil {
 		// do not cleanup after erroneous test run to keep failed resources on the cluster
+		util.DeleteNamespace(k8sClient, test.testNamespace, config.SleepTime, config.MaxRetries)
 		return fmt.Errorf("test failed: %w", err)
 	}
 
@@ -47,11 +67,13 @@ func RunInstallationsCreateTest(config *inttestutil.Config) error {
 }
 
 type installationsCreateTest struct {
+	k8sClient        client.Client
 	registryBaseURL  string
 	installationName string
 	componentName    string
 	componentVersion string
 	blueprintName    string
+	testNamespace    string
 }
 
 func (t *installationsCreateTest) run() error {
@@ -124,10 +146,25 @@ func (t *installationsCreateTest) run() error {
 
 	err = ioutil.WriteFile(path.Join(installationsDir, "installation-set-import-params.yaml"), outBufImportParams.Bytes(), os.ModePerm)
 	if err != nil {
-		return fmt.Errorf("cannot write component descriptor file: %w", err)
+		return fmt.Errorf("cannot installation after set-import-params.yaml: %w", err)
 	}
 
 	//apply to cluster
+	installationToApply := lsv1alpha1.Installation{}
+	installationFileData, err := ioutil.ReadFile(path.Join(installationsDir, "installation-set-import-params.yaml"))
+	if err != nil {
+		return err
+	}
+	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(installationFileData, nil, &installationToApply); err != nil {
+		return err
+	}
+
+	fmt.Printf("Creating installation %s in namespace %s\n", installationToApply.Name, t.testNamespace)
+	installationToApply.ObjectMeta.Namespace = t.testNamespace
+	err = t.k8sClient.Create(ctx, &installationToApply, &client.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("cannot create installation: %w", err)
+	}
 
 	//check if instalaltion is successful
 
