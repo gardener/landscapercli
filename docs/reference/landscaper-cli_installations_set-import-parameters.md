@@ -15,7 +15,8 @@ landscaper-cli installations set-import-parameters <path-to-installation>.yaml i
 ### Options
 
 ```
-  -h, --help   help for set-import-parameters
+  -h, --help            help for set-import-parameters
+  -o, --output string   file path for the resulting installation yaml (default: overwrite the given installation file)
 ```
 
 ### Options inherited from parent commands

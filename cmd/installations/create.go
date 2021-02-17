@@ -191,7 +191,10 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		if err != nil {
 			return fmt.Errorf("Error creating file %s:%w", o.outputPath, err)
 		}
-		f.Write(marshaledYaml)
+		_, err = f.Write(marshaledYaml)
+		if err != nil {
+			return fmt.Errorf("Error writing file %s:%w", o.outputPath, err)
+		}
 	}
 
 	return nil

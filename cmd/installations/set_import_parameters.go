@@ -16,6 +16,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/gardener/landscapercli/pkg/logger"
 )
@@ -25,6 +26,9 @@ type inputParametersOptions struct {
 
 	//input parameters that should be used for the import values
 	importParameters map[string]string
+
+	//outputPath is the path to write the installation.yaml to
+	outputPath string
 }
 
 //NewSetImportParametersCommand sets input parameters from an installation to hardcoded values (as importDataMappings)
@@ -49,6 +53,8 @@ func NewSetImportParametersCommand(ctx context.Context) *cobra.Command {
 		},
 	}
 	cmd.SetOut(os.Stdout)
+
+	opts.AddFlags(cmd.Flags())
 
 	return cmd
 }
@@ -81,9 +87,23 @@ func (o *inputParametersOptions) run(ctx context.Context, log logr.Logger, cmd *
 	if err != nil {
 		return fmt.Errorf("cannot marshal yaml: %w", err)
 	}
-	cmd.Println(string(marshaledYaml))
-
+	outputPath := o.installationPath
+	if o.outputPath != "" {
+		outputPath = o.outputPath
+	}
+	f, err := os.Create(outputPath)
+	if err != nil {
+		return fmt.Errorf("Error creating file %s:%w", outputPath, err)
+	}
+	_, err = f.Write(marshaledYaml)
+	if err != nil {
+		return fmt.Errorf("Error writing file %s:%w", outputPath, err)
+	}
 	return nil
+}
+
+func (o *inputParametersOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVarP(&o.outputPath, "output", "o", "", "file path for the resulting installation yaml (default: overwrite the given installation file)")
 }
 
 func replaceImportsWithInputParameters(installation *lsv1alpha1.Installation, o *inputParametersOptions) {
