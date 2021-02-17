@@ -63,7 +63,8 @@ func TestImportParameterFilling(t *testing.T) {
 		"stringValueWithSpace": "test Value",
 	}
 
-	replaceImportsWithInputParameters(&installation, &inputParametersOptions{importParameters: inputParameters})
+	err := replaceImportsWithInputParameters(&installation, &inputParametersOptions{importParameters: inputParameters})
+	assert.Nil(t, err)
 
 	t.Run("String replacements", func(t *testing.T) {
 		assert.Equal(t, json.RawMessage(`"testValue"`), installation.Spec.ImportDataMappings["stringValue"])
