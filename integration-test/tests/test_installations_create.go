@@ -42,6 +42,7 @@ func RunInstallationsCreateTest(k8sClient client.Client, config *inttestutil.Con
 		componentVersion: componentVersion,
 		blueprintName:    blueprintName,
 		testNamespace:    testNamespace,
+		config:           *config,
 	}
 
 	fmt.Printf("Creating namespace %s\n", testNamespace)
@@ -74,6 +75,7 @@ type installationsCreateTest struct {
 	componentVersion string
 	blueprintName    string
 	testNamespace    string
+	config           inttestutil.Config
 }
 
 func (t *installationsCreateTest) run() error {
@@ -167,6 +169,13 @@ func (t *installationsCreateTest) run() error {
 	}
 
 	//check if instalaltion is successful
+	timeout, err := util.CheckAndWaitUntilLandscaperInstallationSucceeded(t.k8sClient, client.ObjectKey{Name: installationToApply.Name, Namespace: installationToApply.Namespace}, t.config.SleepTime, t.config.MaxRetries)
+	if err != nil {
+		return fmt.Errorf("error while waiting for installation to succeed: %w", err)
+	}
+	if timeout {
+		return fmt.Errorf("timeout at waiting for installation")
+	}
 
 	return nil
 }
