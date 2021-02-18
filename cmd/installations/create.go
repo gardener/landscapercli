@@ -189,11 +189,11 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 	} else {
 		f, err := os.Create(o.outputPath)
 		if err != nil {
-			return fmt.Errorf("Error creating file %s:%w", o.outputPath, err)
+			return fmt.Errorf("error creating file %s: %w", o.outputPath, err)
 		}
 		_, err = f.Write(marshaledYaml)
 		if err != nil {
-			return fmt.Errorf("Error writing file %s:%w", o.outputPath, err)
+			return fmt.Errorf("error writing file %s: %w", o.outputPath, err)
 		}
 	}
 
@@ -340,7 +340,7 @@ func (o *createOpts) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "my-installation", "name of the installation")
 	fs.BoolVar(&o.renderSchemaInfo, "render-schema-info", true, "render schema information of the component's imports and exports as comments into the installation")
 	fs.StringVar(&o.blueprintResourceName, "blueprint-resource-name", "", "name of the blueprint resource in the component descriptor (optional if only one blueprint resource is specified in the component descriptor)")
-	fs.StringVarP(&o.outputPath, "output", "o", "", "file path for the resulting installation yaml")
+	fs.StringVarP(&o.outputPath, "output-file", "o", "", "file path for the resulting installation yaml")
 	o.OciOptions.AddFlags(fs)
 }
 

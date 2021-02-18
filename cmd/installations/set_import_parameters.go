@@ -83,7 +83,7 @@ func (o *inputParametersOptions) run(ctx context.Context, log logr.Logger, cmd *
 
 	err = replaceImportsWithInputParameters(&installation, o)
 	if err != nil {
-		return fmt.Errorf("Error setting the import parameters: %w", err)
+		return fmt.Errorf("error setting the import parameters: %w", err)
 	}
 
 	marshaledYaml, err := yaml.Marshal(installation)
@@ -96,17 +96,17 @@ func (o *inputParametersOptions) run(ctx context.Context, log logr.Logger, cmd *
 	}
 	f, err := os.Create(outputPath)
 	if err != nil {
-		return fmt.Errorf("Error creating file %s:%w", outputPath, err)
+		return fmt.Errorf("error creating file %s: %w", outputPath, err)
 	}
 	_, err = f.Write(marshaledYaml)
 	if err != nil {
-		return fmt.Errorf("Error writing file %s:%w", outputPath, err)
+		return fmt.Errorf("error writing file %s: %w", outputPath, err)
 	}
 	return nil
 }
 
 func (o *inputParametersOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVarP(&o.outputPath, "output", "o", "", "file path for the resulting installation yaml (default: overwrite the given installation file)")
+	fs.StringVarP(&o.outputPath, "output-file", "o", "", "file path for the resulting installation yaml (default: overwrite the given installation file)")
 }
 
 func replaceImportsWithInputParameters(installation *lsv1alpha1.Installation, o *inputParametersOptions) error {
