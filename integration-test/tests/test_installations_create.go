@@ -25,7 +25,7 @@ import (
 	"github.com/gardener/landscapercli/pkg/util"
 )
 
-func RunInstallationsCreateTest(k8sClient client.Client, config *inttestutil.Config) error {
+func RunInstallationsCreateTest(k8sClient client.Client, target *lsv1alpha1.Target, config *inttestutil.Config) error {
 	const (
 		installationName = "test-installation"
 		componentName    = "github.com/dummy-cd"
@@ -43,7 +43,10 @@ func RunInstallationsCreateTest(k8sClient client.Client, config *inttestutil.Con
 		blueprintName:    blueprintName,
 		testNamespace:    testNamespace,
 		config:           *config,
+		target:           target,
 	}
+
+	util.DeleteNamespace(k8sClient, test.testNamespace, config.SleepTime, config.MaxRetries)
 
 	fmt.Printf("Creating namespace %s\n", testNamespace)
 	namespace := &corev1.Namespace{
@@ -52,17 +55,24 @@ func RunInstallationsCreateTest(k8sClient client.Client, config *inttestutil.Con
 		},
 	}
 	ctx := context.TODO()
+
 	err := k8sClient.Create(ctx, namespace, &client.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("cannot create namespace %s: %w", testNamespace, err)
 	}
+	test.target.Namespace = test.testNamespace
+	err = test.k8sClient.Create(ctx, test.target, &client.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("cannot create target: %w", err)
+	}
 
 	err = test.run()
 	if err != nil {
-		// do not cleanup after erroneous test run to keep failed resources on the cluster
+		// do not cleanup after erroneous test run to keep failed resources on the cluster TODO
 		util.DeleteNamespace(k8sClient, test.testNamespace, config.SleepTime, config.MaxRetries)
 		return fmt.Errorf("test failed: %w", err)
 	}
+	util.DeleteNamespace(k8sClient, test.testNamespace, config.SleepTime, config.MaxRetries)
 
 	return nil
 }
@@ -76,6 +86,7 @@ type installationsCreateTest struct {
 	blueprintName    string
 	testNamespace    string
 	config           inttestutil.Config
+	target           *lsv1alpha1.Target
 }
 
 func (t *installationsCreateTest) run() error {
@@ -137,7 +148,7 @@ func (t *installationsCreateTest) run() error {
 	cmdImportParams.SetOut(outBufImportParams)
 	argsImportParams := []string{
 		path.Join(installationsDir, "installation-generated.yaml"),
-		"dummyDataImport=testValue",
+		"appnamespace=" + t.testNamespace,
 	}
 	cmdImportParams.SetArgs(argsImportParams)
 
@@ -163,6 +174,7 @@ func (t *installationsCreateTest) run() error {
 
 	fmt.Printf("Creating installation %s in namespace %s\n", installationToApply.Name, t.testNamespace)
 	installationToApply.ObjectMeta.Namespace = t.testNamespace
+	installationToApply.Spec.Imports.Targets[0].Target = "#" + t.target.Name
 	err = t.k8sClient.Create(ctx, &installationToApply, &client.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("cannot create installation: %w", err)
@@ -281,39 +293,40 @@ func (t *installationsCreateTest) testInstallationForCorrectStructure(actualInst
 	return nil
 }
 
-func (t *installationsCreateTest) createDummyBlueprint() *lsv1alpha1.Blueprint {
-	bp := &lsv1alpha1.Blueprint{
-		Imports: []lsv1alpha1.ImportDefinition{
-			{
-				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name:   "dummyDataImport",
-					Schema: lsv1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
-				},
-			},
-			{
-				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name:       "dummyTargetImport",
-					TargetType: string(lsv1alpha1.KubernetesClusterTargetType),
-				},
-			},
-		},
-		Exports: []lsv1alpha1.ExportDefinition{
-			{
-				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name:   "dummyDataExport",
-					Schema: lsv1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
-				},
-			},
-			{
-				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name:       "dummyTargetExport",
-					TargetType: string(lsv1alpha1.KubernetesClusterTargetType),
-				},
-			},
-		},
-		DeployExecutions: []lsv1alpha1.TemplateExecutor{},
-	}
-	return bp
+func (t *installationsCreateTest) createDummyBlueprint() string {
+	return `
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Blueprint
+
+imports:
+- name: cluster
+  targetType: landscaper.gardener.cloud/kubernetes-cluster
+- name: appnamespace
+  schema:
+    type: string
+
+deployExecutions:
+- name: default
+  type: GoTemplate
+  template: |
+    deployItems:
+    - name: deploy
+      type: landscaper.gardener.cloud/helm
+      target:
+        name: {{ .imports.cluster.metadata.name }}
+        namespace: {{ .imports.cluster.metadata.namespace }}
+      config:
+        apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
+        kind: ProviderConfiguration
+
+        chart:
+          {{ $resource := getResource .cd "name" "echo-server-chart" }}
+          ref: {{ $resource.access.imageReference }}
+
+        updateStrategy: patch
+
+        name: test-name
+        namespace: {{ .imports.appnamespace }} `
 }
 
 func (t *installationsCreateTest) createAndUploadDummyComponent() error {
@@ -346,12 +359,9 @@ func (t *installationsCreateTest) createAndUploadDummyComponent() error {
 		return fmt.Errorf("cannot create blueprint directory: %w", err)
 	}
 
-	bp := t.createDummyBlueprint()
-	marshaledBp, err := yaml.Marshal(bp)
-	if err != nil {
-		return fmt.Errorf("cannot marshal blueprint: %w", err)
-	}
-	err = ioutil.WriteFile(path.Join(bpDir, "blueprint.yaml"), marshaledBp, os.ModePerm)
+	marshaledBp := t.createDummyBlueprint()
+
+	err = ioutil.WriteFile(path.Join(bpDir, "blueprint.yaml"), []byte(marshaledBp), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("cannot write blueprint.yaml: %w", err)
 	}
@@ -367,7 +377,15 @@ input:
   compress: true
   mediaType: "application/vnd.gardener.landscaper.blueprint.v1+tar+gzip"
 ---
-`, t.blueprintName, t.componentVersion)
+type: helm
+name: echo-server-chart
+version: v0.1.0
+relation: local
+access:
+  type: ociRegistry
+  imageReference: %s/echo-server-chart:v1.1.0
+---
+`, t.blueprintName, t.componentVersion, t.registryBaseURL)
 
 	resourceFile := path.Join(cdDir, "resources.yaml")
 	err = ioutil.WriteFile(resourceFile, []byte(resourcesYaml), os.ModePerm)
