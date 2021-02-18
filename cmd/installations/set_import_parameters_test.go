@@ -56,14 +56,14 @@ func TestImportParameterFilling(t *testing.T) {
 		},
 	}
 
-	inputParameters := map[string]string{
+	importParameters := map[string]string{
 		"intValue":             "10",
 		"floatValue":           "10.1",
 		"stringValue":          "testValue",
 		"stringValueWithSpace": "test Value",
 	}
 
-	err := replaceImportsWithInputParameters(&installation, &inputParametersOptions{importParameters: inputParameters})
+	err := replaceImportsWithImportParameters(&installation, &importParametersOptions{importParameters: importParameters})
 	assert.Nil(t, err)
 
 	t.Run("String replacements", func(t *testing.T) {
@@ -71,8 +71,8 @@ func TestImportParameterFilling(t *testing.T) {
 		assert.Equal(t, json.RawMessage(`"test Value"`), installation.Spec.ImportDataMappings["stringValueWithSpace"])
 	})
 	t.Run("Number replacements", func(t *testing.T) {
-		assert.Equal(t, json.RawMessage(inputParameters["intValue"]), installation.Spec.ImportDataMappings["intValue"])
-		assert.Equal(t, json.RawMessage(inputParameters["floatValue"]), installation.Spec.ImportDataMappings["floatValue"])
+		assert.Equal(t, json.RawMessage(importParameters["intValue"]), installation.Spec.ImportDataMappings["intValue"])
+		assert.Equal(t, json.RawMessage(importParameters["floatValue"]), installation.Spec.ImportDataMappings["floatValue"])
 	})
 	t.Run("Correct removing of imports.data and adding to importDataMapping list", func(t *testing.T) {
 		assert.Equal(t, 4, len(installation.Spec.ImportDataMappings))

@@ -21,7 +21,7 @@ import (
 	"github.com/gardener/landscapercli/pkg/logger"
 )
 
-type inputParametersOptions struct {
+type importParametersOptions struct {
 	installationPath string
 
 	//input parameters that should be used for the import values
@@ -33,7 +33,7 @@ type inputParametersOptions struct {
 
 //NewSetImportParametersCommand sets input parameters from an installation to hardcoded values (as importDataMappings)
 func NewSetImportParametersCommand(ctx context.Context) *cobra.Command {
-	opts := &inputParametersOptions{}
+	opts := &importParametersOptions{}
 	cmd := &cobra.Command{
 		Use:     "set-import-parameters",
 		Aliases: []string{"sip"},
@@ -59,7 +59,7 @@ func NewSetImportParametersCommand(ctx context.Context) *cobra.Command {
 	return cmd
 }
 
-func (o *inputParametersOptions) validateArguments(args []string) error {
+func (o *importParametersOptions) validateArguments(args []string) error {
 	o.installationPath = args[0]
 
 	o.importParameters = make(map[string]string)
@@ -73,7 +73,7 @@ func (o *inputParametersOptions) validateArguments(args []string) error {
 	return nil
 }
 
-func (o *inputParametersOptions) run(ctx context.Context, log logr.Logger, cmd *cobra.Command) error {
+func (o *importParametersOptions) run(ctx context.Context, log logr.Logger, cmd *cobra.Command) error {
 	installation := lsv1alpha1.Installation{}
 
 	err := readInstallationFromFile(o, &installation)
@@ -81,7 +81,7 @@ func (o *inputParametersOptions) run(ctx context.Context, log logr.Logger, cmd *
 		return err
 	}
 
-	err = replaceImportsWithInputParameters(&installation, o)
+	err = replaceImportsWithImportParameters(&installation, o)
 	if err != nil {
 		return fmt.Errorf("error setting the import parameters: %w", err)
 	}
@@ -105,11 +105,11 @@ func (o *inputParametersOptions) run(ctx context.Context, log logr.Logger, cmd *
 	return nil
 }
 
-func (o *inputParametersOptions) AddFlags(fs *pflag.FlagSet) {
+func (o *importParametersOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVarP(&o.outputPath, "output-file", "o", "", "file path for the resulting installation yaml (default: overwrite the given installation file)")
 }
 
-func replaceImportsWithInputParameters(installation *lsv1alpha1.Installation, o *inputParametersOptions) error {
+func replaceImportsWithImportParameters(installation *lsv1alpha1.Installation, o *importParametersOptions) error {
 	validImportDataMappings := make(map[string]json.RawMessage)
 
 	//find all imports.data that are specified in importParameters
@@ -153,7 +153,7 @@ func createJSONRawMessageValueWithStringOrNumericType(parameter string) json.Raw
 
 }
 
-func readInstallationFromFile(o *inputParametersOptions, installation *lsv1alpha1.Installation) error {
+func readInstallationFromFile(o *importParametersOptions, installation *lsv1alpha1.Installation) error {
 	installationFileData, err := ioutil.ReadFile(o.installationPath)
 	if err != nil {
 		return err
