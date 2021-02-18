@@ -20,6 +20,7 @@ landscaper-cli installations create my-registry:5000 github.com/my-component v0.
       --cc-config string                 path to the local concourse config file
   -h, --help                             help for create
       --name string                      name of the installation (default "my-installation")
+  -o, --output-file string               file path for the resulting installation yaml
       --registry-config string           path to the dockerconfig.json with the oci registry authentication information
       --render-schema-info               render schema information of the component's imports and exports as comments into the installation (default true)
 ```

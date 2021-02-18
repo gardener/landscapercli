@@ -16,20 +16,24 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/gardener/landscapercli/pkg/logger"
 )
 
-type inputParametersOptions struct {
+type importParametersOptions struct {
 	installationPath string
 
 	//input parameters that should be used for the import values
 	importParameters map[string]string
+
+	//outputPath is the path to write the installation.yaml to
+	outputPath string
 }
 
 //NewSetImportParametersCommand sets input parameters from an installation to hardcoded values (as importDataMappings)
 func NewSetImportParametersCommand(ctx context.Context) *cobra.Command {
-	opts := &inputParametersOptions{}
+	opts := &importParametersOptions{}
 	cmd := &cobra.Command{
 		Use:     "set-import-parameters",
 		Aliases: []string{"sip"},
@@ -50,10 +54,12 @@ func NewSetImportParametersCommand(ctx context.Context) *cobra.Command {
 	}
 	cmd.SetOut(os.Stdout)
 
+	opts.AddFlags(cmd.Flags())
+
 	return cmd
 }
 
-func (o *inputParametersOptions) validateArguments(args []string) error {
+func (o *importParametersOptions) validateArguments(args []string) error {
 	o.installationPath = args[0]
 
 	o.importParameters = make(map[string]string)
@@ -67,7 +73,7 @@ func (o *inputParametersOptions) validateArguments(args []string) error {
 	return nil
 }
 
-func (o *inputParametersOptions) run(ctx context.Context, log logr.Logger, cmd *cobra.Command) error {
+func (o *importParametersOptions) run(ctx context.Context, log logr.Logger, cmd *cobra.Command) error {
 	installation := lsv1alpha1.Installation{}
 
 	err := readInstallationFromFile(o, &installation)
@@ -75,24 +81,48 @@ func (o *inputParametersOptions) run(ctx context.Context, log logr.Logger, cmd *
 		return err
 	}
 
-	replaceImportsWithInputParameters(&installation, o)
+	err = replaceImportsWithImportParameters(&installation, o)
+	if err != nil {
+		return fmt.Errorf("error setting the import parameters: %w", err)
+	}
 
 	marshaledYaml, err := yaml.Marshal(installation)
 	if err != nil {
 		return fmt.Errorf("cannot marshal yaml: %w", err)
 	}
-	cmd.Println(string(marshaledYaml))
-
+	outputPath := o.installationPath
+	if o.outputPath != "" {
+		outputPath = o.outputPath
+	}
+	f, err := os.Create(outputPath)
+	if err != nil {
+		return fmt.Errorf("error creating file %s: %w", outputPath, err)
+	}
+	_, err = f.Write(marshaledYaml)
+	if err != nil {
+		return fmt.Errorf("error writing file %s: %w", outputPath, err)
+	}
 	return nil
 }
 
-func replaceImportsWithInputParameters(installation *lsv1alpha1.Installation, o *inputParametersOptions) {
+func (o *importParametersOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVarP(&o.outputPath, "output-file", "o", "", "file path for the resulting installation yaml (default: overwrite the given installation file)")
+}
+
+func replaceImportsWithImportParameters(installation *lsv1alpha1.Installation, o *importParametersOptions) error {
 	validImportDataMappings := make(map[string]json.RawMessage)
 
-	//find all imports.data that are specified in inputParameters
+	//find all imports.data that are specified in importParameters
 	for _, importData := range installation.Spec.Imports.Data {
 		if importParameter, ok := o.importParameters[importData.Name]; ok {
 			validImportDataMappings[importData.Name] = createJSONRawMessageValueWithStringOrNumericType(importParameter)
+		}
+	}
+
+	//check for any not used importParameters
+	for k := range o.importParameters {
+		if _, ok := validImportDataMappings[k]; !ok {
+			return fmt.Errorf(`import parameter '%s' not found in the installation`, k)
 		}
 	}
 
@@ -111,6 +141,8 @@ func replaceImportsWithInputParameters(installation *lsv1alpha1.Installation, o 
 			}
 		}
 	}
+
+	return nil
 }
 
 func createJSONRawMessageValueWithStringOrNumericType(parameter string) json.RawMessage {
@@ -121,7 +153,7 @@ func createJSONRawMessageValueWithStringOrNumericType(parameter string) json.Raw
 
 }
 
-func readInstallationFromFile(o *inputParametersOptions, installation *lsv1alpha1.Installation) error {
+func readInstallationFromFile(o *importParametersOptions, installation *lsv1alpha1.Installation) error {
 	installationFileData, err := ioutil.ReadFile(o.installationPath)
 	if err != nil {
 		return err

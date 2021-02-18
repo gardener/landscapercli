@@ -41,6 +41,9 @@ type createOpts struct {
 	// OciOptions contains all exposed options to configure the oci client.
 	OciOptions ociopts.Options
 
+	//outputPath is the path to write the installation.yaml to
+	outputPath string
+
 	// name of the blueprint resource in the component descriptor (optional if only one blueprint resource is specified in the component descriptor)
 	blueprintResourceName string
 	name                  string
@@ -181,7 +184,18 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		}
 	}
 
-	cmd.Println(string(marshaledYaml))
+	if o.outputPath == "" {
+		cmd.Println(string(marshaledYaml))
+	} else {
+		f, err := os.Create(o.outputPath)
+		if err != nil {
+			return fmt.Errorf("error creating file %s: %w", o.outputPath, err)
+		}
+		_, err = f.Write(marshaledYaml)
+		if err != nil {
+			return fmt.Errorf("error writing file %s: %w", o.outputPath, err)
+		}
+	}
 
 	return nil
 }
@@ -326,6 +340,7 @@ func (o *createOpts) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "my-installation", "name of the installation")
 	fs.BoolVar(&o.renderSchemaInfo, "render-schema-info", true, "render schema information of the component's imports and exports as comments into the installation")
 	fs.StringVar(&o.blueprintResourceName, "blueprint-resource-name", "", "name of the blueprint resource in the component descriptor (optional if only one blueprint resource is specified in the component descriptor)")
+	fs.StringVarP(&o.outputPath, "output-file", "o", "", "file path for the resulting installation yaml")
 	o.OciOptions.AddFlags(fs)
 }
 
