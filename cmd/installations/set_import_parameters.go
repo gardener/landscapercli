@@ -122,7 +122,7 @@ func replaceImportsWithInputParameters(installation *lsv1alpha1.Installation, o 
 	//check for any not used importParameters
 	for k := range o.importParameters {
 		if _, ok := validImportDataMappings[k]; !ok {
-			return fmt.Errorf(`import parameter '%s' not found in the blueprint`, k)
+			return fmt.Errorf(`import parameter '%s' not found in the installation`, k)
 		}
 	}
 
