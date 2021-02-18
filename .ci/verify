@@ -17,7 +17,7 @@ make test
 
 make generate
 # check if make generate created new files
-generated_files="$(git status --porcelain)"
+generated_files="$(git status --porcelain) docs"
 if [[ "$generated_files" ]]; then
   echo "Newly generated files detected:"
   echo "$generated_files"
