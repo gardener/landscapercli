@@ -14,3 +14,12 @@ make install-requirements
 
 make verify
 make test
+
+make generate
+# check if make generate created new files
+generated_files="$(git status --porcelain)"
+if [[ "$generated_files" ]]; then
+  echo "Newly generated files detected:"
+  echo "$generated_files"
+  exit 1
+fi

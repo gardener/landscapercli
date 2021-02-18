@@ -18,7 +18,7 @@ func main() {
 	fmt.Println("> Generate Docs for LandscaperCli")
 
 	if len(os.Args) != 2 { // expect 2 as the first one is the programm name
-		fmt.Printf("Expected exactly one argument, but got %d", len(os.Args) - 1)
+		fmt.Printf("Expected exactly one argument, but got %d", len(os.Args)-1)
 		os.Exit(1)
 	}
 	outputDir := os.Args[1]
@@ -30,7 +30,7 @@ func main() {
 	landscaperCliCommand := cmd.NewLandscaperCliCommand(context.TODO())
 	landscaperCliCommand.DisableAutoGenTag = true
 	check(doc.GenMarkdownTree(landscaperCliCommand, outputDir))
-	fmt.Printf("Successfully written docs to %s", outputDir)
+	fmt.Printf("Successfully written docs to %s\n", outputDir)
 }
 
 func check(err error) {
