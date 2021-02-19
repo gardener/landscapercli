@@ -44,6 +44,8 @@ landscaper-cli:
       traits:
         cronjob:
           interval: '2h'
+        scheduling:
+          suppress_parallel_execution: true
       steps:
         run_integration_test:
           execute:
@@ -58,6 +60,8 @@ landscaper-cli:
           - "--target-clustername int-test"
           output_dir: 'integration_test'
       traits:
+        scheduling:
+          suppress_parallel_execution: true
         version:
           preprocess: 'finalize'
         release:
