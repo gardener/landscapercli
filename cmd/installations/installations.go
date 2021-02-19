@@ -14,7 +14,7 @@ import (
 func NewInstallationsCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "installations",
-		Aliases: []string{"inst", "i"},
+		Aliases: []string{"inst", "installation", "i"},
 		Short:   "commands to interact with installations",
 	}
 
