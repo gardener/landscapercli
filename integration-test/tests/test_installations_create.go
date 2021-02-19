@@ -47,23 +47,9 @@ func RunInstallationsCreateTest(k8sClient client.Client, config *inttestutil.Con
 		config:           *config,
 	}
 
-	err := util.DeleteNamespace(k8sClient, test.config.TestNamespace, config.SleepTime, config.MaxRetries)
+	err := test.setup()
 	if err != nil {
-		return fmt.Errorf("cannot delete namespace %s: %w", test.config.TestNamespace, err)
-	}
-
-	fmt.Printf("Creating namespace %s\n", test.config.TestNamespace)
-	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: test.config.TestNamespace,
-		},
-	}
-	ctx := context.TODO()
-
-	//create namespace
-	err = k8sClient.Create(ctx, namespace, &client.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("cannot create namespace %s: %w", test.config.TestNamespace, err)
+		return fmt.Errorf("setup failed: %w", err)
 	}
 
 	err = test.run()
@@ -72,31 +58,61 @@ func RunInstallationsCreateTest(k8sClient client.Client, config *inttestutil.Con
 		return fmt.Errorf("test failed: %w", err)
 	}
 
-	err = util.DeleteNamespace(k8sClient, test.config.TestNamespace, config.SleepTime, config.MaxRetries)
+	err = test.teardown()
 	if err != nil {
-		return fmt.Errorf("cannot delete namespace %s: %w", test.config.TestNamespace, err)
+		return fmt.Errorf("teardown failed: %w", err)
 	}
 	return nil
 }
 
 type installationsCreateTest struct {
-	k8sClient        client.Client
-	installationName string
-	componentName    string
-	componentVersion string
-	blueprintName    string
-	config           inttestutil.Config
-	targetName       string
+	k8sClient           client.Client
+	installationName    string
+	installationDir     string
+	installationToApply lsv1alpha1.Installation
+	componentName       string
+	componentVersion    string
+	blueprintName       string
+	config              inttestutil.Config
+	targetName          string
 }
 
 func (t *installationsCreateTest) run() error {
-	ctx := context.TODO()
-
-	fmt.Println("Creating and uploading dummy component to OCI registry")
+	fmt.Println("Creating and uploading component to OCI registry")
 	err := t.createAndUploadComponent()
 	if err != nil {
 		return fmt.Errorf("creating/uploading dummy component failed: %w", err)
 	}
+
+	err = t.createInstallationForComponentDescriptor()
+	if err != nil {
+		return fmt.Errorf("creating installation for component descriptor failed: %w", err)
+	}
+
+	err = t.setImportParameters()
+	if err != nil {
+		return fmt.Errorf("setting import parameters for installation failed: %w", err)
+	}
+
+	err = t.createTarget()
+	if err != nil {
+		return fmt.Errorf("creating target failed: %w", err)
+	}
+
+	err = t.applyToCluster()
+	if err != nil {
+		return fmt.Errorf("apply to cluster failed: %w", err)
+	}
+
+	err = t.waitForInstallationSuccess()
+	if err != nil {
+		return fmt.Errorf("waiting for installation success failed: %w", err)
+	}
+	return nil
+}
+
+func (t *installationsCreateTest) createInstallationForComponentDescriptor() error {
+	ctx := context.TODO()
 
 	fmt.Println("Executing landscaper-cli installations create")
 	cmd := installations.NewCreateCommand(ctx)
@@ -112,7 +128,7 @@ func (t *installationsCreateTest) run() error {
 	}
 	cmd.SetArgs(args)
 
-	err = cmd.Execute()
+	err := cmd.Execute()
 	if err != nil {
 		return fmt.Errorf("landscaper-cli installations create failed: %w", err)
 	}
@@ -127,40 +143,42 @@ func (t *installationsCreateTest) run() error {
 		return fmt.Errorf("error testing installation for correct structure: %w", err)
 	}
 
-	//store installation in temp file
-	installationsDir, err := ioutil.TempDir(".", "dummy-installation-*")
+	t.installationDir, err = ioutil.TempDir(".", "dummy-installation-*")
 	if err != nil {
 		return fmt.Errorf("cannot create component descriptor directory: %w", err)
 	}
-	defer func() {
-		removeErr := os.RemoveAll(installationsDir)
-		if removeErr != nil {
-			fmt.Printf("cannot remove temporary directory %s: %s", installationsDir, removeErr.Error())
-		}
-	}()
-	err = ioutil.WriteFile(path.Join(installationsDir, "installation-generated.yaml"), outBuf.Bytes(), os.ModePerm)
+
+	err = ioutil.WriteFile(path.Join(t.installationDir, "installation-generated.yaml"), outBuf.Bytes(), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("cannot write component descriptor file: %w", err)
 	}
+	return nil
+}
 
-	//run set-import-parameters
+func (t *installationsCreateTest) setImportParameters() error {
+	ctx := context.TODO()
+
 	fmt.Println("Executing landscaper-cli installations set-import-parameters")
 	cmdImportParams := installations.NewSetImportParametersCommand(ctx)
 	outBufImportParams := &bytes.Buffer{}
 	cmdImportParams.SetOut(outBufImportParams)
 	argsImportParams := []string{
-		path.Join(installationsDir, "installation-generated.yaml"),
+		path.Join(t.installationDir, "installation-generated.yaml"),
 		"appnamespace=" + t.config.TestNamespace,
-		"-o=" + path.Join(installationsDir, "installation-set-import-params.yaml"),
+		"-o=" + path.Join(t.installationDir, "installation-set-import-params.yaml"),
 	}
 	cmdImportParams.SetArgs(argsImportParams)
 
-	err = cmdImportParams.Execute()
+	err := cmdImportParams.Execute()
 	if err != nil {
 		return fmt.Errorf("landscaper-cli installations set-import-parameters failed: %w", err)
 	}
+	return nil
+}
 
-	//run target create
+func (t *installationsCreateTest) createTarget() error {
+	ctx := context.TODO()
+
 	fmt.Println("Executing landscaper-cli targets create kubernetes-cluster")
 	cmdTargetCreate := types.NewKubernetesClusterCommand(ctx)
 	outBufTargetCreate := &bytes.Buffer{}
@@ -172,7 +190,7 @@ func (t *installationsCreateTest) run() error {
 	}
 	cmdTargetCreate.SetArgs(argsTargetCreateParams)
 
-	err = cmdTargetCreate.Execute()
+	err := cmdTargetCreate.Execute()
 	if err != nil {
 		return fmt.Errorf("landscaper-cli targets create kubernetes-cluster failed: %w", err)
 	}
@@ -185,36 +203,42 @@ func (t *installationsCreateTest) run() error {
 	if err != nil {
 		return fmt.Errorf("cannot create target: %w", err)
 	}
+	return nil
+}
 
-	//apply installation to cluster
+func (t *installationsCreateTest) applyToCluster() error {
+	ctx := context.TODO()
+
 	fmt.Printf("Preparing installation")
-	installationFileData, err := ioutil.ReadFile(path.Join(installationsDir, "installation-set-import-params.yaml"))
+	installationFileData, err := ioutil.ReadFile(path.Join(t.installationDir, "installation-set-import-params.yaml"))
 	if err != nil {
 		return fmt.Errorf("cannot read temp installation file: %w", err)
 	}
-	installationToApply := lsv1alpha1.Installation{}
-	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(installationFileData, nil, &installationToApply); err != nil {
+	t.installationToApply = lsv1alpha1.Installation{}
+	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(installationFileData, nil, &t.installationToApply); err != nil {
 		return fmt.Errorf("cannot decode temp installation: %w", err)
 	}
 
-	fmt.Printf("Creating installation %s in namespace %s\n", installationToApply.Name, t.config.TestNamespace)
-	installationToApply.ObjectMeta.Namespace = t.config.TestNamespace
-	installationToApply.Spec.Imports.Targets[0].Target = "#" + t.targetName
-	err = t.k8sClient.Create(ctx, &installationToApply, &client.CreateOptions{})
+	fmt.Printf("Creating installation %s in namespace %s\n", t.installationToApply.Name, t.config.TestNamespace)
+	t.installationToApply.ObjectMeta.Namespace = t.config.TestNamespace
+	t.installationToApply.Spec.Imports.Targets[0].Target = "#" + t.targetName
+	err = t.k8sClient.Create(ctx, &t.installationToApply, &client.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("cannot create installation: %w", err)
 	}
+	return nil
+}
 
+func (t *installationsCreateTest) waitForInstallationSuccess() error {
 	//check if installation has status succeeded
-	fmt.Printf("Wait for installation %s in namespace %s to succeed\n", installationToApply.Name, t.config.TestNamespace)
-	timeout, err := util.CheckAndWaitUntilLandscaperInstallationSucceeded(t.k8sClient, client.ObjectKey{Name: installationToApply.Name, Namespace: installationToApply.Namespace}, t.config.SleepTime, t.config.MaxRetries)
+	fmt.Printf("Wait for installation %s in namespace %s to succeed\n", t.installationToApply.Name, t.config.TestNamespace)
+	timeout, err := util.CheckAndWaitUntilLandscaperInstallationSucceeded(t.k8sClient, client.ObjectKey{Name: t.installationToApply.Name, Namespace: t.installationToApply.Namespace}, t.config.SleepTime, t.config.MaxRetries)
 	if err != nil {
 		return fmt.Errorf("error while waiting for installation to succeed: %w", err)
 	}
 	if timeout {
 		return fmt.Errorf("timeout at waiting for installation")
 	}
-
 	return nil
 }
 
@@ -262,7 +286,7 @@ func (t *installationsCreateTest) testInstallationForCorrectStructure(actualInst
 
 	ok := assert.Equal(inttestutil.DummyTestingT{}, expectedInstallation, actualInstallation)
 	if !ok {
-		return fmt.Errorf("")
+		return fmt.Errorf("expected installation does not match with actual installation")
 	}
 
 	rootNode := &yamlv3.Node{}
@@ -419,5 +443,40 @@ access:
 		return fmt.Errorf("landscaper-cli components component-archive remote push failed: %w", err)
 	}
 
+	return nil
+}
+
+func (t *installationsCreateTest) setup() error {
+	err := util.DeleteNamespace(t.k8sClient, t.config.TestNamespace, t.config.SleepTime, t.config.MaxRetries)
+	if err != nil {
+		return fmt.Errorf("cannot delete namespace %s: %w", t.config.TestNamespace, err)
+	}
+
+	fmt.Printf("Creating namespace %s\n", t.config.TestNamespace)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: t.config.TestNamespace,
+		},
+	}
+	ctx := context.TODO()
+
+	//create namespace
+	err = t.k8sClient.Create(ctx, namespace, &client.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("cannot create namespace %s: %w", t.config.TestNamespace, err)
+	}
+	return nil
+}
+
+func (t *installationsCreateTest) teardown() error {
+	removeErr := os.RemoveAll(t.installationDir)
+	if removeErr != nil {
+		fmt.Printf("cannot remove temporary directory %s: %s", t.installationDir, removeErr.Error())
+	}
+
+	err := util.DeleteNamespace(t.k8sClient, t.config.TestNamespace, t.config.SleepTime, t.config.MaxRetries)
+	if err != nil {
+		return fmt.Errorf("cannot delete namespace %s: %w", t.config.TestNamespace, err)
+	}
 	return nil
 }
