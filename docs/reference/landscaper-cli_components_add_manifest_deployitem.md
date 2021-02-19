@@ -27,7 +27,7 @@ landscaper-cli component add manifest deployitem \
 
 ```
       --cluster-param string         import parameter name for the target resource containing the access data of the target cluster (default "targetCluster")
-      --component-directory string   path to component directory (default ".")
+      --component-directory string   path to component directory (optional, default is current directory) (default ".")
   -h, --help                         help for deployitem
       --import-param stringArray     import parameter as name:integer|string|boolean, e.g. replicas:integer
       --manifest-file stringArray    manifest file containing one kubernetes resource
