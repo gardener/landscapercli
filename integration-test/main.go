@@ -36,19 +36,19 @@ func init() {
 
 func runTestSuite(k8sClient client.Client, config *inttestutil.Config, target *lsv1alpha1.Target, helmChartRef string) error {
 	fmt.Println("========== RunQuickstartInstallTest() ==========")
-	err := tests.RunQuickstartInstallTest(k8sClient, target, helmChartRef, config)
+	err := tests.RunQuickstartInstallTest(k8sClient, target.DeepCopy(), helmChartRef, config)
 	if err != nil {
 		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)
 	}
 
 	fmt.Println("========== RunInstallationsCreateTest() ==========")
-	err = tests.RunInstallationsCreateTest(k8sClient, target, config)
+	err = tests.RunInstallationsCreateTest(k8sClient, target.DeepCopy(), config)
 	if err != nil {
 		return fmt.Errorf("RunInstallationsCreateTest() failed: %w", err)
 	}
 
 	fmt.Println("========== RunComponentCreateTest() ==========")
-	err = tests.RunComponentCreateTest(k8sClient, target, config)
+	err = tests.RunComponentCreateTest(k8sClient, target.DeepCopy(), config)
 	if err != nil {
 		return fmt.Errorf("RunComponentCreateTest() failed: %w", err)
 	}
