@@ -23,4 +23,6 @@ spec:
         target: "#rg-cluster"
 
   importDataMappings:
-    password1: pw1
+    word: word3
+    sleepTimeBefore: 1
+    sleepTimeAfter: 1

@@ -4,43 +4,33 @@ kind: Blueprint
 imports:
 - default:
     value: null
-  name: target-cluster
-  required: true
-  targetType: landscaper.gardener.cloud/kubernetes-cluster
-- default:
-    value: null
   name: word
   required: true
   schema:
     type: string
 - default:
-    value: 0
+    value: null
   name: sleepTimeBefore
   required: true
   schema:
     type: integer
 - default:
-    value: 0
+    value: null
   name: sleepTimeAfter
   required: true
   schema:
     type: integer
 
-exportExecutions:
-- name: default
-  type: GoTemplate
-  template: |
-    exports:
-      testparam: {{ .values.deployitems.container1.testparam }}
-
 exports:
-- name: testparam
+- name: sentence
   schema:
     type: string
+
+exportExecutions: []
 
 subinstallations: []
 
 deployExecutions:
-- file: /deploy-execution-container1.yaml
-  name: container1
+- file: /deploy-execution-examplecontainer.yaml
+  name: examplecontainer
   type: GoTemplate

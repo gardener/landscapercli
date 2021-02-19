@@ -15,6 +15,8 @@ landscaper-cli:
           on_error:
             triggering_policy: 'always'
             recipients:
+            - email_addresses:
+              - DL_5FE20D672BF0A1703D213F8C@global.corp.sap
             - committers
             - codeowners
       component_descriptor: ~
@@ -27,20 +29,30 @@ landscaper-cli:
       traits:
         draft_release: ~
     pull-request:
+      steps:
+        run_integration_test:
+          execute:
+          - "dev_integration_test.py"
+          - "--target-clustername int-test-pr"
+          output_dir: 'integration_test'
       traits:
         pull-request: ~
         draft_release: ~
+        scheduling:
+          suppress_parallel_execution: true
     integration-test:
       repo:
         trigger: false
       traits:
         cronjob:
           interval: '2h'
+        scheduling:
+          suppress_parallel_execution: true
       steps:
         run_integration_test:
           execute:
           - "dev_integration_test.py"
-          - "--target-clustername int-test"
+          - "--target-clustername int-test-cron"
           output_dir: 'integration_test'
     release:
       steps:
@@ -50,6 +62,8 @@ landscaper-cli:
           - "--target-clustername int-test"
           output_dir: 'integration_test'
       traits:
+        scheduling:
+          suppress_parallel_execution: true
         version:
           preprocess: 'finalize'
         release:
