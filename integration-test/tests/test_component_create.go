@@ -283,8 +283,8 @@ func (t *componentCreateTest) setBaseURL(ctx context.Context) error {
 	}
 
 	oldCdString := string(data)
-	baseUrlElement := fmt.Sprintf(`baseUrl: "%s"`, t.config.RegistryBaseURL)
-	newCdString := strings.Replace(oldCdString, `baseUrl: ""`, baseUrlElement, 1)
+	baseURLElement := fmt.Sprintf(`baseUrl: "%s"`, t.config.RegistryBaseURL)
+	newCdString := strings.Replace(oldCdString, `baseUrl: ""`, baseURLElement, 1)
 
 	err = ioutil.WriteFile(componentDescriptorPath, []byte(newCdString), 0755)
 	if err != nil {

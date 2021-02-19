@@ -8,63 +8,113 @@ import (
 	"os"
 	"path"
 
+	componentcli "github.com/gardener/component-cli/pkg/commands/componentarchive/remote"
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
+
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/pkg/kubernetes"
 	"github.com/stretchr/testify/assert"
 	yamlv3 "gopkg.in/yaml.v3"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscapercli/cmd/installations"
+	"github.com/gardener/landscapercli/cmd/targets/types"
 	inttestutil "github.com/gardener/landscapercli/integration-test/util"
 	"github.com/gardener/landscapercli/pkg/util"
 )
 
-func RunInstallationsCreateTest(config *inttestutil.Config) error {
+func RunInstallationsCreateTest(k8sClient client.Client, config *inttestutil.Config) error {
 	const (
 		installationName = "test-installation"
 		componentName    = "github.com/dummy-cd"
 		componentVersion = "v0.1.0"
 		blueprintName    = "dummy-blueprint"
+		targetName       = "test-target"
 	)
 
 	test := installationsCreateTest{
-		registryBaseURL:  config.RegistryBaseURL,
+		k8sClient:        k8sClient,
 		installationName: installationName,
 		componentName:    componentName,
 		componentVersion: componentVersion,
 		blueprintName:    blueprintName,
+		targetName:       targetName,
+		config:           *config,
 	}
 
-	err := test.run()
+	err := test.setup()
+	if err != nil {
+		return fmt.Errorf("setup failed: %w", err)
+	}
+
+	err = test.run()
 	if err != nil {
 		// do not cleanup after erroneous test run to keep failed resources on the cluster
 		return fmt.Errorf("test failed: %w", err)
 	}
 
+	err = test.teardown()
+	if err != nil {
+		return fmt.Errorf("teardown failed: %w", err)
+	}
 	return nil
 }
 
 type installationsCreateTest struct {
-	registryBaseURL  string
-	installationName string
-	componentName    string
-	componentVersion string
-	blueprintName    string
+	k8sClient           client.Client
+	installationName    string
+	installationDir     string
+	installationToApply lsv1alpha1.Installation
+	componentName       string
+	componentVersion    string
+	blueprintName       string
+	config              inttestutil.Config
+	targetName          string
 }
 
 func (t *installationsCreateTest) run() error {
-	ctx := context.TODO()
-
-	fmt.Println("Creating and uploading dummy component to OCI registry")
-	err := t.createAndUploadDummyComponent()
+	fmt.Println("Creating and uploading component to OCI registry")
+	err := t.createAndUploadComponent()
 	if err != nil {
 		return fmt.Errorf("creating/uploading dummy component failed: %w", err)
 	}
 
-	fmt.Println("Executing landscaper-cli installations create")
+	err = t.createInstallationForComponentDescriptor()
+	if err != nil {
+		return fmt.Errorf("creating installation for component descriptor failed: %w", err)
+	}
 
+	err = t.setImportParameters()
+	if err != nil {
+		return fmt.Errorf("setting import parameters for installation failed: %w", err)
+	}
+
+	err = t.createTarget()
+	if err != nil {
+		return fmt.Errorf("creating target failed: %w", err)
+	}
+
+	err = t.applyToCluster()
+	if err != nil {
+		return fmt.Errorf("apply to cluster failed: %w", err)
+	}
+
+	err = t.waitForInstallationSuccess()
+	if err != nil {
+		return fmt.Errorf("waiting for installation success failed: %w", err)
+	}
+	return nil
+}
+
+func (t *installationsCreateTest) createInstallationForComponentDescriptor() error {
+	ctx := context.TODO()
+
+	fmt.Println("Executing landscaper-cli installations create")
 	cmd := installations.NewCreateCommand(ctx)
 	outBuf := &bytes.Buffer{}
 	cmd.SetOut(outBuf)
@@ -78,7 +128,7 @@ func (t *installationsCreateTest) run() error {
 	}
 	cmd.SetArgs(args)
 
-	err = cmd.Execute()
+	err := cmd.Execute()
 	if err != nil {
 		return fmt.Errorf("landscaper-cli installations create failed: %w", err)
 	}
@@ -88,7 +138,111 @@ func (t *installationsCreateTest) run() error {
 	if err != nil {
 		return fmt.Errorf("cannot unmarshal output of landscaper-cli installations create: %w", err)
 	}
+	err = t.testInstallationForCorrectStructure(actualInstallation, outBuf)
+	if err != nil {
+		return fmt.Errorf("error testing installation for correct structure: %w", err)
+	}
 
+	t.installationDir, err = ioutil.TempDir(".", "dummy-installation-*")
+	if err != nil {
+		return fmt.Errorf("cannot create component descriptor directory: %w", err)
+	}
+
+	err = ioutil.WriteFile(path.Join(t.installationDir, "installation-generated.yaml"), outBuf.Bytes(), os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("cannot write component descriptor file: %w", err)
+	}
+	return nil
+}
+
+func (t *installationsCreateTest) setImportParameters() error {
+	ctx := context.TODO()
+
+	fmt.Println("Executing landscaper-cli installations set-import-parameters")
+	cmdImportParams := installations.NewSetImportParametersCommand(ctx)
+	outBufImportParams := &bytes.Buffer{}
+	cmdImportParams.SetOut(outBufImportParams)
+	argsImportParams := []string{
+		path.Join(t.installationDir, "installation-generated.yaml"),
+		"appnamespace=" + t.config.TestNamespace,
+		"-o=" + path.Join(t.installationDir, "installation-set-import-params.yaml"),
+	}
+	cmdImportParams.SetArgs(argsImportParams)
+
+	err := cmdImportParams.Execute()
+	if err != nil {
+		return fmt.Errorf("landscaper-cli installations set-import-parameters failed: %w", err)
+	}
+	return nil
+}
+
+func (t *installationsCreateTest) createTarget() error {
+	ctx := context.TODO()
+
+	fmt.Println("Executing landscaper-cli targets create kubernetes-cluster")
+	cmdTargetCreate := types.NewKubernetesClusterCommand(ctx)
+	outBufTargetCreate := &bytes.Buffer{}
+	cmdTargetCreate.SetOut(outBufTargetCreate)
+	argsTargetCreateParams := []string{
+		"--name=" + t.targetName,
+		"--namespace=" + t.config.TestNamespace,
+		"--target-kubeconfig=" + t.config.Kubeconfig,
+	}
+	cmdTargetCreate.SetArgs(argsTargetCreateParams)
+
+	err := cmdTargetCreate.Execute()
+	if err != nil {
+		return fmt.Errorf("landscaper-cli targets create kubernetes-cluster failed: %w", err)
+	}
+
+	targetFromCommand := lsv1alpha1.Target{}
+	if err = yaml.Unmarshal(outBufTargetCreate.Bytes(), &targetFromCommand); err != nil {
+		return fmt.Errorf("cannot decode temp target: %w", err)
+	}
+	err = t.k8sClient.Create(ctx, &targetFromCommand, &client.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("cannot create target: %w", err)
+	}
+	return nil
+}
+
+func (t *installationsCreateTest) applyToCluster() error {
+	ctx := context.TODO()
+
+	fmt.Printf("Preparing installation")
+	installationFileData, err := ioutil.ReadFile(path.Join(t.installationDir, "installation-set-import-params.yaml"))
+	if err != nil {
+		return fmt.Errorf("cannot read temp installation file: %w", err)
+	}
+	t.installationToApply = lsv1alpha1.Installation{}
+	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(installationFileData, nil, &t.installationToApply); err != nil {
+		return fmt.Errorf("cannot decode temp installation: %w", err)
+	}
+
+	fmt.Printf("Creating installation %s in namespace %s\n", t.installationToApply.Name, t.config.TestNamespace)
+	t.installationToApply.ObjectMeta.Namespace = t.config.TestNamespace
+	t.installationToApply.Spec.Imports.Targets[0].Target = "#" + t.targetName
+	err = t.k8sClient.Create(ctx, &t.installationToApply, &client.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("cannot create installation: %w", err)
+	}
+	return nil
+}
+
+func (t *installationsCreateTest) waitForInstallationSuccess() error {
+	//check if installation has status succeeded
+	fmt.Printf("Wait for installation %s in namespace %s to succeed\n", t.installationToApply.Name, t.config.TestNamespace)
+	timeout, err := util.CheckAndWaitUntilLandscaperInstallationSucceeded(t.k8sClient, client.ObjectKey{Name: t.installationToApply.Name, Namespace: t.installationToApply.Namespace}, t.config.SleepTime, t.config.MaxRetries)
+	if err != nil {
+		return fmt.Errorf("error while waiting for installation to succeed: %w", err)
+	}
+	if timeout {
+		return fmt.Errorf("timeout at waiting for installation")
+	}
+	return nil
+}
+
+func (t *installationsCreateTest) testInstallationForCorrectStructure(actualInstallation lsv1alpha1.Installation, outBuf *bytes.Buffer) error {
 	expectedInstallation := lsv1alpha1.Installation{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Installation",
@@ -104,7 +258,7 @@ func (t *installationsCreateTest) run() error {
 					ComponentName: t.componentName,
 					RepositoryContext: &cdv2.RepositoryContext{
 						Type:    cdv2.OCIRegistryType,
-						BaseURL: t.registryBaseURL,
+						BaseURL: t.config.RegistryBaseURL,
 					},
 				},
 			},
@@ -116,24 +270,12 @@ func (t *installationsCreateTest) run() error {
 			Imports: lsv1alpha1.InstallationImports{
 				Data: []lsv1alpha1.DataImport{
 					{
-						Name: "dummyDataImport",
+						Name: "appnamespace",
 					},
 				},
 				Targets: []lsv1alpha1.TargetImportExport{
 					{
-						Name: "dummyTargetImport",
-					},
-				},
-			},
-			Exports: lsv1alpha1.InstallationExports{
-				Data: []lsv1alpha1.DataExport{
-					{
-						Name: "dummyDataExport",
-					},
-				},
-				Targets: []lsv1alpha1.TargetImportExport{
-					{
-						Name: "dummyTargetExport",
+						Name: "cluster",
 					},
 				},
 			},
@@ -144,12 +286,14 @@ func (t *installationsCreateTest) run() error {
 
 	ok := assert.Equal(inttestutil.DummyTestingT{}, expectedInstallation, actualInstallation)
 	if !ok {
-		return fmt.Errorf("")
+		return fmt.Errorf("expected installation does not match with actual installation")
 	}
 
 	rootNode := &yamlv3.Node{}
-	err = yamlv3.Unmarshal(outBuf.Bytes(), rootNode)
-
+	err := yamlv3.Unmarshal(outBuf.Bytes(), rootNode)
+	if err != nil {
+		return err
+	}
 	_, dataImportsNode := util.FindNodeByPath(rootNode, "spec.imports.data")
 	expectedSchema := `# JSON schema
 # {
@@ -167,63 +311,46 @@ func (t *installationsCreateTest) run() error {
 		return fmt.Errorf("schema comments for spec.imports.targets are invalid")
 	}
 
-	_, dataExportsNode := util.FindNodeByPath(rootNode, "spec.exports.data")
-	dataExportsNode, _ = util.FindNodeByPath(dataExportsNode.Content[0], "name")
-	expectedSchema = `# JSON schema
-# {
-#   "type": "string"
-# }`
-	ok = assert.Equal(inttestutil.DummyTestingT{}, expectedSchema, dataExportsNode.HeadComment)
-	if !ok {
-		return fmt.Errorf("schema comments for spec.exports.data are invalid")
-	}
-
-	_, targetExportsNode := util.FindNodeByPath(rootNode, "spec.exports.targets")
-	expectedSchema = "# Target type: landscaper.gardener.cloud/kubernetes-cluster"
-	ok = assert.Equal(inttestutil.DummyTestingT{}, expectedSchema, targetExportsNode.Content[0].Content[0].HeadComment)
-	if !ok {
-		return fmt.Errorf("schema comments for spec.exports.targets are invalid")
-	}
-
 	return nil
 }
 
-func (t *installationsCreateTest) createDummyBlueprint() *lsv1alpha1.Blueprint {
-	bp := &lsv1alpha1.Blueprint{
-		Imports: []lsv1alpha1.ImportDefinition{
-			{
-				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name:   "dummyDataImport",
-					Schema: lsv1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
-				},
-			},
-			{
-				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name:       "dummyTargetImport",
-					TargetType: string(lsv1alpha1.KubernetesClusterTargetType),
-				},
-			},
-		},
-		Exports: []lsv1alpha1.ExportDefinition{
-			{
-				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name:   "dummyDataExport",
-					Schema: lsv1alpha1.JSONSchemaDefinition("{ \"type\": \"string\" }"),
-				},
-			},
-			{
-				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
-					Name:       "dummyTargetExport",
-					TargetType: string(lsv1alpha1.KubernetesClusterTargetType),
-				},
-			},
-		},
-		DeployExecutions: []lsv1alpha1.TemplateExecutor{},
-	}
-	return bp
+func (t *installationsCreateTest) createBlueprint() string {
+	return `
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Blueprint
+
+imports:
+- name: cluster
+  targetType: landscaper.gardener.cloud/kubernetes-cluster
+- name: appnamespace
+  schema:
+    type: string
+
+deployExecutions:
+- name: default
+  type: GoTemplate
+  template: |
+    deployItems:
+    - name: deploy
+      type: landscaper.gardener.cloud/helm
+      target:
+        name: {{ .imports.cluster.metadata.name }}
+        namespace: {{ .imports.cluster.metadata.namespace }}
+      config:
+        apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
+        kind: ProviderConfiguration
+
+        chart:
+          {{ $resource := getResource .cd "name" "echo-server-chart" }}
+          ref: {{ $resource.access.imageReference }}
+
+        updateStrategy: patch
+
+        name: test-name
+        namespace: {{ .imports.appnamespace }} `
 }
 
-func (t *installationsCreateTest) createAndUploadDummyComponent() error {
+func (t *installationsCreateTest) createAndUploadComponent() error {
 	ctx := context.TODO()
 
 	cdDir, err := ioutil.TempDir(".", "dummy-cd-*")
@@ -237,7 +364,7 @@ func (t *installationsCreateTest) createAndUploadDummyComponent() error {
 		}
 	}()
 
-	cd := inttestutil.CreateComponentDescriptor(t.componentName, t.componentVersion, t.registryBaseURL)
+	cd := inttestutil.CreateComponentDescriptor(t.componentName, t.componentVersion, t.config.RegistryBaseURL)
 	marshaledCd, err := yaml.Marshal(cd)
 	if err != nil {
 		return fmt.Errorf("cannot marshal component descriptor: %w", err)
@@ -253,12 +380,9 @@ func (t *installationsCreateTest) createAndUploadDummyComponent() error {
 		return fmt.Errorf("cannot create blueprint directory: %w", err)
 	}
 
-	bp := t.createDummyBlueprint()
-	marshaledBp, err := yaml.Marshal(bp)
-	if err != nil {
-		return fmt.Errorf("cannot marshal blueprint: %w", err)
-	}
-	err = ioutil.WriteFile(path.Join(bpDir, "blueprint.yaml"), marshaledBp, os.ModePerm)
+	marshaledBp := t.createBlueprint()
+
+	err = ioutil.WriteFile(path.Join(bpDir, "blueprint.yaml"), []byte(marshaledBp), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("cannot write blueprint.yaml: %w", err)
 	}
@@ -274,7 +398,15 @@ input:
   compress: true
   mediaType: "application/vnd.gardener.landscaper.blueprint.v1+tar+gzip"
 ---
-`, t.blueprintName, t.componentVersion)
+type: helm
+name: echo-server-chart
+version: v0.1.0
+relation: local
+access:
+  type: ociRegistry
+  imageReference: %s/echo-server-chart:v1.1.0
+---
+`, t.blueprintName, t.componentVersion, t.config.RegistryBaseURL)
 
 	resourceFile := path.Join(cdDir, "resources.yaml")
 	err = ioutil.WriteFile(resourceFile, []byte(resourcesYaml), os.ModePerm)
@@ -295,11 +427,56 @@ input:
 		return fmt.Errorf("component-cli add resources failed: %w", err)
 	}
 
-	uploadRef := fmt.Sprintf("localhost:5000/component-descriptors/%s:%s", t.componentName, t.componentVersion)
-	err = inttestutil.UploadComponentArchive(cdDir, uploadRef)
+	cmdPush := componentcli.NewPushCommand(ctx)
+	outBufPush := &bytes.Buffer{}
+	cmdPush.SetOut(outBufPush)
+	argsPush := []string{
+		"localhost:5000",
+		cd.Name,
+		cd.Version,
+		cdDir,
+	}
+	cmdPush.SetArgs(argsPush)
+
+	err = cmdPush.Execute()
 	if err != nil {
-		return fmt.Errorf("cannot upload component archive: %w", err)
+		return fmt.Errorf("landscaper-cli components component-archive remote push failed: %w", err)
 	}
 
+	return nil
+}
+
+func (t *installationsCreateTest) setup() error {
+	err := util.DeleteNamespace(t.k8sClient, t.config.TestNamespace, t.config.SleepTime, t.config.MaxRetries)
+	if err != nil {
+		return fmt.Errorf("cannot delete namespace %s: %w", t.config.TestNamespace, err)
+	}
+
+	fmt.Printf("Creating namespace %s\n", t.config.TestNamespace)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: t.config.TestNamespace,
+		},
+	}
+	ctx := context.TODO()
+
+	//create namespace
+	err = t.k8sClient.Create(ctx, namespace, &client.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("cannot create namespace %s: %w", t.config.TestNamespace, err)
+	}
+	return nil
+}
+
+func (t *installationsCreateTest) teardown() error {
+	removeErr := os.RemoveAll(t.installationDir)
+	if removeErr != nil {
+		fmt.Printf("cannot remove temporary directory %s: %s", t.installationDir, removeErr.Error())
+	}
+
+	err := util.DeleteNamespace(t.k8sClient, t.config.TestNamespace, t.config.SleepTime, t.config.MaxRetries)
+	if err != nil {
+		return fmt.Errorf("cannot delete namespace %s: %w", t.config.TestNamespace, err)
+	}
 	return nil
 }
