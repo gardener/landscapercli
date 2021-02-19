@@ -61,7 +61,7 @@ The command `landscaper-cli installations create [baseURL] [component name] [com
 E.g., executing the command
 
 ```
-landscaper-cli installations create localhost:5000 github.com/gardener/landscapercli/nginx v0.1.0
+landscaper-cli installations create localhost:5000 github.com/gardener/landscapercli/nginx v0.1.0 --name my-installation
 ```
 
 creates the following installation template:

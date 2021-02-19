@@ -20,6 +20,9 @@ type kubernetesClusterOpts struct {
 	name                 string
 	namespace            string
 	targetKubeconfigPath string
+
+	//outputPath is the path to write the installation.yaml to
+	outputPath string
 }
 
 func NewKubernetesClusterCommand(ctx context.Context) *cobra.Command {
@@ -78,8 +81,18 @@ func (o *kubernetesClusterOpts) run(ctx context.Context, cmd *cobra.Command, log
 		return fmt.Errorf("cannot marshal target yaml: %w", err)
 	}
 
-	cmd.Println(string(marshaledYaml))
-
+	if o.outputPath == "" {
+		cmd.Println(string(marshaledYaml))
+	} else {
+		f, err := os.Create(o.outputPath)
+		if err != nil {
+			return fmt.Errorf("error creating file %s: %w", o.outputPath, err)
+		}
+		_, err = f.Write(marshaledYaml)
+		if err != nil {
+			return fmt.Errorf("error writing file %s: %w", o.outputPath, err)
+		}
+	}
 	return nil
 }
 
@@ -87,4 +100,5 @@ func (o *kubernetesClusterOpts) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "name of the target")
 	fs.StringVar(&o.namespace, "namespace", "", "namespace of the target")
 	fs.StringVar(&o.targetKubeconfigPath, "target-kubeconfig", "", "path to the kubeconfig where the created target object will point to")
+	fs.StringVarP(&o.outputPath, "output-file", "o", "", "file path for the resulting target yaml")
 }

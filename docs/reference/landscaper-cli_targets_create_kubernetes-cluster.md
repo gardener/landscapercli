@@ -18,6 +18,7 @@ landscaper-cli targets create kubernetes-cluster --name my-target --namespace my
   -h, --help                       help for kubernetes-cluster
       --name string                name of the target
       --namespace string           namespace of the target
+  -o, --output-file string         file path for the resulting target yaml
       --target-kubeconfig string   path to the kubeconfig where the created target object will point to
 ```
 
