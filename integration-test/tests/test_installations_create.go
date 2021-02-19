@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscapercli/cmd/installations"
+	"github.com/gardener/landscapercli/cmd/targets/types"
 	inttestutil "github.com/gardener/landscapercli/integration-test/util"
 	"github.com/gardener/landscapercli/pkg/util"
 )
@@ -59,13 +60,6 @@ func RunInstallationsCreateTest(k8sClient client.Client, target *lsv1alpha1.Targ
 	err := k8sClient.Create(ctx, namespace, &client.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("cannot create namespace %s: %w", testNamespace, err)
-	}
-
-	//create target
-	test.target.Namespace = test.testNamespace
-	err = test.k8sClient.Create(ctx, test.target, &client.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("cannot create target: %w", err)
 	}
 
 	err = test.run()
@@ -140,7 +134,33 @@ func (t *installationsCreateTest) run() error {
 	if err != nil {
 		return fmt.Errorf("cannot write component descriptor file: %w", err)
 	}
+	//run target create
+	fmt.Println("Executing landscaper-cli targets create kubernetes-cluster")
+	cmdTargetCreate := types.NewKubernetesClusterCommand(ctx)
+	outBufTargetCreate := &bytes.Buffer{}
+	cmdTargetCreate.SetOut(outBufTargetCreate)
+	argsTargetCreateParams := []string{
+		"--name=test-target",
+		"--namespace=" + t.testNamespace,
+		"--target-kubeconfig=" + t.config.Kubeconfig,
+	}
+	cmdTargetCreate.SetArgs(argsTargetCreateParams)
 
+	err = cmdTargetCreate.Execute()
+	if err != nil {
+		return fmt.Errorf("landscaper-cli targets create kubernetes-cluster failed: %w", err)
+	}
+
+	targetFromCommand := lsv1alpha1.Target{}
+	if err = yaml.Unmarshal(outBufTargetCreate.Bytes(), &targetFromCommand); err != nil {
+		return fmt.Errorf("cannot decode temp target: %w", err)
+	}
+	err = t.k8sClient.Create(ctx, &targetFromCommand, &client.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("cannot create target: %w", err)
+	}
+
+	//run set-import-parameters
 	fmt.Println("Executing landscaper-cli installations set-import-parameters")
 	cmdImportParams := installations.NewSetImportParametersCommand(ctx)
 	outBufImportParams := &bytes.Buffer{}
