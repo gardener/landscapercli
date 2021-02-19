@@ -148,17 +148,13 @@ func (t *installationsCreateTest) run() error {
 	argsImportParams := []string{
 		path.Join(installationsDir, "installation-generated.yaml"),
 		"appnamespace=" + t.testNamespace,
+		"-o=" + path.Join(installationsDir, "installation-set-import-params.yaml"),
 	}
 	cmdImportParams.SetArgs(argsImportParams)
 
 	err = cmdImportParams.Execute()
 	if err != nil {
 		return fmt.Errorf("landscaper-cli installations set-import-parameters failed: %w", err)
-	}
-
-	err = ioutil.WriteFile(path.Join(installationsDir, "installation-set-import-params.yaml"), outBufImportParams.Bytes(), os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("cannot installation after set-import-params.yaml: %w", err)
 	}
 
 	//apply installation to cluster
@@ -180,6 +176,7 @@ func (t *installationsCreateTest) run() error {
 	}
 
 	//check if installation is successful
+	fmt.Printf("Wait for installation %s in namespace %s to succeed\n", installationToApply.Name, t.testNamespace)
 	timeout, err := util.CheckAndWaitUntilLandscaperInstallationSucceeded(t.k8sClient, client.ObjectKey{Name: installationToApply.Name, Namespace: installationToApply.Namespace}, t.config.SleepTime, t.config.MaxRetries)
 	if err != nil {
 		return fmt.Errorf("error while waiting for installation to succeed: %w", err)

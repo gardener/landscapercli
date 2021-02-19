@@ -42,7 +42,7 @@ func runTestSuite(k8sClient client.Client, config *inttestutil.Config, target *l
 	}
 
 	fmt.Println("========== RunInstallationsCreateTest() ==========")
-	err = tests.RunInstallationsCreateTest(config)
+	err = tests.RunInstallationsCreateTest(k8sClient, target, config)
 	if err != nil {
 		return fmt.Errorf("RunInstallationsCreateTest() failed: %w", err)
 	}
