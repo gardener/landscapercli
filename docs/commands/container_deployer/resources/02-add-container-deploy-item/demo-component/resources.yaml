@@ -1,0 +1,20 @@
+---
+type: blueprint
+name: blueprint
+version: v0.1.0
+relation: local
+input: 
+  type: dir
+  path: ./blueprint
+  mediaType: application/vnd.gardener.landscaper.blueprint.v1+tar+gzip
+  compress: true
+...
+---
+type: ociImage
+name: examplecontainer
+version: 0.1.0
+relation: external
+access: 
+  type: ociRegistry
+  imageReference: your-registry/your-path/containerexample:0.1.0
+...

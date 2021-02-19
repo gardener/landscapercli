@@ -22,6 +22,17 @@ $LS_COMPONENT_DIR/demo-component
 kubectl -n default exec --stdin --tty demo-installation-container1-zdlks-82vq8 -- /bin/sh
 ```
 
+## Command to Add a Container Deploy Item
+
+```shell script
+landscaper-cli components add container deployitem cont \
+  --component-directory $LS_COMPONENT_DIR \
+  --image alpine \
+  --command sh \
+  --command -c \
+  --cluster-param target-cluster
+```
+
 ## Todo
 
 - Test export: echo "testparam: ttt" > $EXPORTS_PATH
@@ -36,3 +47,6 @@ kubectl -n default exec --stdin --tty demo-installation-container1-zdlks-82vq8 -
 - Documentation
 
   - Document that no minus sign should be used in parameter names without "index" template syntax
+  
+  - Describe for $IMPORTS_PATH, $STATE_PATH, $EXPORTS_PATH, what is a directory and what is a file.
+    Describe also which of them exist.

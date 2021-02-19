@@ -7,7 +7,7 @@ component:
     type: ociRegistry
   resources:
   - access:
-      filename: sha256:c1f244af257968621b687b3eec781bf7ed62c3c9ea71f5b127107f1fb54064f6
+      filename: sha256:7688cd3e7d5bed64286ddb3ff21bb43622bf4fd9649e9d514fe3d676e3cf210e
       mediaType: application/vnd.gardener.landscaper.blueprint.v1+tar+gzip
       type: localFilesystemBlob
     name: blueprint

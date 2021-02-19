@@ -19,6 +19,7 @@ func NewAddCommand(ctx context.Context) *cobra.Command {
 
 	cmd.AddCommand(NewAddHelmCommand(ctx))
 	cmd.AddCommand(NewAddManifestCommand(ctx))
+	cmd.AddCommand(NewAddContainerCommand(ctx))
 
 	return cmd
 }

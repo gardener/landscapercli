@@ -24,6 +24,18 @@ func (b *BlueprintBuilder) AddImports(importDefinitions []v1alpha1.ImportDefinit
 	}
 }
 
+func (b *BlueprintBuilder) AddImportsFromMap(importDefinitions map[string]*v1alpha1.ImportDefinition) {
+	for _, importDefinition := range importDefinitions {
+		b.AddImport(importDefinition)
+	}
+}
+
+func (b *BlueprintBuilder) AddExportsFromMap(exportDefinitions map[string]*v1alpha1.ExportDefinition) {
+	for _, exportDefinition := range exportDefinitions {
+		b.AddExport(exportDefinition)
+	}
+}
+
 func (b *BlueprintBuilder) AddImport(importDefinition *v1alpha1.ImportDefinition) {
 	if b.existsImport(importDefinition.Name) {
 		return
@@ -32,9 +44,27 @@ func (b *BlueprintBuilder) AddImport(importDefinition *v1alpha1.ImportDefinition
 	b.blueprint.Imports = append(b.blueprint.Imports, *importDefinition)
 }
 
+func (b *BlueprintBuilder) AddExport(exportDefinition *v1alpha1.ExportDefinition) {
+	if b.existsExport(exportDefinition.Name) {
+		return
+	}
+
+	b.blueprint.Exports = append(b.blueprint.Exports, *exportDefinition)
+}
+
 func (b *BlueprintBuilder) existsImport(name string) bool {
 	for i := range b.blueprint.Imports {
 		if b.blueprint.Imports[i].Name == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (b *BlueprintBuilder) existsExport(name string) bool {
+	for i := range b.blueprint.Exports {
+		if b.blueprint.Exports[i].Name == name {
 			return true
 		}
 	}
