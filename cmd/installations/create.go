@@ -9,14 +9,16 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gardener/component-cli/ociclient"
 	ociopts "github.com/gardener/component-cli/ociclient/options"
 	"github.com/gardener/component-cli/pkg/commands/constants"
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	"github.com/gardener/component-spec/bindings-go/ctf"
 	cdoci "github.com/gardener/component-spec/bindings-go/oci"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/pkg/kubernetes"
 	lsjsonschema "github.com/gardener/landscaper/pkg/landscaper/jsonschema"
-	lscomponents "github.com/gardener/landscaper/pkg/landscaper/registry/components"
+	registrycomponents "github.com/gardener/landscaper/pkg/landscaper/registry/components"
 	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
 	"github.com/gardener/landscaper/pkg/utils"
 	"github.com/go-logr/logr"
@@ -108,31 +110,13 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		return err
 	}
 
-	var data bytes.Buffer
-	if blueprintRes.Access.GetType() == cdv2.OCIRegistryType {
-		ref, ok := blueprintRes.Access.Object["imageReference"].(string)
-		if !ok {
-			return fmt.Errorf("cannot parse imageReference to string")
-		}
-
-		manifest, err := ociClient.GetManifest(ctx, ref)
-		if err != nil {
-			return fmt.Errorf("cannot get manifest: %w", err)
-		}
-
-		err = ociClient.Fetch(ctx, ref, manifest.Layers[0], &data)
-		if err != nil {
-			return fmt.Errorf("cannot get manifest layer: %w", err)
-		}
-	} else {
-		_, err = blobResolver.Resolve(ctx, *blueprintRes, &data)
-		if err != nil {
-			return fmt.Errorf("unable to to resolve blob of blueprint resource: %w", err)
-		}
+	data, err := resolveBlueprint(ctx, *blueprintRes, ociClient, blobResolver)
+	if err != nil {
+		return fmt.Errorf("cannot resolve blueprint: %w", err)
 	}
 
 	memFS := memoryfs.New()
-	if err := utils.ExtractTarGzip(&data, memFS, "/"); err != nil {
+	if err := utils.ExtractTarGzip(data, memFS, "/"); err != nil {
 		return fmt.Errorf("cannot extract blueprint blob: %w", err)
 	}
 
@@ -146,15 +130,15 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		return fmt.Errorf("cannot decode blueprint: %w", err)
 	}
 
-	ociRegistry, err := lscomponents.NewOCIRegistryWithOCIClient(ociClient)
-	if err != nil {
-		return fmt.Errorf("cannot build <insert something here>: %w", err)
-	}
-
 	installation := buildInstallation(o.name, cd, *blueprintRes, blueprint)
 
 	var marshaledYaml []byte
 	if o.renderSchemaInfo {
+		ociRegistry, err := registrycomponents.NewOCIRegistryWithOCIClient(ociClient)
+		if err != nil {
+			return fmt.Errorf("cannot build oci registry: %w", err)
+		}
+
 		jsonschemaLoader := &jsonschemaLoader{
 			loaderConfig: &lsjsonschema.LoaderConfig{
 				LocalTypes:                 blueprint.LocalTypes,
@@ -246,6 +230,33 @@ func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installatio
 	}
 
 	return commentedInstallationYaml, nil
+}
+
+func resolveBlueprint(ctx context.Context, blueprintRes cdv2.Resource, ociClient ociclient.Client, blobResolver ctf.BlobResolver) (*bytes.Buffer, error) {
+	var data bytes.Buffer
+	if blueprintRes.Access.GetType() == cdv2.OCIRegistryType {
+		ref, ok := blueprintRes.Access.Object["imageReference"].(string)
+		if !ok {
+			return nil, fmt.Errorf("cannot parse imageReference to string")
+		}
+
+		manifest, err := ociClient.GetManifest(ctx, ref)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get manifest: %w", err)
+		}
+
+		err = ociClient.Fetch(ctx, ref, manifest.Layers[0], &data)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get manifest layer: %w", err)
+		}
+	} else {
+		_, err := blobResolver.Resolve(ctx, blueprintRes, &data)
+		if err != nil {
+			return nil, fmt.Errorf("unable to to resolve blob of blueprint resource: %w", err)
+		}
+	}
+
+	return &data, nil
 }
 
 func (o *createOpts) getBlueprintResource(cd *cdv2.ComponentDescriptor) (*cdv2.Resource, error) {
