@@ -102,6 +102,8 @@ func (o *importParametersOptions) run(ctx context.Context, log logr.Logger, cmd 
 	if err != nil {
 		return fmt.Errorf("error writing file %s: %w", outputPath, err)
 	}
+
+	cmd.Printf("Wrote installation to %s", o.outputPath)
 	return nil
 }
 

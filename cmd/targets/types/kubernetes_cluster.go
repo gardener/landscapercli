@@ -93,6 +93,7 @@ func (o *kubernetesClusterOpts) run(ctx context.Context, cmd *cobra.Command, log
 		if err != nil {
 			return fmt.Errorf("error writing file %s: %w", o.outputPath, err)
 		}
+		cmd.Printf("Wrote target to %s", o.outputPath)
 	}
 	return nil
 }
