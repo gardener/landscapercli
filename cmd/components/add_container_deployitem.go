@@ -146,7 +146,7 @@ func (o *addContainerDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 		"command",
 		"c",
 		[]string{},
-		"command (multi-value)")
+		"command (optional, multi-value)")
 
 	o.args = &[]string{}
 	fs.StringSliceVarP(o.args,
@@ -160,14 +160,14 @@ func (o *addContainerDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 		"import-param",
 		"i",
 		[]string{},
-		"import parameter as name:integer|string|boolean, e.g. replicas:integer")
+		"import parameter as name:integer|string|boolean, e.g. replicas:integer (optional, multi-value)")
 
 	o.exportParams = &[]string{}
 	fs.StringSliceVarP(o.exportParams,
 		"export-param",
 		"e",
 		[]string{},
-		"export parameter as name:integer|string|boolean, e.g. replicas:integer")
+		"export parameter as name:integer|string|boolean, e.g. replicas:integer (optional, multi-value)")
 
 	fs.StringVar(&o.clusterParam,
 		"cluster-param",

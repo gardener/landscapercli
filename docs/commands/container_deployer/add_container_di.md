@@ -17,10 +17,10 @@ landscaper-cli component add container deployitem \
   --resource-version [version]
   --component-directory [some-path] \
   --image [oci-image-reference] \
-  --import-param [param-name:param-type] \
-  --export-param [param-name:param-type] \
-  --command [command with modifier] \
-  --args [arguments] \
+  --import-param [param-name:param-type(optional, multi-value)] \
+  --export-param [param-name:param-type (optional, multi-value)] \
+  --command [command with modifier (optional, multi-value)] \
+  --args [arguments (optional, multi-value)] \
   --cluster-param [target-cluster-param-name (optional)] 
 ```
 
@@ -31,16 +31,16 @@ The meaning of the arguments and flags is as follows:
 - image: Reference to the OCI image which should be executed.
 
 - import-param: The value of this flag consists of two parts separated by a colon, e.g. *replicas:integer*.
-  The first part defines the name on an import parameter for the blueprint and the second part its type.
+  The first part defines the name of an import parameter for the blueprint and the second part its type.
 
 - export-param: The value of this flag consists of two parts separated by a colon, e.g. *replicas:integer*.
-  The first part defines the name on an import parameter for the blueprint and the second part its type.
+  The first part defines the name of an import parameter for the blueprint and the second part its type.
 
 - command: The command to be executed in your image.
 
 - args: Arguments for the command.
 
-- cluster-param: Defines the name of the import parameter of the blueprint for the target access data to e.g. access 
+- cluster-param: Defines the name of the import parameter of the blueprint for access data to e.g. access 
   data to a target cluster.
   
 We will describe the command and parameters in more detail in the following.
@@ -95,15 +95,16 @@ sleepTimeAfter=$(echo $IMPORTS | jq .sleepTimeAfter)
 sleep $sleepTimeAfter
 ```
 
-When the script is executed by the landscaper in combination with the component deployer, it could expect that
-the following environment variables are set:
+When the script is executed by the landscaper in combination with the component deployer, the following environment 
+variables are set:
 
 - OPERATION: Contains either `RECONILE` or `DELETE` to inform the program if it should do its job or that the 
   deploy item was deleted, and a potential clean up should be executed.
   
 - IMPORTS: Describes the path to a json file containing the input data for your program. 
   - In the example above we expect 3 input parameter in the following format (of course more complex data is possible):
-  ```json
+  
+```yaml
   {
   "sleepTimeBefore": [some number],
   "sleepTimeAfter": [some number],
@@ -112,58 +113,59 @@ the following environment variables are set:
   ```
   - The input parameter are ready with `IMPORTS=$(cat $IMPORTS_PATH)`
   
-- STATE_PATH: Contains the path to a folder, where you could store status information. Here you are restricted to any
+- STATE_PATH: Contains the path to a folder, where you could store status information. Here you are not restricted to any
   format. You could create as many files with different data as you need. 
-  - In our example we create here just one single file `state.txt` containing all word so far.
+  - In our example we create here just one single file `state.txt` containing all word provided so far.
   
 - EXPORTS_PATH: Contains the path to a file were the output data should be stored in json or yaml format. The
-  file itself does not already exist, but the parent folder is already there.
-  - In the example script the command `output="{\"sentence\": \"$state\"}"` just creates:
+  file itself does not already exist. Only the parent folder is already there.
+  - The example script just creates:
   ```
   {"sentence": word1 word2 ...}"
   ```
 
 ### Lifecycle
 
-Now it is time to give you a rough understanding of the later lifecycle of you program. When an installation with
-our example container deploy item is created, the landscaper and container deployer acts as following:
+Now it is time to give you a rough understanding of the runtime lifecycle of programs specified as container deploy 
+items. When an installation with our example container deploy item is created, the landscaper and container deployer 
+acts as following:
 
-- Your program is configured as a container deploy item in a blueprint and an installation referencing this blueprint
-  is deployed in a k8s cluster. The installation requires/defines all input parameter our program needs.
-  We will show this in detail later.
+- The program (the script in our example) is configured as a container deploy item in a blueprint and an installation 
+  referencing this blueprint is deployed in a k8s cluster. The installation and teh blueprint define all 
+  input parameter the program needs. We will show this in more detail later.
 
-- If all input parameters of the "installation/your program" are available, the container deployer starts your 
-  program in a container in a `pod` providing the input data at `$IMPORTS`. Also, all other environment variable 
-  described above are set accordingly. Especially `$OPERATION` is set on `RECONCILE`.
+- If all input parameters of the installation are available, the container deployer starts the 
+  program in a container in a `pod` providing the input data in the file specified by `$IMPORTS`. All 
+  other environment variable described above are set accordingly. Especially `$OPERATION` is set on `RECONCILE`.
   
 - When the program has finished the output data are fetched and provided as output data of the corresponding 
   installation. Furthermore, the data stored in the directory `STATE_PATH` are saved by the landscaper. Then, the
   `pod`, in which the container with our program was executed, is deleted.
   
-- If a new word is provided to the installation (or something alse has changed here) the program is started in a new
-  pod with the new input data available. Furthermore, the folder `STATE_PATH` contains exactly the data found here
-  after the last run of our program. When the program has finished again the new output data are fetched and provided
+- If new input data is provided to the installation (or something else has changed here), the program is started in a new
+  pod with the latest input data available. Furthermore, the folder `STATE_PATH` contains exactly the data found here
+  after the last run of the program. When the program has finished again, the new output data are fetched and provided
   by the installation, the state is saved and the `pod` deleted. This loops repeats until the installation with
   the container deploy item is deleted.
   
 - If the installation is deleted, a container with our program is started as before. Only the variable `$OPERATION`
-  now contains `DELETE` to inform the program that it is now time to clean up your stuff. Our example program
+  now contains `DELETE` to inform the program that it is now time to clean up if necessary. Our example program
   does not install something. Therefore, cleanup is not relevant, we just remove the state file which is not really
   needed, because after a delete operation, the landscape will not keep these data anyhow.
   
 ### Create a Docker Image with our Example Script/Program
 
 The landscaper or container deployer could not start our example script directly. It could just start it as a command 
-of a docker image. Therfore, we need to create such a docker image for our script.
+of a docker image. Therefore, we need to create such a docker image for our script.
 
-The docker file to build this image is in the file [Dockerfile](resources/image-resources/Dockerfile). If uses the 
-alpine base image, installs `jq`, copies our script and sets its permissions.
+The docker file to build this image is in the file [Dockerfile](resources/image-resources/Dockerfile). It uses the 
+alpine base image, installs `jq`, copies our script and sets its permissions.  
 
-With the following commands executed on the [folder of the `Dockerfile`](resources/image-resources) you could build
-and upload it to some OCI registry (we used GCP here):
+With the following commands executed on the [folder of the Dockerfile](resources/image-resources) you could build
+and upload it to some OCI registry:
 
 ```shell
-docker login your-registry -u _json_key -p "$(cat [path to your service account key] )"
+docker login ..."
 
 docker build --tag your-registry/your-path/containerexample:0.1.0 .
 docker push your-registry/your-path/containerexample:0.1.0
@@ -171,7 +173,7 @@ docker push your-registry/your-path/containerexample:0.1.0
 
 ### Create a component
 
-If you just want to copy and execute the example commands below without any modifications, do the following steps:
+If you just want to copy and execute the example commands below with only small modifications, do the following steps:
 
 - Clone the [Landscaper CLI Git repository](https://github.com/gardener/landscapercli).
 
@@ -238,22 +240,22 @@ The command makes the following changes to the component:
   [deploy-execution-examplecontainer.yaml](resources/02-add-container-deploy-item/demo-component/blueprint/deploy-execution-examplecontainer.yaml) 
   to the [blueprint.yaml](resources/02-add-container-deploy-item/demo-component/blueprint/blueprint.yaml)
   
-- Add the reference to the OCI image as a resource to the 
+- It adds the reference to the OCI image as a resource to the 
   [resources.yaml](resources/02-add-container-deploy-item/demo-component/resources.yaml).
 
 ### Upload the Component
 
 As already described in [creates.md](../create_component/create.md#3-upload-component-into-an-oci-registry), we now 
-add the base URL of an OCI registry and the resources to the component descriptor and upload the component to an 
+add the base URL of the OCI registry and the resources to the component descriptor and upload the component to an 
 OCI registry. 
 
 ### Create an Installation
 
 Next we need an installation referencing the new component. An example could be found 
 [here](resources/installations/installation.yaml). Be aware that you have to change the `baseUrl` to that of your
-OCI registry.
+OCI registry. 
 
-In the example we have set the input parameter `word` on *word1* and the sleep times on 5 minutes. When you deploy
+In the example we have set the input parameter `word` on *word1*, and the sleep times on 5 minutes. When you deploy
 this installation on the landscaper cluster after a short time a pod is started executing the script. During that
 time you could open a shell in the pod to analyze the settings with:
 
@@ -270,7 +272,7 @@ import data. After about five minutes you should also be able to see the output 
   - integrate target-cluster
   - integrate other stuff like data in blueprint, component-descriptor, etc.
 
-- check coding for product readiness e.g.
-  - validate duplicate input params
+- Implementation
+  - access to images in secured OCI registry
   
 - integration tests
