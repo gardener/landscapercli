@@ -1,0 +1,123 @@
+{
+  "blueprint": {
+    "ref": {
+      "resourceName": "blueprint"
+    }
+  },
+  "cd": {
+    "component": {
+      "componentReferences": [],
+      "name": "github.com/gardener/landscapercli/examplecontainer",
+      "provider": "internal",
+      "repositoryContexts": [
+        {
+          "baseUrl": "yourOciBaseUrl",
+          "type": "ociRegistry"
+        }
+      ],
+      "resources": [
+        {
+          "access": {
+            "digest": "sha256:2c14375e619fc842a854e48a8bb74936353e90b36e9152605747630cc960f6a2",
+            "type": "localOciBlob"
+          },
+          "name": "blueprint",
+          "relation": "local",
+          "type": "blueprint",
+          "version": "v0.1.0"
+        },
+        {
+          "access": {
+            "imageReference": "your-registry/your-path/containerexample:0.1.0",
+            "type": "ociRegistry"
+          },
+          "name": "examplecontainer",
+          "relation": "external",
+          "type": "ociImage",
+          "version": "0.1.0"
+        }
+      ],
+      "sources": [],
+      "version": "v0.1.0"
+    },
+    "meta": {
+      "schemaVersion": "v2"
+    }
+  },
+  "componentDescriptorDef": {
+    "ref": {
+      "componentName": "github.com/gardener/landscapercli/examplecontainer",
+      "repositoryContext": {
+        "baseUrl": "yourOciBaseUrl",
+        "type": "ociRegistry"
+      },
+      "version": "v0.1.0"
+    }
+  },
+  "components": {
+    "components": [
+      {
+        "component": {
+          "componentReferences": [],
+          "name": "github.com/gardener/landscapercli/examplecontainer",
+          "provider": "internal",
+          "repositoryContexts": [
+            {
+              "baseUrl": "yourOciBaseUrl",
+              "type": "ociRegistry"
+            }
+          ],
+          "resources": [
+            {
+              "access": {
+                "digest": "sha256:2c14375e619fc842a854e48a8bb74936353e90b36e9152605747630cc960f6a2",
+                "type": "localOciBlob"
+              },
+              "name": "blueprint",
+              "relation": "local",
+              "type": "blueprint",
+              "version": "v0.1.0"
+            },
+            {
+              "access": {
+                "imageReference": "your-registry/your-path/containerexample:0.1.0",
+                "type": "ociRegistry"
+              },
+              "name": "examplecontainer",
+              "relation": "external",
+              "type": "ociImage",
+              "version": "0.1.0"
+            }
+          ],
+          "sources": [],
+          "version": "v0.1.0"
+        },
+        "meta": {
+          "schemaVersion": "v2"
+        }
+      }
+    ],
+    "meta": {
+      "schemaVersion": "v2"
+    }
+  },
+  "imports": {
+    "sleepTimeAfter": 300,
+    "sleepTimeBefore": 300,
+    "target-cluster": {
+      "apiVersion": "landscaper.gardener.cloud/v1alpha1",
+      "kind": "Target",
+      "metadata": {
+        "name": "rg-cluster",
+        "namespace": "demo-namespace",
+      },
+      "spec": {
+        "config": {
+          "kubeconfig": "apiVersion: v1\nkind: Config..."
+        },
+        "type": "landscaper.gardener.cloud/kubernetes-cluster"
+      }
+    },
+    "word": "word1"
+  }
+}

@@ -226,11 +226,13 @@ func (o *addContainerDeployItemOptions) run(ctx context.Context, log logr.Logger
 	}
 
 	blueprintBuilder.AddDeployExecution(o.deployItemName)
+
 	if o.clusterParam != "" {
 		blueprintBuilder.AddImportForTarget(o.clusterParam)
 	}
 	blueprintBuilder.AddImportsFromMap(o.importDefinitions)
 	blueprintBuilder.AddExportsFromMap(o.exportDefinitions)
+	blueprintBuilder.AddExportExecution(o.deployItemName, o.exportDefinitions)
 
 	return blueprints.NewBlueprintWriter(blueprintPath).Write(blueprint)
 }
@@ -393,7 +395,7 @@ func (o *addContainerDeployItemOptions) parseFieldValueDefinition(paramDef strin
 
 	return &v1alpha1.FieldValueDefinition{
 		Name:   name,
-		Schema: v1alpha1.JSONSchemaDefinition{RawMessage: []byte(fmt.Sprintf("{ \"type\": \"%s\" }", typ))},
+		Schema: &v1alpha1.JSONSchemaDefinition{RawMessage: []byte(fmt.Sprintf("{ \"type\": \"%s\" }", typ))},
 	}, nil
 }
 
@@ -461,7 +463,6 @@ func (o *addContainerDeployItemOptions) writeExecution(f io.Writer) error {
 		DeployItemName            string
 		TargetNameExpression      string
 		TargetNamespaceExpression string
-		ImportValuesExpression    string
 		Image                     string
 	}{
 		DeployItemName:            o.deployItemName,
@@ -500,15 +501,8 @@ func (o *addContainerDeployItemOptions) getCommandSection() ([]byte, error) {
 func (o *addContainerDeployItemOptions) getImportValuesSection() ([]byte, error) {
 	b := strings.Builder{}
 
-	if len(o.importDefinitions) == 0 {
-		if _, err := b.WriteString("importValues: []\n"); err != nil {
-			return nil, fmt.Errorf("could not write import values: %w", err)
-		}
-	} else {
-		b.WriteString("importValues:\n")
-		for parameterName := range o.importDefinitions {
-			b.WriteString("  " + parameterName + ": " + blueprints.GetImportExpression(parameterName) + "\n")
-		}
+	if _, err := b.WriteString("importValues: \n  {{ toJson . | indent 2 }}\n"); err != nil {
+		return nil, fmt.Errorf("could not write import values: %w", err)
 	}
 
 	return []byte(b.String()), nil

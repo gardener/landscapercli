@@ -16,6 +16,17 @@ spec:
     ref:
       resourceName: blueprint
 
+  imports:
+    targets:
+      - name: target-cluster
+        # the "#" forces the landscaper to use the target with the name "rg-cluster" in the same namespace
+        target: "#rg-cluster"
+
+  exports:
+    data:
+      - name: sentence
+        dataRef: "sentence-do"
+
   importDataMappings:
     word: word1
     sleepTimeBefore: 300

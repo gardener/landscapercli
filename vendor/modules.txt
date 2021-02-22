@@ -98,7 +98,7 @@ github.com/gardener/landscaper/pkg/landscaper/operation
 github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils
 github.com/gardener/landscaper/pkg/utils
 github.com/gardener/landscaper/pkg/utils/kubernetes
-# github.com/gardener/landscaper/apis v0.6.0
+# github.com/gardener/landscaper/apis v0.6.1-0.20210225105446-cc69d9c9425f
 ## explicit
 github.com/gardener/landscaper/apis/config
 github.com/gardener/landscaper/apis/config/install
