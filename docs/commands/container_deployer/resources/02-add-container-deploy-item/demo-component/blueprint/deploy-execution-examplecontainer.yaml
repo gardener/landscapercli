@@ -1,6 +1,9 @@
 deployItems:
 - name: examplecontainer
   type: landscaper.gardener.cloud/container
+  target:
+    name: {{ index .imports "target-cluster" "metadata" "name" }}
+    namespace: {{ index .imports "target-cluster" "metadata" "namespace" }}
   config:
     apiVersion: container.deployer.landscaper.gardener.cloud/v1alpha1
     kind: ProviderConfiguration
@@ -8,8 +11,6 @@ deployItems:
     args: []
     command:
     - ./script.sh
-    importValues:
-      word: {{ index .imports "word" }}
-      sleepTimeBefore: {{ index .imports "sleepTimeBefore" }}
-      sleepTimeAfter: {{ index .imports "sleepTimeAfter" }}
+    importValues: 
+      {{ toJson . | indent 2 }}
     

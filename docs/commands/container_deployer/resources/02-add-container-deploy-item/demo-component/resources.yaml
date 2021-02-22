@@ -14,7 +14,7 @@ type: ociImage
 name: examplecontainer
 version: 0.1.0
 relation: external
-access: 
+access:
   type: ociRegistry
   imageReference: your-registry/your-path/containerexample:0.1.0
 ...

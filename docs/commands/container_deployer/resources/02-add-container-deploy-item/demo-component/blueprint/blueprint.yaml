@@ -4,6 +4,11 @@ kind: Blueprint
 imports:
 - default:
     value: null
+  name: target-cluster
+  required: true
+  targetType: landscaper.gardener.cloud/kubernetes-cluster
+- default:
+    value: null
   name: word
   required: true
   schema:

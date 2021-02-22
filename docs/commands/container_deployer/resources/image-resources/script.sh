@@ -5,13 +5,13 @@ IMPORTS=$(cat $IMPORTS_PATH)
 
 # read sleep time before, only introduced to prolongate the command such that you could inspect the running
 # container before the program is executed
-sleepTimeBefore=$(echo $IMPORTS | jq .sleepTimeBefore)
+sleepTimeBefore=$(echo $IMPORTS | jq .imports.sleepTimeBefore)
 sleep $sleepTimeBefore
 
 # if $OPERATION = "RECONCILE" append the input word, otherwise clean up
 if [ $OPERATION == "RECONCILE" ]; then
    # read import parameter word and remove double quotes
-  inputWord=$(echo $IMPORTS | jq .word)
+  inputWord=$(echo $IMPORTS | jq .imports.word)
   inputWord=$(echo $inputWord | sed 's/"//g')
 
   # create empty state file if it does not exists
@@ -32,5 +32,5 @@ fi
 
 # read sleep time after, only introduced to prolongate the command such that you could inspect the running
 # container before the program is executed
-sleepTimeAfter=$(echo $IMPORTS | jq .sleepTimeAfter)
+sleepTimeAfter=$(echo $IMPORTS | jq .imports.sleepTimeAfter)
 sleep $sleepTimeAfter
