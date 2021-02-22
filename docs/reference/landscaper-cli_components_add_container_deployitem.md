@@ -31,12 +31,12 @@ landscaper-cli component add container deployitem \
 ```
   -a, --args strings                 arguments (optional, multi-value)
       --cluster-param string         import parameter name for the target resource containing the access data of the target cluster (optional)
-  -c, --command strings              command (multi-value)
+  -c, --command strings              command (optional, multi-value)
       --component-directory string   path to component directory (optional, default is current directory) (default ".")
-  -e, --export-param strings         export parameter as name:integer|string|boolean, e.g. replicas:integer
+  -e, --export-param strings         export parameter as name:integer|string|boolean, e.g. replicas:integer (optional, multi-value)
   -h, --help                         help for deployitem
       --image string                 image
-  -i, --import-param strings         import parameter as name:integer|string|boolean, e.g. replicas:integer
+  -i, --import-param strings         import parameter as name:integer|string|boolean, e.g. replicas:integer (optional, multi-value)
       --resource-version string      resource version
 ```
 
