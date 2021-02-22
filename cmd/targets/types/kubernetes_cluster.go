@@ -28,11 +28,12 @@ type kubernetesClusterOpts struct {
 func NewKubernetesClusterCommand(ctx context.Context) *cobra.Command {
 	opts := &kubernetesClusterOpts{}
 	cmd := &cobra.Command{
-		Use:     "kubernetes-cluster",
+		Use: "kubernetes-cluster --name [name] --namespace [namespace] " +
+			"--target-kubeconfig [path to target kubeconfig]",
 		Args:    cobra.NoArgs,
 		Aliases: []string{"k8s-cluster"},
 		Example: "landscaper-cli targets create kubernetes-cluster --name my-target --namespace my-namespace " +
-			"--target-kubeconfig  [path to target kubeconfig]",
+			"--target-kubeconfig  kubeconfig.yaml",
 		Short: "create a target of type " + string(lsv1alpha1.KubernetesClusterTargetType),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {

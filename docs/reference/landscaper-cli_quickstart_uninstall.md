@@ -3,7 +3,7 @@
 command to uninstall the landscaper and OCI registry (from the install command) in a target cluster
 
 ```
-landscaper-cli quickstart uninstall [flags]
+landscaper-cli quickstart uninstall --kubeconfig [kubconfig.yaml] [flags]
 ```
 
 ### Examples

@@ -35,7 +35,7 @@ type importParametersOptions struct {
 func NewSetImportParametersCommand(ctx context.Context) *cobra.Command {
 	opts := &importParametersOptions{}
 	cmd := &cobra.Command{
-		Use:     "set-import-parameters",
+		Use:     "set-import-parameters [path to installation.yaml] [key1=value1] [key2=value2]",
 		Aliases: []string{"sip"},
 		Short:   "Set import parameters for an installation. Quote values containing spaces in double quotation marks.",
 		Example: `landscaper-cli installations set-import-parameters <path-to-installation>.yaml importName1="string value with spaces" importName2=42`,
