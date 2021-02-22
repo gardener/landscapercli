@@ -71,6 +71,8 @@ type LoaderConfig struct {
 	BlobResolver ctf.BlobResolver
 	// DefaultLoader is the fallback loader that is used of the protocol is unknown.
 	DefaultLoader gojsonschema.JSONLoader
+	// ComponentResolver is a object that can resolve component descriptors.
+	ComponentResolver ctf.ComponentResolver
 }
 
 // LoaderFactory is the factory that creates a new landscaper specific loader.
