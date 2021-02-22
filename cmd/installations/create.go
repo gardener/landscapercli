@@ -151,27 +151,21 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		return fmt.Errorf("cannot build <insert something here>: %w", err)
 	}
 
-	loaderConfig := &lsjsonschema.LoaderConfig{
-		LocalTypes:                 blueprint.LocalTypes,
-		BlueprintFs:                memFS,
-		ComponentDescriptor:        cd,
-		ComponentResolver:          ociRegistry,
-		ComponentReferenceResolver: cdutils.ComponentReferenceResolverFromResolver(ociRegistry, repoCtx),
-	}
-	jsonschema, err := loadJSONSchema(blueprint.Imports[0].Schema, loaderConfig)
-
-	marshaledSchema, err := yaml.Marshal(jsonschema)
-	if err != nil {
-		return fmt.Errorf("Cannot marshal json schema: %w", err)
-	}
-
-	fmt.Println(string(marshaledSchema))
-
 	installation := buildInstallation(o.name, cd, *blueprintRes, blueprint)
 
 	var marshaledYaml []byte
 	if o.renderSchemaInfo {
-		commentedYaml, err := annotateInstallationWithSchemaComments(installation, blueprint)
+		jsonschemaLoader := &jsonschemaLoader{
+			loaderConfig: &lsjsonschema.LoaderConfig{
+				LocalTypes:                 blueprint.LocalTypes,
+				BlueprintFs:                memFS,
+				ComponentDescriptor:        cd,
+				ComponentResolver:          ociRegistry,
+				ComponentReferenceResolver: cdutils.ComponentReferenceResolverFromResolver(ociRegistry, repoCtx),
+			},
+		}
+
+		commentedYaml, err := annotateInstallationWithSchemaComments(installation, blueprint, jsonschemaLoader)
 		if err != nil {
 			return fmt.Errorf("cannot add JSON schema comment: %w", err)
 		}
@@ -229,7 +223,7 @@ func (o *createOpts) Complete(args []string) error {
 	return nil
 }
 
-func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installation, blueprint *lsv1alpha1.Blueprint) (*yamlv3.Node, error) {
+func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installation, blueprint *lsv1alpha1.Blueprint, jsonschemaLoader *jsonschemaLoader) (*yamlv3.Node, error) {
 	out, err := yaml.Marshal(installation)
 	if err != nil {
 		return nil, fmt.Errorf("cannot marshal installation yaml: %w", err)
@@ -241,12 +235,12 @@ func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installatio
 		return nil, fmt.Errorf("cannot unmarshal installation yaml: %w", err)
 	}
 
-	err = addImportSchemaComments(commentedInstallationYaml, blueprint)
+	err = addImportSchemaComments(commentedInstallationYaml, blueprint, jsonschemaLoader)
 	if err != nil {
 		return nil, fmt.Errorf("cannot add schema comments for imports: %w", err)
 	}
 
-	err = addExportSchemaComments(commentedInstallationYaml, blueprint)
+	err = addExportSchemaComments(commentedInstallationYaml, blueprint, jsonschemaLoader)
 	if err != nil {
 		return nil, fmt.Errorf("cannot add schema comments for exports: %w", err)
 	}
@@ -285,7 +279,7 @@ func (o *createOpts) getBlueprintResource(cd *cdv2.ComponentDescriptor) (*cdv2.R
 	return &blueprintRes, nil
 }
 
-func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint) error {
+func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, jsonschemaLoader *jsonschemaLoader) error {
 	_, exportsDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.exports.data")
 	if exportsDataValueNode != nil {
 
@@ -300,7 +294,13 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 					break
 				}
 			}
-			prettySchema, err := json.MarshalIndent(expdef.Schema, "", "  ")
+
+			schema, err := jsonschemaLoader.loadJSONSchema(expdef.Schema)
+			if err != nil {
+				return fmt.Errorf("cannot load jsonschema for export definition %s: %w", expdef.Name, err)
+			}
+
+			prettySchema, err := json.MarshalIndent(schema, "", "  ")
 			if err != nil {
 				return fmt.Errorf("cannot marshal JSON schema: %w", err)
 			}
@@ -328,7 +328,7 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 	return nil
 }
 
-func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint) error {
+func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, jsonschemaLoader *jsonschemaLoader) error {
 	_, importDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.imports.data")
 	if importDataValueNode != nil {
 		for _, dataImportNode := range importDataValueNode.Content {
@@ -342,7 +342,13 @@ func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 					break
 				}
 			}
-			prettySchema, err := json.MarshalIndent(impdef.Schema, "", "  ")
+
+			schema, err := jsonschemaLoader.loadJSONSchema(impdef.Schema)
+			if err != nil {
+				return fmt.Errorf("cannot load jsonschema for import definition %s: %w", impdef.Name, err)
+			}
+
+			prettySchema, err := json.MarshalIndent(schema, "", "  ")
 			if err != nil {
 				return fmt.Errorf("cannot marshal JSON schema: %w", err)
 			}
@@ -446,12 +452,16 @@ func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes c
 	return obj
 }
 
-func loadJSONSchema(schemaBytes []byte, loaderConfig *lsjsonschema.LoaderConfig) (*gojsonschema.Schema, error) {
+type jsonschemaLoader struct {
+	loaderConfig *lsjsonschema.LoaderConfig
+}
+
+func (l *jsonschemaLoader) loadJSONSchema(schemaBytes []byte) (*gojsonschema.Schema, error) {
 	schemaLoader := gojsonschema.NewBytesLoader(schemaBytes)
 
 	// Wrap default loader if config is defined
-	if loaderConfig != nil {
-		schemaLoader = lsjsonschema.NewWrappedLoader(*loaderConfig, schemaLoader)
+	if l.loaderConfig != nil {
+		schemaLoader = lsjsonschema.NewWrappedLoader(*l.loaderConfig, schemaLoader)
 	}
 
 	sl := gojsonschema.NewSchemaLoader()
