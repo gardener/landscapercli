@@ -64,7 +64,7 @@ with utils.TempFileAuto(prefix="landscape_kubeconfig_") as temp_file:
     command = ["go", "run", "main.go",
             "--kubeconfig", landscape_kubeconfig_path,
             "--landscaper-namespace", "lndscpr-int-test",
-            "--namespace", "ls-cli-inttest",
+            "--test-namespace", "ls-cli-inttest",
             "--max-retries", "10"]
 
     print(f"Running integration test with command: {' '.join(command)}")
