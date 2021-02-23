@@ -118,19 +118,31 @@ func (b *BlueprintBuilder) AddDeployExecution(deployItemName string) {
 	})
 }
 
+// AddExportExecution adds one export executions for all export parameters of one deployitem:
+// exportExecutions:
+// - name: [name of the export execution, here equal to the deployitem name]
+//   type: GoTemplate
+//   template: |
+//     exports:
+//       [parameter name]: {{ index .values "deployitems" "[deployitem name]" "[internal parameter name]" }}
 func (b *BlueprintBuilder) AddExportExecution(deployItemName string, exportDefinitions map[string]*v1alpha1.ExportDefinition) {
     if len(exportDefinitions) == 0 {
     	return
 	}
 
-	s := "\"exports:\\n"
+	s := `"exports:\n`
 	for exportParameterName := range exportDefinitions {
-		s += "  sentence: {{ .values.deployitems."+deployItemName+"."+exportParameterName+" }}\\n"
+		s += fmt.Sprintf(`  %s: {{ index .values \"deployitems\" \"%s\" \"%s\" }}\n`,
+			exportParameterName, // name of the export parameter as defined in the export section of the blueprint
+			deployItemName,      // deployitem that computes the value
+			exportParameterName) // (internal) parameter name of the deploy item
+			                     // - for the helm deployer: a key in the exportsFromManifest section
+			                     // - for the container deployer: a key written by the program in the container to $EXPORTS_PATH
 	}
-	s += "\""
+	s += `"`
 
 	b.blueprint.ExportExecutions = append(b.blueprint.ExportExecutions, v1alpha1.TemplateExecutor{
-		Name:     deployItemName,
+		Name:     deployItemName, // we give the export execution the same name as the deployitem
 		Type:     v1alpha1.GOTemplateType,
 		Template: v1alpha1.AnyJSON{
 			RawMessage: []byte(s),
