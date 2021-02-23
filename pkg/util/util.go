@@ -471,7 +471,7 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfig string) (*lsv1alph
 		Spec: lsv1alpha1.TargetSpec{
 			Type: lsv1alpha1.KubernetesClusterTargetType,
 			Configuration: lsv1alpha1.AnyJSON{
-				marshalledConfig,
+				RawMessage: marshalledConfig,
 			},
 		},
 	}

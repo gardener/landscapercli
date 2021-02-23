@@ -384,9 +384,9 @@ func (t *componentCreateTest) createInstallation(ctx context.Context) error {
 				},
 			},
 			ImportDataMappings: map[string]lsv1alpha1.AnyJSON{
-				"nginx-namespace": lsv1alpha1.AnyJSON{[]byte(`"` + t.config.TestNamespace + `"`)},
-				"password-1":      lsv1alpha1.AnyJSON{[]byte(`"pw1"`)},
-				"password-2":      lsv1alpha1.AnyJSON{[]byte(`"pw2"`)},
+				"nginx-namespace": lsv1alpha1.AnyJSON{RawMessage: []byte(`"` + t.config.TestNamespace + `"`)},
+				"password-1":      lsv1alpha1.AnyJSON{RawMessage: []byte(`"pw1"`)},
+				"password-2":      lsv1alpha1.AnyJSON{RawMessage: []byte(`"pw2"`)},
 			},
 		},
 	}

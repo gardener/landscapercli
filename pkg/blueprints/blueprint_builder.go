@@ -92,7 +92,7 @@ func (b *BlueprintBuilder) AddImportForElementaryType(paramName, paramType strin
 	importDefinition := &v1alpha1.ImportDefinition{
 		FieldValueDefinition: v1alpha1.FieldValueDefinition{
 			Name:   paramName,
-			Schema: v1alpha1.JSONSchemaDefinition{schema},
+			Schema: v1alpha1.JSONSchemaDefinition{RawMessage: schema},
 		},
 		Required: &required,
 	}

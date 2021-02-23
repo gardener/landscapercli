@@ -158,7 +158,7 @@ func buildHelmInstallation(name string, target *lsv1alpha1.Target, helmChartRef,
 		Spec: lsv1alpha1.InstallationSpec{
 			Blueprint: lsv1alpha1.BlueprintDefinition{
 				Inline: &lsv1alpha1.InlineBlueprint{
-					Filesystem: lsv1alpha1.AnyJSON{marshalledFilesystem},
+					Filesystem: lsv1alpha1.AnyJSON{RawMessage: marshalledFilesystem},
 				},
 			},
 			Imports: lsv1alpha1.InstallationImports{
@@ -170,8 +170,8 @@ func buildHelmInstallation(name string, target *lsv1alpha1.Target, helmChartRef,
 				},
 			},
 			ImportDataMappings: map[string]lsv1alpha1.AnyJSON{
-				"appname":      lsv1alpha1.AnyJSON{[]byte(`"echo-server"`)},
-				"appnamespace": lsv1alpha1.AnyJSON{[]byte(fmt.Sprintf(`"%s"`, appNamespace))},
+				"appname":      lsv1alpha1.AnyJSON{RawMessage: []byte(`"echo-server"`)},
+				"appnamespace": lsv1alpha1.AnyJSON{RawMessage: []byte(fmt.Sprintf(`"%s"`, appNamespace))},
 			},
 		},
 	}

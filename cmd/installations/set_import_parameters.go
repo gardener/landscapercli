@@ -148,9 +148,9 @@ func replaceImportsWithImportParameters(installation *lsv1alpha1.Installation, o
 
 func createJSONRawMessageValueWithStringOrNumericType(parameter string) lsv1alpha1.AnyJSON {
 	if _, err := strconv.ParseFloat(parameter, 64); err == nil {
-		return lsv1alpha1.AnyJSON{[]byte(parameter)}
+		return lsv1alpha1.AnyJSON{RawMessage: []byte(parameter)}
 	}
-	return lsv1alpha1.AnyJSON{[]byte(fmt.Sprintf(`"%s"`, parameter))}
+	return lsv1alpha1.AnyJSON{RawMessage: []byte(fmt.Sprintf(`"%s"`, parameter))}
 
 }
 
