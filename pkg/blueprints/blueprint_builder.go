@@ -1,7 +1,6 @@
 package blueprints
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
@@ -119,46 +118,22 @@ func (b *BlueprintBuilder) AddDeployExecution(deployItemName string) {
 	})
 }
 
-func (b *BlueprintBuilder) AddExportExecutionsFromMap(deployItemName string, exportDefinitions map[string]*v1alpha1.ExportDefinition) error {
+func (b *BlueprintBuilder) AddExportExecution(deployItemName string, exportDefinitions map[string]*v1alpha1.ExportDefinition) {
+    if len(exportDefinitions) == 0 {
+    	return
+	}
+
+	s := "\"exports:\\n"
 	for exportParameterName := range exportDefinitions {
-		exportExecutionName := b.GetExportExecutionName(deployItemName, exportParameterName)
-
-		if b.ExistsExportExecution(exportExecutionName) {
-			return fmt.Errorf("The blueprint already contains an export execution %s\n", exportExecutionName)
-		}
-
-		b.AddExportExecution(exportExecutionName, deployItemName, exportParameterName)
+		s += "  sentence: {{ .values.deployitems."+deployItemName+"."+exportParameterName+" }}\\n"
 	}
-
-	return nil
-}
-
-func (b *BlueprintBuilder) GetExportExecutionName(deployItemName, exportParameterName string) string {
-	return deployItemName+"-"+exportParameterName // todo: invent a unique name
-}
-
-func (b *BlueprintBuilder) ExistsExportExecution(exportExecutionName string) bool {
-	for i := range b.blueprint.ExportExecutions {
-		execution := &b.blueprint.ExportExecutions[i]
-		if execution.Name == exportExecutionName {
-			return true
-		}
-	}
-
-	return false
-}
-
-const exportExecutionFormat = `"{ \"exports\": { \"%s\": {{ .values.deployitems.%s.%s }} } }"`
-
-func (b *BlueprintBuilder) AddExportExecution(exportExecutionName, deployItemName, exportParameterName string) {
-	exportExecutionTemplate := fmt.Sprintf(exportExecutionFormat,
-		exportParameterName,
-		deployItemName,
-		exportParameterName)
+	s += "\""
 
 	b.blueprint.ExportExecutions = append(b.blueprint.ExportExecutions, v1alpha1.TemplateExecutor{
-		Name:     exportExecutionName,
+		Name:     deployItemName,
 		Type:     v1alpha1.GOTemplateType,
-		Template: json.RawMessage(exportExecutionTemplate),
+		Template: v1alpha1.AnyJSON{
+			RawMessage: []byte(s),
+		},
 	})
 }

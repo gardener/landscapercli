@@ -226,17 +226,13 @@ func (o *addContainerDeployItemOptions) run(ctx context.Context, log logr.Logger
 	}
 
 	blueprintBuilder.AddDeployExecution(o.deployItemName)
+
 	if o.clusterParam != "" {
 		blueprintBuilder.AddImportForTarget(o.clusterParam)
 	}
-
 	blueprintBuilder.AddImportsFromMap(o.importDefinitions)
-
 	blueprintBuilder.AddExportsFromMap(o.exportDefinitions)
-
-	//if err := blueprintBuilder.AddExportExecutionsFromMap(o.deployItemName, o.exportDefinitions); err != nil {
-	//	return err
-	//}
+	blueprintBuilder.AddExportExecution(o.deployItemName, o.exportDefinitions)
 
 	return blueprints.NewBlueprintWriter(blueprintPath).Write(blueprint)
 }
