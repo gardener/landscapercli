@@ -1,14 +1,14 @@
 module github.com/gardener/landscapercli
 
-go 1.15
+go 1.16
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
-	github.com/gardener/component-cli v0.8.0
-	github.com/gardener/component-spec/bindings-go v0.0.31
-	github.com/gardener/landscaper v0.5.3
-	github.com/gardener/landscaper/apis v0.5.3
+	github.com/gardener/component-cli v0.14.0
+	github.com/gardener/component-spec/bindings-go v0.0.32
+	github.com/gardener/landscaper v0.0.0-20210223090757-9f4fe1b3ec92
+	github.com/gardener/landscaper/apis v0.6.0
 	github.com/go-logr/logr v0.3.0
 	github.com/go-logr/zapr v0.3.0
 	github.com/golang/mock v1.4.4
@@ -25,7 +25,7 @@ require (
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.20.2
-	sigs.k8s.io/controller-runtime v0.6.0
+	sigs.k8s.io/controller-runtime v0.8.1
 	sigs.k8s.io/yaml v1.2.0
 )
 

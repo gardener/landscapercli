@@ -20,6 +20,9 @@ type ParseImageOptions struct {
 	// These images are then not added as direct resources but the source repository is used as the component reference.
 	ComponentReferencePrefixes []string
 
+	// ExcludeComponentReference defines a list of image names that should be added as component reference
+	ExcludeComponentReference []string
+
 	// GenericDependencies define images that should be untouched and not added as real dependency to the component descriptors.
 	// These dependencies are added a specific label to the component descriptor.
 	GenericDependencies []string
@@ -48,7 +51,7 @@ func ParseImageVector(cd *cdv2.ComponentDescriptor, reader io.Reader, opts *Pars
 			continue
 		}
 
-		if entryMatchesPrefix(opts.ComponentReferencePrefixes, image.Repository) {
+		if entryMatchesPrefix(opts.ComponentReferencePrefixes, image.Repository) && !isOneOf(opts.ExcludeComponentReference, image.Name) {
 			// add image as component reference
 			ref := cdv2.ComponentReference{
 				Name:          image.Name,
@@ -278,6 +281,15 @@ func getLabel(labels cdv2.Labels, name string, into interface{}) (bool, error) {
 func entryMatchesPrefix(prefixes []string, val string) bool {
 	for _, pref := range prefixes {
 		if strings.HasPrefix(val, pref) {
+			return true
+		}
+	}
+	return false
+}
+
+func isOneOf(keys []string, key string) bool {
+	for _, k := range keys {
+		if k == key {
 			return true
 		}
 	}
