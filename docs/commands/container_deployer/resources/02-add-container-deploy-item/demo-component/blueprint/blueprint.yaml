@@ -31,7 +31,12 @@ exports:
   schema:
     type: string
 
-exportExecutions: []
+exportExecutions:
+- name: examplecontainer
+  template: |
+    exports:
+      sentence: {{ index .values "deployitems" "examplecontainer" "sentence" }}
+  type: GoTemplate
 
 subinstallations: []
 
