@@ -14,8 +14,7 @@ print("Starting integration test")
 print(f"current environment: {os.environ}")
 source_path = os.environ['SOURCE_PATH']
 root_path = os.environ['ROOT_PATH']
-landscape = os.environ['LANDSCAPE']
-namespace = os.environ['NAMESPACE']
+target_cluster = os.environ['TARGET_CLUSTER']
 
 try:
     # env var is implicitly set by the output dir in case of a release job
@@ -47,10 +46,6 @@ helm_version = run([os.environ['HELM_EXECUTABLE'], "version"])
 kubectl_client = kubectl.KubectlClient()
 if kubectl_client.int_test_tools_dir:
     os.environ['PATH'] = f"{kubectl_client.int_test_tools_dir}:{os.environ['PATH']}"
-print(f"-- List of directory {kubectl_client.int_test_tools_dir}")
-from pathlib import Path
-print(*Path(kubectl_client.int_test_tools_dir).iterdir(), sep="\n")
-print(f"-- End List of directory {kubectl_client.int_test_tools_dir}")
 print(f"'kubectl version' from python")
 kubectl_client.version()
 print(f"'kubectl version' from PATH={os.environ['PATH']}")
@@ -59,8 +54,8 @@ kubectl_version = run(["kubectl", "version", "--client"])
 os.chdir(os.path.join(root_path, source_path, "integration-test"))
 
 factory = ctx().cfg_factory()
-landscape_name = "hub-" + landscape + "-test"
-landscape_kubeconfig = factory.kubernetes(landscape_name)
+print(f"Getting kubeconfig for {target_cluster}")
+landscape_kubeconfig = factory.kubernetes(target_cluster)
 
 with utils.TempFileAuto(prefix="landscape_kubeconfig_") as temp_file:
     temp_file.write(yaml.safe_dump(landscape_kubeconfig.kubeconfig()))
@@ -69,10 +64,11 @@ with utils.TempFileAuto(prefix="landscape_kubeconfig_") as temp_file:
     command = ["go", "run", "main.go",
             "--kubeconfig", landscape_kubeconfig_path,
             "--landscaper-namespace", "lndscpr-int-test",
-            "--test-namespace", "ls-cli-inttest",
+            "--namespace", "ls-cli-inttest",
             "--max-retries", "10"]
 
     print(f"Running integration test with command: {' '.join(command)}")
+    input("Press Enter to continue...")
 
     try:
         # check if path var is set
