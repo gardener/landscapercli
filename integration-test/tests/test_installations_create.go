@@ -84,9 +84,19 @@ func (t *installationsCreateTest) run() error {
 		return fmt.Errorf("creating/uploading dummy component failed: %w", err)
 	}
 
-	err = t.createInstallationForComponentDescriptor()
+	cmdOutput, err := t.runInstallationsCreateCmd()
 	if err != nil {
-		return fmt.Errorf("creating installation for component descriptor failed: %w", err)
+		return fmt.Errorf("landscaper-cli installations create failed: %w", err)
+	}
+
+	err = t.checkInstallation(cmdOutput)
+	if err != nil {
+		return fmt.Errorf("error checking generated installation: %w", err)
+	}
+
+	err = t.writeInstallationToFile(cmdOutput)
+	if err != nil {
+		return fmt.Errorf("cannot write generated installation to file: %w", err)
 	}
 
 	err = t.setImportParameters()
@@ -111,13 +121,29 @@ func (t *installationsCreateTest) run() error {
 	return nil
 }
 
-func (t *installationsCreateTest) createInstallationForComponentDescriptor() error {
+func (t *installationsCreateTest) writeInstallationToFile(cmdOutput *bytes.Buffer) error {
+	installationDir, err := ioutil.TempDir(".", "dummy-installation-*")
+	if err != nil {
+		return fmt.Errorf("cannot create temp directory: %w", err)
+	}
+
+	t.installationDir = installationDir
+
+	err = ioutil.WriteFile(path.Join(t.installationDir, "installation-generated.yaml"), cmdOutput.Bytes(), os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("cannot write to file: %w", err)
+	}
+
+	return nil
+}
+
+func (t *installationsCreateTest) runInstallationsCreateCmd() (*bytes.Buffer, error) {
 	ctx := context.TODO()
 
 	fmt.Println("Executing landscaper-cli installations create")
 	cmd := installations.NewCreateCommand(ctx)
-	outBuf := &bytes.Buffer{}
-	cmd.SetOut(outBuf)
+	outBuf := bytes.Buffer{}
+	cmd.SetOut(&outBuf)
 	args := []string{
 		"localhost:5000",
 		t.componentName,
@@ -130,29 +156,10 @@ func (t *installationsCreateTest) createInstallationForComponentDescriptor() err
 
 	err := cmd.Execute()
 	if err != nil {
-		return fmt.Errorf("landscaper-cli installations create failed: %w", err)
+		return nil, err
 	}
 
-	actualInstallation := lsv1alpha1.Installation{}
-	err = yaml.Unmarshal(outBuf.Bytes(), &actualInstallation)
-	if err != nil {
-		return fmt.Errorf("cannot unmarshal output of landscaper-cli installations create: %w", err)
-	}
-	err = t.testInstallationForCorrectStructure(actualInstallation, outBuf)
-	if err != nil {
-		return fmt.Errorf("error testing installation for correct structure: %w", err)
-	}
-
-	t.installationDir, err = ioutil.TempDir(".", "dummy-installation-*")
-	if err != nil {
-		return fmt.Errorf("cannot create component descriptor directory: %w", err)
-	}
-
-	err = ioutil.WriteFile(path.Join(t.installationDir, "installation-generated.yaml"), outBuf.Bytes(), os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("cannot write component descriptor file: %w", err)
-	}
-	return nil
+	return &outBuf, nil
 }
 
 func (t *installationsCreateTest) setImportParameters() error {
@@ -242,7 +249,9 @@ func (t *installationsCreateTest) waitForInstallationSuccess() error {
 	return nil
 }
 
-func (t *installationsCreateTest) testInstallationForCorrectStructure(actualInstallation lsv1alpha1.Installation, outBuf *bytes.Buffer) error {
+func (t *installationsCreateTest) checkInstallation(outBuf *bytes.Buffer) error {
+	fmt.Println("Checking generated installation")
+
 	expectedInstallation := lsv1alpha1.Installation{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Installation",
@@ -282,7 +291,11 @@ func (t *installationsCreateTest) testInstallationForCorrectStructure(actualInst
 		},
 	}
 
-	fmt.Println("Checking generated installation")
+	actualInstallation := lsv1alpha1.Installation{}
+	err := yaml.Unmarshal(outBuf.Bytes(), &actualInstallation)
+	if err != nil {
+		return fmt.Errorf("cannot unmarshal cmd output into installation: %w", err)
+	}
 
 	ok := assert.Equal(inttestutil.DummyTestingT{}, expectedInstallation, actualInstallation)
 	if !ok {
@@ -290,7 +303,7 @@ func (t *installationsCreateTest) testInstallationForCorrectStructure(actualInst
 	}
 
 	rootNode := &yamlv3.Node{}
-	err := yamlv3.Unmarshal(outBuf.Bytes(), rootNode)
+	err = yamlv3.Unmarshal(outBuf.Bytes(), rootNode)
 	if err != nil {
 		return err
 	}

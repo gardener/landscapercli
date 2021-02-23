@@ -307,7 +307,7 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 				}
 			}
 
-			schema, err := jsonschemaLoader.loadJSONSchema(expdef.Schema)
+			schema, err := jsonschemaLoader.loadJSONSchema(expdef.Schema.RawMessage)
 			if err != nil {
 				return fmt.Errorf("cannot load jsonschema for export definition %s: %w", expdef.Name, err)
 			}
@@ -355,7 +355,7 @@ func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 				}
 			}
 
-			schema, err := jsonschemaLoader.loadJSONSchema(impdef.Schema)
+			schema, err := jsonschemaLoader.loadJSONSchema(impdef.Schema.RawMessage)
 			if err != nil {
 				return fmt.Errorf("cannot load jsonschema for import definition %s: %w", impdef.Name, err)
 			}
@@ -475,7 +475,6 @@ func (l *jsonschemaLoader) loadJSONSchema(schemaBytes []byte) (*gojsonschema.Sch
 	if l.loaderConfig != nil {
 		schemaLoader = lsjsonschema.NewWrappedLoader(*l.loaderConfig, schemaLoader)
 	}
-
 	sl := gojsonschema.NewSchemaLoader()
 	schema, err := sl.Compile(schemaLoader)
 	if err != nil {
