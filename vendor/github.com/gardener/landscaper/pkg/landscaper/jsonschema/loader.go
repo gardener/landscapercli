@@ -71,8 +71,6 @@ type LoaderConfig struct {
 	ComponentReferenceResolver cdutils.ResolveComponentReferenceFunc
 	// DefaultLoader is the fallback loader that is used of the protocol is unknown.
 	DefaultLoader gojsonschema.JSONLoader
-	// ComponentResolver is a object that can resolve component descriptors.
-	ComponentResolver ctf.ComponentResolver
 }
 
 // LoaderFactory is the factory that creates a new landscaper specific loader.
