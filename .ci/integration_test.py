@@ -68,7 +68,6 @@ with utils.TempFileAuto(prefix="landscape_kubeconfig_") as temp_file:
             "--max-retries", "10"]
 
     print(f"Running integration test with command: {' '.join(command)}")
-    input("Press Enter to continue...")
 
     try:
         # check if path var is set
