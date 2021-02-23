@@ -86,10 +86,13 @@ func (b *BlueprintBuilder) AddImportForTarget(paramName string) {
 
 func (b *BlueprintBuilder) AddImportForElementaryType(paramName, paramType string) {
 	required := true
+
+	schema := []byte(fmt.Sprintf("{ \"type\": \"%s\" }", paramType))
+
 	importDefinition := &v1alpha1.ImportDefinition{
 		FieldValueDefinition: v1alpha1.FieldValueDefinition{
 			Name:   paramName,
-			Schema: v1alpha1.JSONSchemaDefinition(fmt.Sprintf("{ \"type\": \"%s\" }", paramType)),
+			Schema: v1alpha1.JSONSchemaDefinition{RawMessage: schema},
 		},
 		Required: &required,
 	}

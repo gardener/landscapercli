@@ -3,13 +3,13 @@
 command to install the landscaper (and optionally an OCI registry) in a target cluster
 
 ```
-landscaper-cli quickstart install [flags]
+landscaper-cli quickstart install --kubeconfig [kubconfig.yaml] [--install-oci-registry] [flags]
 ```
 
 ### Examples
 
 ```
-landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper --install-oci-registry
+landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --install-oci-registry --landscaper-values ./landscaper-values.yaml --namespace landscaper
 ```
 
 ### Options

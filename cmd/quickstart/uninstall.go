@@ -26,7 +26,7 @@ type uninstallOptions struct {
 func NewUninstallCommand(ctx context.Context) *cobra.Command {
 	opts := &uninstallOptions{}
 	cmd := &cobra.Command{
-		Use:     "uninstall",
+		Use:     "uninstall --kubeconfig [kubconfig.yaml]",
 		Aliases: []string{"u"},
 		Short:   "command to uninstall the landscaper and OCI registry (from the install command) in a target cluster",
 		Example: "landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace landscaper",

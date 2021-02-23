@@ -393,7 +393,7 @@ func (o *addContainerDeployItemOptions) parseFieldValueDefinition(paramDef strin
 
 	return &v1alpha1.FieldValueDefinition{
 		Name:   name,
-		Schema: v1alpha1.JSONSchemaDefinition(fmt.Sprintf("{ \"type\": \"%s\" }", typ)),
+		Schema: v1alpha1.JSONSchemaDefinition{RawMessage: []byte(fmt.Sprintf("{ \"type\": \"%s\" }", typ))},
 	}, nil
 }
 

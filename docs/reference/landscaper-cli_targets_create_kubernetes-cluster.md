@@ -3,13 +3,13 @@
 create a target of type landscaper.gardener.cloud/kubernetes-cluster
 
 ```
-landscaper-cli targets create kubernetes-cluster [flags]
+landscaper-cli targets create kubernetes-cluster --name [name] --namespace [namespace] --target-kubeconfig [path to target kubeconfig] [flags]
 ```
 
 ### Examples
 
 ```
-landscaper-cli targets create kubernetes-cluster --name my-target --namespace my-namespace --target-kubeconfig  [path to target kubeconfig]
+landscaper-cli targets create kubernetes-cluster --name my-target --namespace my-namespace --target-kubeconfig  kubeconfig.yaml
 ```
 
 ### Options

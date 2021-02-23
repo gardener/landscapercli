@@ -39,10 +39,10 @@ type installOptions struct {
 func NewInstallCommand(ctx context.Context) *cobra.Command {
 	opts := &installOptions{}
 	cmd := &cobra.Command{
-		Use:     "install",
+		Use:     "install --kubeconfig [kubconfig.yaml] [--install-oci-registry]",
 		Aliases: []string{"i"},
 		Short:   "command to install the landscaper (and optionally an OCI registry) in a target cluster",
-		Example: "landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper --install-oci-registry",
+		Example: "landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --install-oci-registry --landscaper-values ./landscaper-values.yaml --namespace landscaper",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())

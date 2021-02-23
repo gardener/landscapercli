@@ -22,7 +22,7 @@ landscaper-cli:
       component_descriptor: ~
     steps:
       verify:
-        image: 'golang:1.15.2'
+        image: 'golang:1.16.0'
 
   jobs:
     head-update:

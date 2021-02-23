@@ -5,6 +5,9 @@
 package utils
 
 import (
+	"crypto/tls"
+	"net/http"
+
 	"github.com/gardener/component-cli/ociclient"
 	"github.com/gardener/component-cli/ociclient/cache"
 
@@ -28,6 +31,12 @@ func (c *WithConfigurationStruct) ApplyOption(options *ociclient.Options) {
 		}
 	}
 	options.AllowPlainHttp = c.AllowPlainHttp
+	if c.InsecureSkipVerify {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		options.HTTPClient = &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConfig}}
+	}
 }
 
 // WithConfiguration applies external oci configuration as internal options.
@@ -40,7 +49,7 @@ func WithConfiguration(cfg *config.OCIConfiguration) *WithConfigurationStruct {
 }
 
 // ToOCICacheOptions converts a landscaper cache configuration to the cache internal config
-func ToOCICacheOptions(cfg *config.OCICacheConfiguration) []cache.Option {
+func ToOCICacheOptions(cfg *config.OCICacheConfiguration, uid string) []cache.Option {
 	cacheOpts := make([]cache.Option, 0)
 	if cfg != nil {
 		if len(cfg.Path) != 0 {
@@ -48,5 +57,6 @@ func ToOCICacheOptions(cfg *config.OCICacheConfiguration) []cache.Option {
 		}
 		cacheOpts = append(cacheOpts, cache.WithInMemoryOverlay(cfg.UseInMemoryOverlay))
 	}
+	cacheOpts = append(cacheOpts, cache.WithUID(uid))
 	return cacheOpts
 }

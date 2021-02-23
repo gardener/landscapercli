@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -32,6 +31,24 @@ import (
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
 )
 
+// image err reasons
+// defined in https://github.com/kubernetes/kubernetes/blob/cea1d4e20b4a7886d8ff65f34c6d4f95efcb4742/pkg/kubelet/images/types.go
+
+// ErrImagePull - General image pull error
+const ErrImagePull = "ErrImagePull"
+
+// ErrImagePullBackOff - Container image pull failed, kubelet is backing off image pull
+const ErrImagePullBackOff = "ImagePullBackOff"
+
+// ErrImageNeverPull - Required Image is absent on host and PullPolicy is NeverPullImage
+const ErrImageNeverPull = "ErrImageNeverPull"
+
+// ErrRegistryUnavailable - Get http error when pulling image from registry
+const ErrRegistryUnavailable = "RegistryUnavailable"
+
+// ErrInvalidImageName - Unable to parse the image name.
+const ErrInvalidImageName = "ErrInvalidImageName"
+
 // CreateOrUpdate creates or updates the given object in the Kubernetes
 // cluster. The object's desired state must be reconciled with the existing
 // state inside the passed in callback MutateFn.
@@ -40,7 +57,7 @@ import (
 // The MutateFn is called regardless of creating or updating an object.
 //
 // It returns the executed operation and an error.
-func CreateOrUpdate(ctx context.Context, c client.Client, obj runtime.Object, f controllerutil.MutateFn) (controllerutil.OperationResult, error) {
+func CreateOrUpdate(ctx context.Context, c client.Client, obj client.Object, f controllerutil.MutateFn) (controllerutil.OperationResult, error) {
 
 	// check if the name key has to be generated
 	accessor, err := meta.Accessor(obj)
@@ -63,11 +80,11 @@ func CreateOrUpdate(ctx context.Context, c client.Client, obj runtime.Object, f 
 }
 
 // Mutate wraps a MutateFn and applies validation to its result
-func Mutate(f controllerutil.MutateFn, key client.ObjectKey, obj runtime.Object) error {
+func Mutate(f controllerutil.MutateFn, key client.ObjectKey, obj client.Object) error {
 	if err := f(); err != nil {
 		return err
 	}
-	if newKey, err := client.ObjectKeyFromObject(obj); err != nil || key != newKey {
+	if newKey := client.ObjectKeyFromObject(obj); key != newKey {
 		return fmt.Errorf("MutateFn cannot Mutate object name and/or object namespace")
 	}
 	return nil
@@ -78,6 +95,14 @@ func ObjectKey(name, namespace string) types.NamespacedName {
 	return types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
+	}
+}
+
+// ObjectKeyFromObject creates a namespaced name for a given object.
+func ObjectKeyFromObject(obj client.Object) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      obj.GetName(),
+		Namespace: obj.GetNamespace(),
 	}
 }
 
@@ -227,7 +252,7 @@ func GenerateKubeconfig(restConfig *rest.Config) clientcmdapi.Config {
 		},
 		Clusters: map[string]*clientcmdapi.Cluster{
 			defaultID: {
-				Server:                   path.Join(restConfig.Host, restConfig.APIPath),
+				Server:                   restConfig.Host + restConfig.APIPath,
 				CertificateAuthorityData: restConfig.CAData,
 				InsecureSkipTLSVerify:    restConfig.Insecure,
 			},

@@ -3,7 +3,7 @@
 Set import parameters for an installation. Quote values containing spaces in double quotation marks.
 
 ```
-landscaper-cli installations set-import-parameters [flags]
+landscaper-cli installations set-import-parameters [path to installation.yaml] [key1=value1] [key2=value2] [flags]
 ```
 
 ### Examples

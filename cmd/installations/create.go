@@ -176,6 +176,7 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		if err != nil {
 			return fmt.Errorf("error writing file %s: %w", o.outputPath, err)
 		}
+		cmd.Printf("Wrote installation to %s", o.outputPath)
 	}
 
 	return nil

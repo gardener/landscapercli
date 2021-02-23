@@ -140,12 +140,13 @@ landscaper-cli components-cli image-vector add --comp-desc component-descriptor-
 ### Options
 
 ```
-      --comp-desc string                 path to the component descriptor directory
-      --component-prefixes stringArray   Specify all prefixes that define a image  from another component
-      --generic-dependencies string      Specify all prefixes that define a image  from another component
-      --generic-dependency stringArray   Specify all image source names that are a generic dependency.
-  -h, --help                             help for add
-      --image-vector string              The path to the resources defined as yaml or json
+      --comp-desc string                          path to the component descriptor directory
+      --component-prefixes stringArray            Specify all prefixes that define a image  from another component
+      --exclude-component-reference stringArray   Specify all image name that should not be added as component reference
+      --generic-dependencies string               Specify all prefixes that define a image  from another component
+      --generic-dependency stringArray            Specify all image source names that are a generic dependency.
+  -h, --help                                      help for add
+      --image-vector string                       The path to the resources defined as yaml or json
 ```
 
 ### Options inherited from parent commands
