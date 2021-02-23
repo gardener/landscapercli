@@ -3,7 +3,6 @@ package tests
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -384,10 +383,10 @@ func (t *componentCreateTest) createInstallation(ctx context.Context) error {
 					},
 				},
 			},
-			ImportDataMappings: map[string]json.RawMessage{
-				"nginx-namespace": json.RawMessage(`"` + t.config.TestNamespace + `"`),
-				"password-1":      json.RawMessage(`"pw1"`),
-				"password-2":      json.RawMessage(`"pw2"`),
+			ImportDataMappings: map[string]lsv1alpha1.AnyJSON{
+				"nginx-namespace": lsv1alpha1.AnyJSON{[]byte(`"` + t.config.TestNamespace + `"`)},
+				"password-1":      lsv1alpha1.AnyJSON{[]byte(`"pw1"`)},
+				"password-2":      lsv1alpha1.AnyJSON{[]byte(`"pw2"`)},
 			},
 		},
 	}

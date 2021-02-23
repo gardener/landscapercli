@@ -16,7 +16,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -194,7 +193,7 @@ func CheckAndWaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, k
 
 // CheckAndWaitUntilObjectNotExistAnymore periodically checks and wait until the object does not exist anymore. Returns an error on failure
 // or if timeout (sleepTime and maxRetries is reached). Returns a boolean indicating if the object remains on return.
-func CheckAndWaitUntilObjectNotExistAnymore(k8sClient client.Client, objKey types.NamespacedName, obj runtime.Object, sleepTime time.Duration, maxRetries int) (bool, error) {
+func CheckAndWaitUntilObjectNotExistAnymore(k8sClient client.Client, objKey types.NamespacedName, obj client.Object, sleepTime time.Duration, maxRetries int) (bool, error) {
 	conditionFunc := func() (bool, error) {
 		err := k8sClient.Get(context.TODO(), objKey, obj)
 		if err != nil {
@@ -384,7 +383,7 @@ func removeFinalizers(ctx context.Context, k8sClient client.Client, object metav
 		return nil
 	}
 	object.SetFinalizers([]string{})
-	return k8sClient.Update(ctx, object.(runtime.Object))
+	return k8sClient.Update(ctx, object.(client.Object))
 }
 
 func MarshalYaml(node *yamlv3.Node) ([]byte, error) {
@@ -470,8 +469,10 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfig string) (*lsv1alph
 			Namespace: namespace,
 		},
 		Spec: lsv1alpha1.TargetSpec{
-			Type:          lsv1alpha1.KubernetesClusterTargetType,
-			Configuration: marshalledConfig,
+			Type: lsv1alpha1.KubernetesClusterTargetType,
+			Configuration: lsv1alpha1.AnyJSON{
+				marshalledConfig,
+			},
 		},
 	}
 

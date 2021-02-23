@@ -2,7 +2,6 @@ package installations
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -112,7 +111,7 @@ func (o *importParametersOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 func replaceImportsWithImportParameters(installation *lsv1alpha1.Installation, o *importParametersOptions) error {
-	validImportDataMappings := make(map[string]json.RawMessage)
+	validImportDataMappings := make(map[string]lsv1alpha1.AnyJSON)
 
 	//find all imports.data that are specified in importParameters
 	for _, importData := range installation.Spec.Imports.Data {
@@ -131,7 +130,7 @@ func replaceImportsWithImportParameters(installation *lsv1alpha1.Installation, o
 	//modify the installation
 	for importName, importDataMappingValue := range validImportDataMappings {
 		if installation.Spec.ImportDataMappings == nil {
-			installation.Spec.ImportDataMappings = make(map[string]json.RawMessage)
+			installation.Spec.ImportDataMappings = make(map[string]lsv1alpha1.AnyJSON)
 		}
 		//add to importDataMappings
 		installation.Spec.ImportDataMappings[importName] = importDataMappingValue
@@ -147,11 +146,11 @@ func replaceImportsWithImportParameters(installation *lsv1alpha1.Installation, o
 	return nil
 }
 
-func createJSONRawMessageValueWithStringOrNumericType(parameter string) json.RawMessage {
+func createJSONRawMessageValueWithStringOrNumericType(parameter string) lsv1alpha1.AnyJSON {
 	if _, err := strconv.ParseFloat(parameter, 64); err == nil {
-		return json.RawMessage(parameter)
+		return lsv1alpha1.AnyJSON{[]byte(parameter)}
 	}
-	return json.RawMessage(fmt.Sprintf(`"%s"`, parameter))
+	return lsv1alpha1.AnyJSON{[]byte(fmt.Sprintf(`"%s"`, parameter))}
 
 }
 

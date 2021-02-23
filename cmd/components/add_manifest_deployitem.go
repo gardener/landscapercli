@@ -254,7 +254,7 @@ func (o *addManifestDeployItemOptions) parseImportDefinition(paramDef string) (*
 	return &v1alpha1.ImportDefinition{
 		FieldValueDefinition: v1alpha1.FieldValueDefinition{
 			Name:   name,
-			Schema: v1alpha1.JSONSchemaDefinition(fmt.Sprintf("{ \"type\": \"%s\" }", typ)),
+			Schema: v1alpha1.JSONSchemaDefinition{[]byte(fmt.Sprintf("{ \"type\": \"%s\" }", typ))},
 		},
 		Required: &required,
 	}, nil

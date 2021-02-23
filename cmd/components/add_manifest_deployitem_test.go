@@ -62,7 +62,7 @@ func TestParseImportDefinition(t *testing.T) {
 			if test.expectError {
 				assert.NotNil(t, err, "expected an error when parsing parameter definition")
 			} else {
-				actualSchema := string(importDefinition.Schema)
+				actualSchema := string(importDefinition.Schema.RawMessage)
 				assert.Nil(t, err, "error parsing parameter definition")
 				assert.Equal(t, test.expectedName, importDefinition.Name, "unexpected parameter name")
 				assert.Equal(t, test.expectedSchema, actualSchema, "unexpected parameter schema")
