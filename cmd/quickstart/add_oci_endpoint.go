@@ -11,13 +11,11 @@ import (
 	"os/exec"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
+	networking "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -166,7 +164,9 @@ func (o *addOciEndpointOptions) createAuthSecret(ctx context.Context, k8sClient 
 func (o *addOciEndpointOptions) createIngress(ctx context.Context, k8sClient client.Client,
 	authSecretName, ingressName, ingressHost, tlsSecretName string) error {
 
-	ingress := v1beta1.Ingress{
+	pathType := networking.PathTypePrefix
+
+	ingress := networking.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ingressName,
 			Namespace: o.namespace,
@@ -179,8 +179,8 @@ func (o *addOciEndpointOptions) createIngress(ctx context.Context, k8sClient cli
 				"nginx.ingress.kubernetes.io/auth-realm":  "Authentication Required",
 			},
 		},
-		Spec: v1beta1.IngressSpec{
-			TLS: []v1beta1.IngressTLS{
+		Spec: networking.IngressSpec{
+			TLS: []networking.IngressTLS{
 				{
 					Hosts: []string{
 						ingressHost,
@@ -188,19 +188,21 @@ func (o *addOciEndpointOptions) createIngress(ctx context.Context, k8sClient cli
 					SecretName: tlsSecretName, // gardener will create a secret with this name
 				},
 			},
-			Rules: []v1beta1.IngressRule{
+			Rules: []networking.IngressRule{
 				{
 					Host: ingressHost,
-					IngressRuleValue: v1beta1.IngressRuleValue{
-						HTTP: &v1beta1.HTTPIngressRuleValue{
-							Paths: []v1beta1.HTTPIngressPath{
+					IngressRuleValue: networking.IngressRuleValue{
+						HTTP: &networking.HTTPIngressRuleValue{
+							Paths: []networking.HTTPIngressPath{
 								{
 									Path: "/",
-									Backend: v1beta1.IngressBackend{
-										ServiceName: "oci-registry",
-										ServicePort: intstr.IntOrString{
-											IntVal: 5000,
-											Type:   intstr.Int,
+									PathType: &pathType,
+									Backend: networking.IngressBackend{
+										Service: &networking.IngressServiceBackend{
+											Name: "oci-registry",
+											Port: networking.ServiceBackendPort{
+												Number: 5000,
+											},
 										},
 									},
 								},
