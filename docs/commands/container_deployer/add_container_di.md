@@ -288,7 +288,6 @@ import data. After about five minutes you should also be able to see the output 
 ## Todo
 
 - Docu
-  - integrate target-cluster
   - integrate other stuff like data in blueprint, component-descriptor, etc.
 
 - Implementation
