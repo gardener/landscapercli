@@ -82,7 +82,7 @@ github.com/gardener/component-spec/bindings-go/codec
 github.com/gardener/component-spec/bindings-go/ctf
 github.com/gardener/component-spec/bindings-go/oci
 github.com/gardener/component-spec/bindings-go/utils/selector
-# github.com/gardener/landscaper v0.6.1-0.20210223090757-9f4fe1b3ec92
+# github.com/gardener/landscaper v0.6.1-0.20210225105446-cc69d9c9425f
 ## explicit
 github.com/gardener/landscaper/pkg/kubernetes
 github.com/gardener/landscaper/pkg/landscaper/blueprints
