@@ -33,20 +33,20 @@ landscaper-cli quickstart add-oci-endpoint \
 
 
 This command creates an external https endpoint with basic authentication. Be aware that this endpoint is accessible
-from everywhere. Therefore, use some strong password.
+from everywhere. Therefore, use some strong password. 
 
 If the URL of the API server of the k8s cluster is *https://api.cluster-domain* then the endpoint is 
-*https://oci.ingress.cluster-domain*, e.g. 
+*https://o.ingress.cluster-domain*, e.g. 
 
 ```
 API-Server: https://api.mycluster.myproject.shoot.live.k8s-hana.ondemand.com
-OCI Endpoint: https://oci.ingress.mycluster.myproject.shoot.live.k8s-hana.ondemand.com
+OCI Endpoint: https://o.ingress.mycluster.myproject.shoot.live.k8s-hana.ondemand.com
 ```
 
 You could check the endpoint with, e.g. the *curl* command:
 
 ```
-curl --location --request GET https://oci.ingress.mycluster.myproject.shoot.live.k8s-hana.ondemand.com/v2/_catalog -u "testuser:some-pw" 
+curl --location --request GET https://o.ingress.mycluster.myproject.shoot.live.k8s-hana.ondemand.com/v2/_catalog -u "testuser:some-pw" 
 ```
 
 #### Alternative 2: Continue with port forwarding

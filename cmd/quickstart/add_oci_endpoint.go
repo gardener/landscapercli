@@ -113,7 +113,10 @@ func (o *addOciEndpointOptions) run(ctx context.Context, log logr.Logger) error 
 		return fmt.Errorf("cannot build K8s client: %w", err)
 	}
 
-	ingressHost := strings.Replace(cfg.Host, "https://api", "oci.ingress", 1)
+	ingressHost := strings.Replace(cfg.Host, "https://api", "o.ingress", 1)
+	if len(ingressHost) > 64 {
+		return fmt.Errorf("No certificate could be created because your domain exceeds 64 characters: " + ingressHost)
+	}
 
 	err = o.createAuthSecret(ctx, k8sClient, authSecretName)
 	if err != nil {
