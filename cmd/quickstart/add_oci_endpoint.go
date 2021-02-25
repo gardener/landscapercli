@@ -195,7 +195,7 @@ func (o *addOciEndpointOptions) createIngress(ctx context.Context, k8sClient cli
 						HTTP: &networking.HTTPIngressRuleValue{
 							Paths: []networking.HTTPIngressPath{
 								{
-									Path: "/",
+									Path:     "/",
 									PathType: &pathType,
 									Backend: networking.IngressBackend{
 										Service: &networking.IngressServiceBackend{
