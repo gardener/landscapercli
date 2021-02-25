@@ -315,7 +315,7 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 
 			schemasStr, err := schemas.toString()
 			if err != nil {
-				return fmt.Errorf("cannot convert jsonschema to string: %w", err)
+				return err
 			}
 			n1.HeadComment = schemasStr
 		}
@@ -364,7 +364,7 @@ func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 
 			schemasStr, err := schemas.toString()
 			if err != nil {
-				return fmt.Errorf("cannot convert jsonschema to string: %w", err)
+				return err
 			}
 			n1.HeadComment = schemasStr
 		}
@@ -479,33 +479,33 @@ func (l jsonSchemaList) toString() (string, error) {
 
 	buf := bytes.Buffer{}
 
-	_, err := buf.WriteString("JSON Schema\n")
+	_, err := buf.WriteString("JSON schema\n")
 	if err != nil {
 		return "", fmt.Errorf("cannot write to buffer: %w", err)
 	}
 
-	blueprintSchema, err := json.MarshalIndent(l[0].Schema, "", "  ")
+	inlineSchema, err := json.MarshalIndent(l[0].Schema, "", "  ")
 	if err != nil {
-		return "", fmt.Errorf(`cannot marshal blueprint jsonschema: %w`, err)
+		return "", fmt.Errorf(`cannot marshal inline jsonschema: %w`, err)
 	}
 
-	_, err = buf.Write(blueprintSchema)
+	_, err = buf.Write(inlineSchema)
 	if err != nil {
 		return "", fmt.Errorf("cannot write to buffer: %w", err)
 	}
 
 	if len(l) > 1 {
-		_, err = buf.WriteString("\n \nReferenced JSON Schemas\n")
+		_, err = buf.WriteString("\n \nReferenced JSON schemas\n")
 		if err != nil {
 			return "", fmt.Errorf("cannot write to buffer: %w", err)
 		}
 
-		marshaledSchemaRefs, err := json.MarshalIndent(l[1:], "", "  ")
+		marshaledReferencedSchemas, err := json.MarshalIndent(l[1:], "", "  ")
 		if err != nil {
-			return "", fmt.Errorf(`cannot marshal jsonschema refs: %w`, err)
+			return "", fmt.Errorf(`cannot marshal referenced jsonschemas: %w`, err)
 		}
 
-		_, err = buf.Write(marshaledSchemaRefs)
+		_, err = buf.Write(marshaledReferencedSchemas)
 		if err != nil {
 			return "", fmt.Errorf("cannot write to buffer: %w", err)
 		}
@@ -526,12 +526,12 @@ func (l *jsonschemaRefResolver) resolveRefs(ref string, schemaLoader gojsonschem
 
 	schema, err := schemaLoader.LoadJSON()
 	if err != nil {
-		return nil, fmt.Errorf("cannot load jsonschema: %w", err)
+		return nil, fmt.Errorf("cannot load schema: %w", err)
 	}
 
 	schemamap, ok := schema.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("cannot convert ")
+		return nil, fmt.Errorf("cannot convert schema to map[string]interface{}")
 	}
 
 	allSchemas := jsonSchemaList{}
@@ -541,13 +541,13 @@ func (l *jsonschemaRefResolver) resolveRefs(ref string, schemaLoader gojsonschem
 		if key == "$ref" {
 			refStr, ok := value.(string)
 			if !ok {
-				return nil, fmt.Errorf("cannot parse value of $ref to string")
+				return nil, fmt.Errorf("cannot convert $ref to string: $ref = %+v", value)
 			}
 
 			newLoader := schemaLoader.LoaderFactory().New(refStr)
 			ref, err := newLoader.JsonReference()
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("cannot create json reference: %w", err)
 			}
 
 			if !ref.IsCanonical() {

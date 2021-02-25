@@ -30,21 +30,25 @@ import (
 
 func RunInstallationsCreateTest(k8sClient client.Client, config *inttestutil.Config) error {
 	const (
-		installationName = "test-installation"
-		componentName    = "github.com/dummy-cd"
-		componentVersion = "v0.1.0"
-		blueprintName    = "dummy-blueprint"
-		targetName       = "test-target"
+		installationName           = "test-installation"
+		blueprintComponentName     = "github.com/dummy-cd"
+		blueprintComponentVersion  = "v0.1.0"
+		blueprintName              = "dummy-blueprint"
+		jsonschemaComponentName    = "github.com/dummy-schema"
+		jsonschemaComponentVersion = "v0.1.0"
+		targetName                 = "test-target"
 	)
 
 	test := installationsCreateTest{
-		k8sClient:        k8sClient,
-		installationName: installationName,
-		componentName:    componentName,
-		componentVersion: componentVersion,
-		blueprintName:    blueprintName,
-		targetName:       targetName,
-		config:           *config,
+		k8sClient:                  k8sClient,
+		installationName:           installationName,
+		blueprintComponentName:     blueprintComponentName,
+		blueprintComponentVersion:  blueprintComponentVersion,
+		blueprintName:              blueprintName,
+		jsonschemaComponentName:    jsonschemaComponentName,
+		jsonschemaComponentVersion: jsonschemaComponentVersion,
+		targetName:                 targetName,
+		config:                     *config,
 	}
 
 	err := test.setup()
@@ -66,22 +70,28 @@ func RunInstallationsCreateTest(k8sClient client.Client, config *inttestutil.Con
 }
 
 type installationsCreateTest struct {
-	k8sClient           client.Client
-	installationName    string
-	installationDir     string
-	installationToApply lsv1alpha1.Installation
-	componentName       string
-	componentVersion    string
-	blueprintName       string
-	config              inttestutil.Config
-	targetName          string
+	k8sClient                  client.Client
+	installationName           string
+	installationDir            string
+	installationToApply        lsv1alpha1.Installation
+	blueprintComponentName     string
+	blueprintComponentVersion  string
+	blueprintName              string
+	jsonschemaComponentName    string
+	jsonschemaComponentVersion string
+	targetName                 string
+	config                     inttestutil.Config
 }
 
 func (t *installationsCreateTest) run() error {
-	fmt.Println("Creating and uploading component to OCI registry")
-	err := t.createAndUploadComponent()
+	err := t.createAndUploadBlueprintComponent()
 	if err != nil {
-		return fmt.Errorf("creating/uploading dummy component failed: %w", err)
+		return fmt.Errorf("creating/uploading blueprint component failed: %w", err)
+	}
+
+	err = t.createAndUploadJSONSchemaComponent()
+	if err != nil {
+		return fmt.Errorf("creating/uploading jsonschema component failed: %w", err)
 	}
 
 	cmdOutput, err := t.runInstallationsCreateCmd()
@@ -146,8 +156,8 @@ func (t *installationsCreateTest) runInstallationsCreateCmd() (*bytes.Buffer, er
 	cmd.SetOut(&outBuf)
 	args := []string{
 		"localhost:5000",
-		t.componentName,
-		t.componentVersion,
+		t.blueprintComponentName,
+		t.blueprintComponentVersion,
 		"--name",
 		t.installationName,
 		"--allow-plain-http",
@@ -172,6 +182,7 @@ func (t *installationsCreateTest) setImportParameters() error {
 	argsImportParams := []string{
 		path.Join(t.installationDir, "installation-generated.yaml"),
 		"appnamespace=" + t.config.TestNamespace,
+		"dummy-import=dummy",
 		"-o=" + path.Join(t.installationDir, "installation-set-import-params.yaml"),
 	}
 	cmdImportParams.SetArgs(argsImportParams)
@@ -263,8 +274,8 @@ func (t *installationsCreateTest) checkInstallation(outBuf *bytes.Buffer) error 
 		Spec: lsv1alpha1.InstallationSpec{
 			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
 				Reference: &lsv1alpha1.ComponentDescriptorReference{
-					Version:       t.componentVersion,
-					ComponentName: t.componentName,
+					Version:       t.blueprintComponentVersion,
+					ComponentName: t.blueprintComponentName,
 					RepositoryContext: &cdv2.RepositoryContext{
 						Type:    cdv2.OCIRegistryType,
 						BaseURL: t.config.RegistryBaseURL,
@@ -280,6 +291,9 @@ func (t *installationsCreateTest) checkInstallation(outBuf *bytes.Buffer) error 
 				Data: []lsv1alpha1.DataImport{
 					{
 						Name: "appnamespace",
+					},
+					{
+						Name: "dummy-import",
 					},
 				},
 				Targets: []lsv1alpha1.TargetImportExport{
@@ -307,18 +321,59 @@ func (t *installationsCreateTest) checkInstallation(outBuf *bytes.Buffer) error 
 	if err != nil {
 		return err
 	}
+
 	_, dataImportsNode := util.FindNodeByPath(rootNode, "spec.imports.data")
-	expectedSchema := `# JSON schema
+
+	ok = assert.Len(inttestutil.DummyTestingT{}, dataImportsNode.Content, 2)
+	if !ok {
+		return fmt.Errorf("expected dataImportsNode")
+	}
+
+	for _, dataImportNode := range dataImportsNode.Content {
+		importNameKey, importNameValue := util.FindNodeByPath(dataImportNode, "name")
+
+		expectedSchema := ""
+		if importNameValue.Value == "appnamespace" {
+			expectedSchema = `# JSON schema
 # {
 #   "type": "string"
 # }`
-	ok = assert.Equal(inttestutil.DummyTestingT{}, expectedSchema, dataImportsNode.Content[0].Content[0].HeadComment)
-	if !ok {
-		return fmt.Errorf("schema comments for spec.imports.data are invalid")
+		} else if importNameValue.Value == "dummy-import" {
+			expectedSchema = `# JSON schema
+# {
+#   "$ref": "cd://componentReferences/jsonschema-definitions/resources/schema"
+# }
+#  
+# Referenced JSON schemas
+# [
+#   {
+#     "ref": "cd://componentReferences/jsonschema-definitions/resources/schema",
+#     "schema": {
+#       "$id": "landscaper.gardener.cloud/ls-cli/inttest/testschema",
+#       "$schema": "http://json-schema.org/draft-07/schema#",
+#       "description": "Describes a test schema",
+#       "properties": {
+#         "my-prop": {
+#           "type": "string"
+#         }
+#       },
+#       "title": "Testschema",
+#       "type": "object"
+#     }
+#   }
+# ]`
+		} else {
+			return fmt.Errorf("")
+		}
+
+		ok = assert.Equal(inttestutil.DummyTestingT{}, expectedSchema, importNameKey.HeadComment)
+		if !ok {
+			return fmt.Errorf("schema comments for spec.imports.data are invalid")
+		}
 	}
 
 	_, targetImportsNode := util.FindNodeByPath(rootNode, "spec.imports.targets")
-	expectedSchema = "# Target type: landscaper.gardener.cloud/kubernetes-cluster"
+	expectedSchema := "# Target type: landscaper.gardener.cloud/kubernetes-cluster"
 	ok = assert.Equal(inttestutil.DummyTestingT{}, expectedSchema, targetImportsNode.Content[0].Content[0].HeadComment)
 	if !ok {
 		return fmt.Errorf("schema comments for spec.imports.targets are invalid")
@@ -338,6 +393,9 @@ imports:
 - name: appnamespace
   schema:
     type: string
+- name: dummy-import
+  schema:
+    $ref: "cd://componentReferences/jsonschema-definitions/resources/schema"
 
 deployExecutions:
 - name: default
@@ -363,7 +421,104 @@ deployExecutions:
         namespace: {{ .imports.appnamespace }} `
 }
 
-func (t *installationsCreateTest) createAndUploadComponent() error {
+func (t *installationsCreateTest) createAndUploadJSONSchemaComponent() error {
+	fmt.Println("Creating and uploading jsonschema component")
+
+	ctx := context.TODO()
+
+	cdDir, err := ioutil.TempDir(".", "jsonschema-cd-*")
+	if err != nil {
+		return fmt.Errorf("cannot create component descriptor directory: %w", err)
+	}
+	defer func() {
+		removeErr := os.RemoveAll(cdDir)
+		if removeErr != nil {
+			fmt.Printf("cannot remove temporary directory %s: %s", cdDir, removeErr.Error())
+		}
+	}()
+
+	cd := inttestutil.CreateComponentDescriptor(t.jsonschemaComponentName, t.jsonschemaComponentVersion, t.config.RegistryBaseURL)
+	marshaledCd, err := yaml.Marshal(cd)
+	if err != nil {
+		return fmt.Errorf("cannot marshal component descriptor: %w", err)
+	}
+	err = ioutil.WriteFile(path.Join(cdDir, "component-descriptor.yaml"), marshaledCd, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("cannot write component descriptor file: %w", err)
+	}
+
+	jsonschema := `{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "landscaper.gardener.cloud/ls-cli/inttest/testschema",
+  "title": "Testschema",
+  "description": "Describes a test schema",
+  "type": "object",
+  "properties": {
+    "my-prop": {
+    "type": "string"
+    }
+  }
+}
+`
+
+	jsonschemaFile := path.Join(cdDir, "schema.json")
+	err = ioutil.WriteFile(jsonschemaFile, []byte(jsonschema), os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("cannot write schema.json: %w", err)
+	}
+
+	resourcesYaml := `---
+type: landscaper.gardener.cloud/jsonschema
+name: schema
+relation: local
+input:
+  type: "file"
+  path: "./schema.json"
+  mediaType: "application/vnd.gardener.landscaper.jsonscheme.v1+json"
+---
+`
+
+	resourceFile := path.Join(cdDir, "resources.yaml")
+	err = ioutil.WriteFile(resourceFile, []byte(resourcesYaml), os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("cannot write resources.yaml: %w", err)
+	}
+
+	addResourcesCmd := resources.NewAddCommand(ctx)
+	addResourcesArgs := []string{
+		cdDir,
+		"--resource",
+		resourceFile,
+	}
+	addResourcesCmd.SetArgs(addResourcesArgs)
+
+	err = addResourcesCmd.Execute()
+	if err != nil {
+		return fmt.Errorf("component-cli add resources failed: %w", err)
+	}
+
+	cmdPush := componentcli.NewPushCommand(ctx)
+	outBufPush := &bytes.Buffer{}
+	cmdPush.SetOut(outBufPush)
+	argsPush := []string{
+		"localhost:5000",
+		cd.Name,
+		cd.Version,
+		cdDir,
+	}
+	cmdPush.SetArgs(argsPush)
+
+	err = cmdPush.Execute()
+	if err != nil {
+		return fmt.Errorf("landscaper-cli components component-archive remote push failed: %w", err)
+	}
+
+	return nil
+}
+
+func (t *installationsCreateTest) createAndUploadBlueprintComponent() error {
+	fmt.Println("Creating and uploading blueprint component")
+
 	ctx := context.TODO()
 
 	cdDir, err := ioutil.TempDir(".", "dummy-cd-*")
@@ -377,7 +532,14 @@ func (t *installationsCreateTest) createAndUploadComponent() error {
 		}
 	}()
 
-	cd := inttestutil.CreateComponentDescriptor(t.componentName, t.componentVersion, t.config.RegistryBaseURL)
+	cd := inttestutil.CreateComponentDescriptor(t.blueprintComponentName, t.blueprintComponentVersion, t.config.RegistryBaseURL)
+	jsonschemaComponentRef := cdv2.ComponentReference{
+		Name:          "jsonschema-definitions",
+		ComponentName: t.jsonschemaComponentName,
+		Version:       t.jsonschemaComponentVersion,
+	}
+	cd.ComponentReferences = append(cd.ComponentReferences, jsonschemaComponentRef)
+
 	marshaledCd, err := yaml.Marshal(cd)
 	if err != nil {
 		return fmt.Errorf("cannot marshal component descriptor: %w", err)
@@ -419,7 +581,7 @@ access:
   type: ociRegistry
   imageReference: %s/echo-server-chart:v1.1.0
 ---
-`, t.blueprintName, t.componentVersion, t.config.RegistryBaseURL)
+`, t.blueprintName, t.blueprintComponentVersion, t.config.RegistryBaseURL)
 
 	resourceFile := path.Join(cdDir, "resources.yaml")
 	err = ioutil.WriteFile(resourceFile, []byte(resourcesYaml), os.ModePerm)
