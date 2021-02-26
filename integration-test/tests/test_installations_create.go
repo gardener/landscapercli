@@ -341,13 +341,13 @@ func (t *installationsCreateTest) checkInstallation(outBuf *bytes.Buffer) error 
 		} else if importNameValue.Value == "dummy-import" {
 			expectedSchema = `# JSON schema
 # {
-#   "$ref": "cd://componentReferences/jsonschema-definitions/resources/schema"
+#   "$ref": "cd://componentReferences/jsonschema-definitions/resources/resources-definition"
 # }
 #  
 # Referenced JSON schemas
 # [
 #   {
-#     "ref": "cd://componentReferences/jsonschema-definitions/resources/schema",
+#     "ref": "cd://componentReferences/jsonschema-definitions/resources/resources-definition",
 #     "schema": {
 #       "$id": "landscaper.gardener.cloud/ls-cli/inttest/testschema",
 #       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -395,7 +395,7 @@ imports:
     type: string
 - name: dummy-import
   schema:
-    $ref: "cd://componentReferences/jsonschema-definitions/resources/schema"
+    $ref: "cd://componentReferences/jsonschema-definitions/resources/resources-definition"
 
 deployExecutions:
 - name: default
@@ -469,7 +469,7 @@ func (t *installationsCreateTest) createAndUploadJSONSchemaComponent() error {
 
 	resourcesYaml := `---
 type: landscaper.gardener.cloud/jsonschema
-name: schema
+name: resources-definition
 relation: local
 input:
   type: "file"
@@ -510,7 +510,7 @@ input:
 
 	err = cmdPush.Execute()
 	if err != nil {
-		return fmt.Errorf("landscaper-cli components component-archive remote push failed: %w", err)
+		return fmt.Errorf("components-cli component-archive remote push failed: %w", err)
 	}
 
 	return nil
@@ -615,7 +615,7 @@ access:
 
 	err = cmdPush.Execute()
 	if err != nil {
-		return fmt.Errorf("landscaper-cli components component-archive remote push failed: %w", err)
+		return fmt.Errorf("components-cli component-archive remote push failed: %w", err)
 	}
 
 	return nil
