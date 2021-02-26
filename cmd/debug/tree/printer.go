@@ -17,49 +17,49 @@ const (
 
 func PrintTree(installationTree InstallationTree) strings.Builder {
 	output := strings.Builder{}
-	printInstallation(installationTree, 0, &output)
+	printInstallation(installationTree, "", &output, true)
 	return output
 }
 
-func printInstallation(installationTree InstallationTree, depth int, output *strings.Builder) {
-	itemFormat := middleItem
-	if len(installationTree.SubInstallations) == 0 {
-		itemFormat = lastItem
-	}
-
-	fmt.Fprintf(output, "%s%s[%s] Installation %s\n", formatEmptySpaces(depth), itemFormat,
-		formatStatus(string(installationTree.Installation.Status.Phase)), installationTree.Installation.Name)
-	printErrorIfNecessary(installationTree.Installation.Status.LastError, depth, output)
-
-	for _, subInst := range installationTree.SubInstallations {
-		printInstallation(subInst, depth+1, output)
-	}
-
-	if &installationTree.Execution != nil {
-		printExecution(installationTree.Execution, depth+1, output)
-	}
-
-}
-
-func printExecution(executionTree ExecutionTree, depth int, output *strings.Builder) {
-	fmt.Fprintf(output, "%s%s[%s] Execution %s\n", formatEmptySpaces(depth), lastItem,
-		formatStatus(string(executionTree.Execution.Status.Phase)), executionTree.Execution.Name)
-
-	for i, depItem := range executionTree.DeployItems {
-		printDeployitem(depItem, depth+1, output, i == len(executionTree.DeployItems)-1)
-	}
-
-}
-
-func printDeployitem(deployItemTree DeployItemTree, depth int, output *strings.Builder, isLast bool) {
+func printInstallation(installationTree InstallationTree, preFix string, output *strings.Builder, isLast bool) {
 	itemFormat := middleItem
 	if isLast {
 		itemFormat = lastItem
 	}
 
-	fmt.Fprintf(output, "%s%s[%s] DeployItem %s\n", formatEmptySpaces(depth), itemFormat,
+	fmt.Fprintf(output, "%s%s[%s] Installation %s\n", preFix, itemFormat,
+		formatStatus(string(installationTree.Installation.Status.Phase)), installationTree.Installation.Name)
+	printErrorIfNecessary(installationTree.Installation.Status.LastError, preFix, output)
+
+	if &installationTree.Execution != nil {
+		printExecution(installationTree.Execution, addEmptySpaceOrContinueItem(preFix, isLast), output)
+	}
+
+	for i, subInst := range installationTree.SubInstallations {
+		printInstallation(subInst, addEmptySpaces(preFix), output, i == len(installationTree.SubInstallations)-1)
+	}
+
+}
+
+func printExecution(executionTree ExecutionTree, preFix string, output *strings.Builder) {
+	fmt.Fprintf(output, "%s%s[%s] Execution %s\n", preFix, lastItem,
+		formatStatus(string(executionTree.Execution.Status.Phase)), executionTree.Execution.Name)
+
+	for i, depItem := range executionTree.DeployItems {
+		printDeployitem(depItem, addEmptySpaces(preFix), output, i == len(executionTree.DeployItems)-1)
+	}
+
+}
+
+func printDeployitem(deployItemTree DeployItemTree, preFix string, output *strings.Builder, isLast bool) {
+	itemFormat := middleItem
+	if isLast {
+		itemFormat = lastItem
+	}
+
+	fmt.Fprintf(output, "%s%s[%s] DeployItem %s\n", preFix, itemFormat,
 		formatStatus(string(deployItemTree.DeployItem.Status.Phase)), deployItemTree.DeployItem.Name)
-	printErrorIfNecessary(deployItemTree.DeployItem.Status.LastError, depth, output)
+	printErrorIfNecessary(deployItemTree.DeployItem.Status.LastError, addEmptySpaceOrContinueItem(preFix, false), output)
 }
 
 func formatEmptySpaces(depth int) string {
@@ -71,11 +71,32 @@ func formatEmptySpaces(depth int) string {
 }
 
 func formatStatus(status string) string {
+	if status == string(lsv1alpha1.ComponentPhaseSucceeded) {
+		return "✅ " + status
+	}
+	if status == string(lsv1alpha1.ComponentPhaseProgressing) {
+		return "🏗️ " + status
+	}
+	if status == string(lsv1alpha1.ComponentPhaseFailed) {
+		return "❌ " + status
+	}
 	return status
 }
 
-func printErrorIfNecessary(err *lsv1alpha1.Error, depth int, output *strings.Builder) {
+func addEmptySpaces(s string) string {
+	return s + emptySpace
+}
+
+func addEmptySpaceOrContinueItem(s string, isLast bool) string {
+	if isLast {
+		return addEmptySpaces(s)
+	} else {
+		return s + continueItem
+	}
+}
+
+func printErrorIfNecessary(err *lsv1alpha1.Error, preFix string, output *strings.Builder) {
 	if err != nil {
-		fmt.Fprintf(output, "%s    |%s", formatEmptySpaces(depth), err.Message)
+		fmt.Fprintf(output, "%s%s", preFix, err.Message)
 	}
 }
