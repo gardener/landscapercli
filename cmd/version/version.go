@@ -37,7 +37,7 @@ func NewVersionCommand() *cobra.Command {
 				fmt.Printf("  Platform: %s\n", v.Platform)
 			}
 
-			fmt.Printf("\nCompatible Landscaper Version: %s", version.LandscaperVersion)
+			fmt.Printf("\nCompatible Landscaper Version: %s", version.LandscaperGitVersion)
 
 			fmt.Printf("\nCompatible and included Component-Cli Version: %s", version.ComponentCliVersion)
 			fmt.Printf("\n\n")

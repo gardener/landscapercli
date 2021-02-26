@@ -99,8 +99,8 @@ func (r *ociRegistry) uninstall(ctx context.Context) error {
 		}
 	}
 
-	fmt.Printf("Deleting Ingress %s in namespace %s\n", ingressName, r.namespace)
-	err = r.k8sClient.ExtensionsV1beta1().Ingresses(r.namespace).Delete(ctx, ingressName, metav1.DeleteOptions{})
+	fmt.Printf("Deleting new Ingress %s in namespace %s\n", ingressName, r.namespace)
+	err = r.k8sClient.NetworkingV1().Ingresses(r.namespace).Delete(ctx, ingressName, metav1.DeleteOptions{})
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			fmt.Println("OCI-Ingress not found...Skipping")

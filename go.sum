@@ -194,10 +194,11 @@ github.com/gardener/component-cli v0.14.0 h1:SwwGq99JjvxCEHYLZbnNATGo3/ra55zPTzu
 github.com/gardener/component-cli v0.14.0/go.mod h1:y1n5Tb3NX3OnNLr7KhG1BlrggekO/vpoICigSkQ+UrY=
 github.com/gardener/component-spec/bindings-go v0.0.32 h1:1za/V6R9ORWLdyPu+9VzLxg/JpS0VOMvuos9ncCzMas=
 github.com/gardener/component-spec/bindings-go v0.0.32/go.mod h1:53EIwICsuMgbY/MFCv5/lbOR5e1MQe1HY674Io+nGYE=
-github.com/gardener/landscaper v0.0.0-20210223090757-9f4fe1b3ec92 h1:jZ0vwnd5pWFu2jGHqYvxy+gW0uBAdP+ygQVboX/4X00=
-github.com/gardener/landscaper v0.0.0-20210223090757-9f4fe1b3ec92/go.mod h1:zfnNiyScteA0d75UjCZQ2J8F7HIQ761dKutUmskX10c=
-github.com/gardener/landscaper/apis v0.6.0 h1:VYHZBXQ/ibNyUNMCwVpwmypgQji+340RVjISBENi9oA=
+github.com/gardener/landscaper v0.6.1-0.20210225105446-cc69d9c9425f h1:i/Nf2BNolOPtheKuutrJ9WVwiDlm3yeSiyp8gPIeU54=
+github.com/gardener/landscaper v0.6.1-0.20210225105446-cc69d9c9425f/go.mod h1:zfnNiyScteA0d75UjCZQ2J8F7HIQ761dKutUmskX10c=
 github.com/gardener/landscaper/apis v0.6.0/go.mod h1:++MW27PlSnbWM4AJipikw62RSprxO5TKVxZ8nh0e4Yw=
+github.com/gardener/landscaper/apis v0.6.1-0.20210225105446-cc69d9c9425f h1:P+L+R9ZACg+cuVxl0wDDcD5i6IaaZXAFlohwWsD99BY=
+github.com/gardener/landscaper/apis v0.6.1-0.20210225105446-cc69d9c9425f/go.mod h1:++MW27PlSnbWM4AJipikw62RSprxO5TKVxZ8nh0e4Yw=
 github.com/garyburd/redigo v0.0.0-20150301180006-535138d7bcd7/go.mod h1:NR3MbYisc3/PwhQ00EMzDiPmrwpPxAn5GI05/YaO1SY=
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=

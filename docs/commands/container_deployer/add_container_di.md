@@ -64,13 +64,13 @@ IMPORTS=$(cat $IMPORTS_PATH)
 
 # read sleep time before, only introduced to prolongate the command such that you could inspect the running
 # container before the program is executed
-sleepTimeBefore=$(echo $IMPORTS | jq .sleepTimeBefore)
+sleepTimeBefore=$(echo $IMPORTS | jq .imports.sleepTimeBefore)
 sleep $sleepTimeBefore
 
-# if $OPERATION = "RECONCILE" append the input word, otherwise clean up 
-if [ $OPERATION = "RECONCILE" ]; then
+# if $OPERATION = "RECONCILE" append the input word, otherwise clean up
+if [ $OPERATION == "RECONCILE" ]; then
    # read import parameter word and remove double quotes
-  inputWord=$(echo $IMPORTS | jq .word)
+  inputWord=$(echo $IMPORTS | jq .imports.word)
   inputWord=$(echo $inputWord | sed 's/"//g')
 
   # create empty state file if it does not exists
@@ -91,7 +91,7 @@ fi
 
 # read sleep time after, only introduced to prolongate the command such that you could inspect the running
 # container before the program is executed
-sleepTimeAfter=$(echo $IMPORTS | jq .sleepTimeAfter)
+sleepTimeAfter=$(echo $IMPORTS | jq .imports.sleepTimeAfter)
 sleep $sleepTimeAfter
 ```
 
@@ -101,17 +101,27 @@ variables are set:
 - OPERATION: Contains either `RECONILE` or `DELETE` to inform the program if it should do its job or that the 
   deploy item was deleted, and a potential clean up should be executed.
   
-- IMPORTS: Describes the path to a json file containing the input data for your program. 
-  - In the example above we expect 3 input parameter in the following format (of course more complex data is possible):
+- IMPORTS: Describes the path to a json file containing the input data for your program. You can find an example in
+  the file [imports.json](./resources/misc/imports.json). In this file you find the following sections:
   
-```yaml
-  {
-  "sleepTimeBefore": [some number],
-  "sleepTimeAfter": [some number],
-  "word": [some word]
-  }
-  ```
-  - The input parameter are ready with `IMPORTS=$(cat $IMPORTS_PATH)`
+  - *blueprint*: contains the name of the blueprint
+  - *cd*: the component descriptor
+  - *componentDescriptorDef*: base information of the component
+  - *components*: the resolved component descriptor list, which means that all transitive component descriptors are 
+    included in a list
+  - *imports*: a JSON structure containing the values of all import parameters. The input parameter are read 
+  with `IMPORTS=$(cat $IMPORTS_PATH)`. In the example above we expect 4 input 
+  parameters in the following format (of course more complex data is possible). In the example script, we do not use the
+  target-cluster parameter, but we included it to illustrate how to access a target object. 
+  
+      ```yaml
+      {
+        "sleepTimeBefore": [some number],
+        "sleepTimeAfter": [some number],
+        "target-cluster": [target object including the kubeconfig]
+        "word": [some word]
+      }
+      ```
   
 - STATE_PATH: Contains the path to a folder, where you could store status information. Here you are not restricted to any
   format. You could create as many files with different data as you need. 
@@ -199,7 +209,7 @@ landscaper-cli component create github.com/gardener/landscapercli/examplecontain
 
 An example of the component could be found in the folder [01-create-component](resources/01-create-component).
 
-### A Example Container Deploy Item
+### An Example Container Deploy Item
 
 Now we add the image with our script as a container deploy item to the component:
 
@@ -209,6 +219,7 @@ landscaper-cli component add container deployitem \
   --resource-version 0.1.0 \
   --component-directory $LS_COMPONENT_DIR/demo-component \
   --image your-registry/your-path/containerexample:0.1.0 \
+  --cluster-param target-cluster
   --import-param word:string \
   --import-param sleepTimeBefore:integer \
   --import-param sleepTimeAfter:integer \
@@ -216,22 +227,30 @@ landscaper-cli component add container deployitem \
   --command './script.sh'
 ```
 
-th resulting component files could be found [here](resources/02-add-container-deploy-item/demo-component).
+The resulting component files could be found [here](resources/02-add-container-deploy-item/demo-component).
 The command makes the following changes to the component:
 
 - It adds two input parameter `sleepTimeBefore` and `sleepTimeBefore` of type integer and an input parameter 
   `word` of type string to the [blueprint.yaml](resources/02-add-container-deploy-item/demo-component/blueprint/blueprint.yaml). 
   Currently, only simple parameter of type string, integer or boolean are allowed for import parameter in the 
   landscaper CLI, but you could create more complex ones by manipulating the yaml files manually.
+  It also adds a target import parameter `target-cluster`.
   
 - It adds one export parameter `sentence` of type string to the 
   [blueprint.yaml](resources/02-add-container-deploy-item/demo-component/blueprint/blueprint.yaml).
-  Currently, only simple parameter of type string, integer or boolean are allowed for import parameter in the
-  landscaper CLI, but you could create more complex ones by manipulating the yaml files manually.
+  Currently, the landscaper CLI supports only export parameters of the elementary types string, integer or boolean. 
+  However, you can create more complex ones by manipulating the yaml files manually.
+  
+- It adds an export execution to the blueprint. The export execution defines how the values of the export parameters are 
+  retrieved from the output of the program executed in the container. The export execution generated by the landscaper CLI
+  fetches the value of an export parameter from the corresponding property in the output of the program. 
+  For example, in the current scenario there is an export parameter `sentence`, and the script executed in the container
+  writes a JSON document `{"sentence": ...}` to the output file `$EXPORTS_PATH`. The value of the 
+  export parameter `sentence` comes from the corresponding property `sentence` in the JSON output of the program.
   
 - It creates the file [deploy-execution-examplecontainer.yaml](resources/02-add-container-deploy-item/demo-component/blueprint/deploy-execution-examplecontainer.yaml)
   with the definition of the new container deploy item. In this file you find:
-  - The defined import values.
+  - A section `importValues` such that all import data will be available at runtime.
   - The reference to the OCI image.
   - The command (and optionally arguments) which will be executed in the container running the image. In our example 
     just the script `script.sh` is called without any arguments.
@@ -269,7 +288,6 @@ import data. After about five minutes you should also be able to see the output 
 ## Todo
 
 - Docu
-  - integrate target-cluster
   - integrate other stuff like data in blueprint, component-descriptor, etc.
 
 - Implementation

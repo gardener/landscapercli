@@ -9,7 +9,6 @@ COMPONENT_VERSION                              := $(shell grep github.com/garden
 
 GO_MOD_FILE := "go.mod"
 export COMPONENT_CLI_REF := $(shell grep component-cli $(REPO_ROOT)/$(GO_MOD_FILE))
-export LANDSCAPER_REF := $(shell grep "landscaper " $(REPO_ROOT)/$(GO_MOD_FILE))
 
 .PHONY: install-requirements
 install-requirements:
