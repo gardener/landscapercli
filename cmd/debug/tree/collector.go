@@ -21,7 +21,7 @@ func (c *Collector) CollectInstallationTree(name string, namespace string) (*Ins
 	}
 
 	tree := InstallationTree{}
-	tree.Installation = inst
+	tree.Installation = &inst
 
 	//resolve all sub instalaltions
 	for _, subInst := range inst.Status.InstallationReferences {
@@ -39,7 +39,7 @@ func (c *Collector) CollectInstallationTree(name string, namespace string) (*Ins
 		if err != nil {
 			return nil, fmt.Errorf("cannot get execution %s: %w", execution.Name, err)
 		}
-		tree.Execution = *subExecution
+		tree.Execution = subExecution
 	}
 
 	return &tree, nil
@@ -54,7 +54,7 @@ func (c *Collector) collectExecutionTree(name string, namespace string) (*Execut
 	}
 
 	tree := ExecutionTree{}
-	tree.Execution = exec
+	tree.Execution = &exec
 
 	//resolve deployItems
 	for _, deployItem := range exec.Status.DeployItemReferences {
@@ -77,7 +77,7 @@ func (c *Collector) collectDeployItemTree(name string, namespace string) (*Deplo
 	}
 
 	tree := DeployItemTree{}
-	tree.DeployItem = depItem
+	tree.DeployItem = &depItem
 
 	return &tree, nil
 }
