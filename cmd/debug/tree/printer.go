@@ -13,6 +13,7 @@ const (
 	middleItem   = "├── "
 	continueItem = "│   "
 	lastItem     = "└── "
+	rootItem     = "─── "
 )
 
 type TreeElement struct {
@@ -24,26 +25,35 @@ type TreeElement struct {
 func PrintTree(nodes []TreeElement) strings.Builder {
 	output := strings.Builder{}
 	for _, node := range nodes {
-		printNode(node, "", &output, true)
+		printNode(node, "", &output, true, true)
+		output.WriteString("\n")
 	}
 	return output
 }
 
-func printNode(node TreeElement, preFix string, output *strings.Builder, isLast bool) {
-	itemFormat := middleItem
+func printNode(node TreeElement, preFix string, output *strings.Builder, isLast bool, rootLevel bool) {
+	itemFormatHeading := middleItem
 	if isLast {
-		itemFormat = lastItem
+		itemFormatHeading = lastItem
 	}
+	if rootLevel {
+		itemFormatHeading = ""
+	}
+	itemFormatDescription := continueItem
+	if rootLevel {
+		itemFormatDescription = emptySpace
+	}
+
 	spaces := preFix
 
-	fmt.Fprintf(output, "%s%s%s", spaces, itemFormat, node.Headline)
-	spaces = addEmptySpaceOrContinueItem(preFix, isLast)
+	fmt.Fprintf(output, "%s%s%s", spaces, itemFormatHeading, node.Headline)
 	if node.Description != "" {
-		fmt.Fprintf(output, "%s%s%s", spaces, itemFormat, node.Description)
+		fmt.Fprintf(output, "%s%s%s\n", spaces, itemFormatDescription, node.Description) //TODO: ensure it ends with exactly ONE newline
 	}
+	spaces = addEmptySpaceOrContinueItem(preFix, isLast)
 
 	for i, subNodes := range node.Childs {
-		printNode(subNodes, spaces, output, i == len(node.Childs)-1)
+		printNode(subNodes, spaces, output, i == len(node.Childs)-1, false)
 	}
 }
 
@@ -57,6 +67,9 @@ func formatEmptySpaces(depth int) string {
 
 func addEmptySpaces(s string) string {
 	return s + emptySpace
+}
+func addContinueItem(s string) string {
+	return s + continueItem
 }
 
 func addEmptySpaceOrContinueItem(s string, isLast bool) string {
