@@ -10,9 +10,18 @@ The quickstart install command allows to install the landscaper (and optionally 
 ```
 landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper --install-oci-registry
 ```
+`landscaper-values.yaml`is the values file of the landscaper. See below for a minimal example.
 To install a specific version of the landscaper chart, use the `landscaper-chart-version` argument.
 
 For more details on the cli usage, consult [landscaper-cli_quickstart_install reference](../../reference/landscaper-cli_quickstart_install.md).
+If the installation succeeds you can verify the created pods with:
+
+```
+kubectl get pods -n landscaper --kubeconfig=./kubconfig.yaml
+NAME                            READY   STATUS    RESTARTS   AGE
+landscaper-6674fd9c47-9jz2n     1/1     Running   0          78s
+oci-registry-6654f55648-klp22   1/1     Running   0          83s
+```
 
 ### Interact with OCI registry
 
@@ -56,12 +65,24 @@ You can forward the port 5000 of the registry pod to your localhost with the fol
 ```
 kubectl port-forward oci-registry-<pod-id> 5000:5000 -n landscaper
 ```
+To check the endpoint then use:
+```
+curl --location --request GET http://localhost:5000/v2/_catalog
+```
+This should give the output:
+
+```
+{"repositories":[]}
+```
+
+indicating an empty registry.
+
 Afterwards, you can use the tools of your choice to push artifacts against the localhost:5000 registry url, e.g. 
 
 TODO: verify special /etc/hosts domain name for docker push
 
 ### Landscaper Values
-The landscaper values are used during the internal helm install of the landscaper chart. Therefore, all values from the chart can be specified. 
+The landscaper values are used during the internal helm install of the landscaper chart. Therefore, all values from the chart can be specified. For more options see also [here](https://github.com/gardener/landscaper/blob/master/charts/landscaper/values.yaml)
 
 > ❗ If you use the `--install-oci-registry` flag, set `landscaper.registryConfig.allowPlainHttpRegistries = true`
 
