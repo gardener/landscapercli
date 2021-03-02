@@ -11,9 +11,8 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -23,6 +22,8 @@ type statusOptions struct {
 	kubeconfig       string
 	installationName string
 	namespace        string
+
+	detailMode bool
 }
 
 var (
@@ -64,27 +65,38 @@ func NewStatusCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Logger) error {
-	cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfig)
-	if err != nil {
-		return fmt.Errorf("cannot parse K8s config: %w", err)
+	// cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfig)
+	// if err != nil {
+	// 	return fmt.Errorf("cannot parse K8s config: %w", err)
+	// }
+
+	// k8sClient, err := client.New(cfg, client.Options{
+	// 	Scheme: scheme,
+	// })
+	// if err != nil {
+	// 	return fmt.Errorf("cannot build K8s client: %w", err)
+	// }
+
+	// coll := tree.Collector{
+	// 	K8sClient: k8sClient,
+	// }
+	// installationTree, err := coll.CollectInstallationTree(o.installationName, o.namespace)
+	// if err != nil {
+	// 	return fmt.Errorf("cannot collect installation: %w", err)
+	// }
+	// transformedTree := tree.TransformToPrintableTree([]tree.InstallationTree{*installationTree})
+	// output := tree.PrintTree(transformedTree)
+
+	transformer := tree.TransformOptions{
+		DetailedMode: o.detailMode,
 	}
 
-	k8sClient, err := client.New(cfg, client.Options{
-		Scheme: scheme,
-	})
+	transformedTree, err := transformer.TransformToPrintableTree(createDummyInstallationTree())
 	if err != nil {
-		return fmt.Errorf("cannot build K8s client: %w", err)
+		cmd.PrintErrf("Error transforming CR to printable tree: %w", err)
 	}
+	output := tree.PrintTree(transformedTree)
 
-	coll := tree.Collector{
-		K8sClient: k8sClient,
-	}
-	installationTree, err := coll.CollectInstallationTree(o.installationName, o.namespace)
-	if err != nil {
-		return fmt.Errorf("cannot collect installation: %w", err)
-	}
-
-	output := tree.PrintTree(*installationTree)
 	fmt.Print(output.String())
 
 	return nil
@@ -99,4 +111,115 @@ func (o *statusOptions) validateArgs(args []string) error {
 
 func (o *statusOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfig, "kubeconfig", "", "path to the kubeconfig of the cluster")
+	fs.BoolVarP(&o.detailMode, "detail", "d", false, "show detailed information about installations, executions and deployitems")
+}
+
+func createDummyInstallationTree() []tree.InstallationTree {
+	t := tree.InstallationTree{
+		Installation: &lsv1alpha1.Installation{
+			ObjectMeta: v1.ObjectMeta{Name: "main installation"},
+			Status: lsv1alpha1.InstallationStatus{
+				Phase: lsv1alpha1.ComponentPhaseFailed,
+				LastError: &lsv1alpha1.Error{
+					Message: "Long errorLong errorLong errorLong errorLong errorLong errorLong errorLong errorLong errorLong errorLong errorLong error",
+				},
+			},
+		},
+		Execution: &tree.ExecutionTree{
+			Execution: &lsv1alpha1.Execution{
+				ObjectMeta: v1.ObjectMeta{Name: "Execution"},
+				Status: lsv1alpha1.ExecutionStatus{
+					Phase: lsv1alpha1.ExecutionPhaseInit,
+				},
+			},
+			DeployItems: []tree.DeployItemTree{tree.DeployItemTree{
+				DeployItem: &lsv1alpha1.DeployItem{
+					Status: lsv1alpha1.DeployItemStatus{
+						Phase: lsv1alpha1.ExecutionPhaseFailed,
+					},
+					ObjectMeta: v1.ObjectMeta{Name: "depItem"},
+				},
+			},
+				tree.DeployItemTree{
+					DeployItem: &lsv1alpha1.DeployItem{
+						Status: lsv1alpha1.DeployItemStatus{
+							Phase: lsv1alpha1.ExecutionPhaseFailed,
+						},
+						ObjectMeta: v1.ObjectMeta{Name: "depItem"},
+					},
+				}}},
+		SubInstallations: []tree.InstallationTree{
+			tree.InstallationTree{
+				Installation: &lsv1alpha1.Installation{
+					ObjectMeta: v1.ObjectMeta{Name: "first sub installation"},
+					Status: lsv1alpha1.InstallationStatus{
+						Phase: lsv1alpha1.ComponentPhaseAborted,
+					},
+				},
+
+				Execution: &tree.ExecutionTree{
+					Execution: &lsv1alpha1.Execution{
+						ObjectMeta: v1.ObjectMeta{Name: "Execution"},
+						Status: lsv1alpha1.ExecutionStatus{
+							Phase: lsv1alpha1.ExecutionPhaseInit,
+						},
+					},
+					DeployItems: []tree.DeployItemTree{tree.DeployItemTree{
+						DeployItem: &lsv1alpha1.DeployItem{
+							Status: lsv1alpha1.DeployItemStatus{
+								Phase:     lsv1alpha1.ExecutionPhaseFailed,
+								LastError: &lsv1alpha1.Error{Message: "Error asdadasdasddasdadasdasd"},
+							},
+							ObjectMeta: v1.ObjectMeta{Name: "depItem"},
+						},
+					},
+						tree.DeployItemTree{
+							DeployItem: &lsv1alpha1.DeployItem{
+								Status: lsv1alpha1.DeployItemStatus{
+									Phase: lsv1alpha1.ExecutionPhaseFailed,
+								},
+								ObjectMeta: v1.ObjectMeta{Name: "depItem"},
+							},
+						},
+					},
+				},
+			},
+			tree.InstallationTree{
+				Installation: &lsv1alpha1.Installation{
+					ObjectMeta: v1.ObjectMeta{Name: "second sub installation"},
+					Status: lsv1alpha1.InstallationStatus{
+						Phase: lsv1alpha1.ComponentPhaseAborted,
+					},
+				},
+
+				Execution: &tree.ExecutionTree{
+					Execution: &lsv1alpha1.Execution{
+						ObjectMeta: v1.ObjectMeta{Name: "Execution"},
+						Status: lsv1alpha1.ExecutionStatus{
+							Phase: lsv1alpha1.ExecutionPhaseInit,
+						},
+					},
+					DeployItems: []tree.DeployItemTree{tree.DeployItemTree{
+						DeployItem: &lsv1alpha1.DeployItem{
+							Status: lsv1alpha1.DeployItemStatus{
+								Phase:     lsv1alpha1.ExecutionPhaseFailed,
+								LastError: &lsv1alpha1.Error{Message: "Error asdadasdasddasdadasdasd"},
+							},
+							ObjectMeta: v1.ObjectMeta{Name: "depItem"},
+						},
+					},
+						tree.DeployItemTree{
+							DeployItem: &lsv1alpha1.DeployItem{
+								Status: lsv1alpha1.DeployItemStatus{
+									Phase: lsv1alpha1.ExecutionPhaseFailed,
+								},
+								ObjectMeta: v1.ObjectMeta{Name: "depItem"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return []tree.InstallationTree{t, t}
 }
