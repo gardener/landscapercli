@@ -25,6 +25,7 @@ type statusOptions struct {
 
 	detailMode     bool
 	showExecutions bool
+	showOnlyFailed bool
 }
 
 var (
@@ -91,6 +92,7 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 	transformer := tree.TransformOptions{
 		DetailedMode:   o.detailMode,
 		ShowExecutions: o.showExecutions,
+		OnlyFailed:     o.showOnlyFailed,
 	}
 
 	transformedTree, err := transformer.TransformToPrintableTree(createDummyInstallationTree())
@@ -115,6 +117,7 @@ func (o *statusOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfig, "kubeconfig", "", "path to the kubeconfig of the cluster")
 	fs.BoolVarP(&o.detailMode, "details", "d", false, "show detailed information about installations, executions and deployitems")
 	fs.BoolVarP(&o.showExecutions, "show-executions", "e", false, "show the executions in the tree")
+	fs.BoolVarP(&o.showOnlyFailed, "show-failed", "f", false, "show failed items")
 }
 
 func createDummyInstallationTree() []tree.InstallationTree {
@@ -156,7 +159,7 @@ func createDummyInstallationTree() []tree.InstallationTree {
 				Installation: &lsv1alpha1.Installation{
 					ObjectMeta: v1.ObjectMeta{Name: "first sub installation"},
 					Status: lsv1alpha1.InstallationStatus{
-						Phase: lsv1alpha1.ComponentPhaseAborted,
+						Phase: lsv1alpha1.ComponentPhaseSucceeded,
 					},
 				},
 
@@ -164,13 +167,13 @@ func createDummyInstallationTree() []tree.InstallationTree {
 					Execution: &lsv1alpha1.Execution{
 						ObjectMeta: v1.ObjectMeta{Name: "Execution"},
 						Status: lsv1alpha1.ExecutionStatus{
-							Phase: lsv1alpha1.ExecutionPhaseInit,
+							Phase: lsv1alpha1.ExecutionPhaseSucceeded,
 						},
 					},
 					DeployItems: []tree.DeployItemTree{tree.DeployItemTree{
 						DeployItem: &lsv1alpha1.DeployItem{
 							Status: lsv1alpha1.DeployItemStatus{
-								Phase:     lsv1alpha1.ExecutionPhaseFailed,
+								Phase:     lsv1alpha1.ExecutionPhaseSucceeded,
 								LastError: &lsv1alpha1.Error{Message: "Error asdadasdasddasdadasdasd"},
 							},
 							ObjectMeta: v1.ObjectMeta{Name: "depItem"},
@@ -179,7 +182,7 @@ func createDummyInstallationTree() []tree.InstallationTree {
 						tree.DeployItemTree{
 							DeployItem: &lsv1alpha1.DeployItem{
 								Status: lsv1alpha1.DeployItemStatus{
-									Phase: lsv1alpha1.ExecutionPhaseFailed,
+									Phase: lsv1alpha1.ExecutionPhaseSucceeded,
 								},
 								ObjectMeta: v1.ObjectMeta{Name: "depItem"},
 							},
@@ -191,7 +194,7 @@ func createDummyInstallationTree() []tree.InstallationTree {
 				Installation: &lsv1alpha1.Installation{
 					ObjectMeta: v1.ObjectMeta{Name: "second sub installation"},
 					Status: lsv1alpha1.InstallationStatus{
-						Phase: lsv1alpha1.ComponentPhaseAborted,
+						Phase: lsv1alpha1.ComponentPhaseSucceeded,
 					},
 				},
 
@@ -214,9 +217,9 @@ func createDummyInstallationTree() []tree.InstallationTree {
 						tree.DeployItemTree{
 							DeployItem: &lsv1alpha1.DeployItem{
 								Status: lsv1alpha1.DeployItemStatus{
-									Phase: lsv1alpha1.ExecutionPhaseFailed,
+									Phase: lsv1alpha1.ExecutionPhaseSucceeded,
 								},
-								ObjectMeta: v1.ObjectMeta{Name: "depItem"},
+								ObjectMeta: v1.ObjectMeta{Name: "depItem Not failed"},
 							},
 						},
 					},

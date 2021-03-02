@@ -10,10 +10,15 @@ import (
 type TransformOptions struct {
 	DetailedMode   bool
 	ShowExecutions bool
+	OnlyFailed     bool
 }
 
 func (t TransformOptions) TransformToPrintableTree(installationTrees []InstallationTree) ([]TreeElement, error) {
 	var printableTrees []TreeElement
+
+	if t.OnlyFailed {
+		installationTrees = FilterForFailedItemsInTree(installationTrees)
+	}
 
 	for _, installationTree := range installationTrees {
 		transformedInstalaltion, err := t.transformInstallation(installationTree)
