@@ -23,7 +23,8 @@ type statusOptions struct {
 	installationName string
 	namespace        string
 
-	detailMode bool
+	detailMode     bool
+	showExecutions bool
 }
 
 var (
@@ -88,7 +89,8 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 	// output := tree.PrintTree(transformedTree)
 
 	transformer := tree.TransformOptions{
-		DetailedMode: o.detailMode,
+		DetailedMode:   o.detailMode,
+		ShowExecutions: o.showExecutions,
 	}
 
 	transformedTree, err := transformer.TransformToPrintableTree(createDummyInstallationTree())
@@ -111,7 +113,8 @@ func (o *statusOptions) validateArgs(args []string) error {
 
 func (o *statusOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfig, "kubeconfig", "", "path to the kubeconfig of the cluster")
-	fs.BoolVarP(&o.detailMode, "detail", "d", false, "show detailed information about installations, executions and deployitems")
+	fs.BoolVarP(&o.detailMode, "details", "d", false, "show detailed information about installations, executions and deployitems")
+	fs.BoolVarP(&o.showExecutions, "show-executions", "e", false, "show the executions in the tree")
 }
 
 func createDummyInstallationTree() []tree.InstallationTree {

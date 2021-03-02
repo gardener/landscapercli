@@ -46,11 +46,13 @@ func printNode(node TreeElement, preFix string, output *strings.Builder, isLast 
 
 	spaces := preFix
 
-	fmt.Fprintf(output, "%s%s%s", spaces, itemFormatHeading, node.Headline)
-	if node.Description != "" {
-		fmt.Fprintf(output, "%s%s%s\n", spaces, itemFormatDescription, node.Description) //TODO: ensure it ends with exactly ONE newline
+	if node.Headline != "" {
+		fmt.Fprintf(output, "%s%s%s\n", spaces, itemFormatHeading, node.Headline)
+		if node.Description != "" {
+			fmt.Fprintf(output, "%s%s%s\n", spaces, itemFormatDescription, node.Description) //TODO: ensure it ends with exactly ONE newline
+		}
+		spaces = addEmptySpaceOrContinueItem(preFix, isLast)
 	}
-	spaces = addEmptySpaceOrContinueItem(preFix, isLast)
 
 	for i, subNodes := range node.Childs {
 		printNode(subNodes, spaces, output, i == len(node.Childs)-1, false)

@@ -8,7 +8,8 @@ import (
 )
 
 type TransformOptions struct {
-	DetailedMode bool
+	DetailedMode   bool
+	ShowExecutions bool
 }
 
 func (t TransformOptions) TransformToPrintableTree(installationTrees []InstallationTree) ([]TreeElement, error) {
@@ -28,7 +29,7 @@ func (t TransformOptions) TransformToPrintableTree(installationTrees []Installat
 func (t TransformOptions) transformInstallation(installationTree InstallationTree) (*TreeElement, error) {
 	printableNode := TreeElement{}
 
-	printableNode.Headline = fmt.Sprintf("[%s] Installation %s\n",
+	printableNode.Headline = fmt.Sprintf("[%s] Installation %s",
 		formatStatus(string(installationTree.Installation.Status.Phase)), installationTree.Installation.Name)
 
 	if t.DetailedMode {
@@ -69,8 +70,11 @@ func (t TransformOptions) transformInstallation(installationTree InstallationTre
 func (t TransformOptions) transformExecution(executionTree ExecutionTree) (*TreeElement, error) {
 	printableNode := TreeElement{}
 
-	printableNode.Headline = fmt.Sprintf("[%s] Execution %s\n",
-		formatStatus(string(executionTree.Execution.Status.Phase)), executionTree.Execution.Name)
+	if t.ShowExecutions || t.DetailedMode {
+		printableNode.Headline = fmt.Sprintf("[%s] Execution %s",
+			formatStatus(string(executionTree.Execution.Status.Phase)), executionTree.Execution.Name)
+	}
+
 	if t.DetailedMode {
 		marshaledExecution, err := yaml.Marshal(executionTree.Execution)
 		if err != nil {
@@ -95,7 +99,7 @@ func (t TransformOptions) transformExecution(executionTree ExecutionTree) (*Tree
 func (t TransformOptions) transformDeployItem(deployItemTree DeployItemTree) (*TreeElement, error) {
 	printableNode := TreeElement{}
 
-	printableNode.Headline = fmt.Sprintf("[%s] DeployItem %s\n",
+	printableNode.Headline = fmt.Sprintf("[%s] DeployItem %s",
 		formatStatus(string(deployItemTree.DeployItem.Status.Phase)), deployItemTree.DeployItem.Name)
 
 	if t.DetailedMode {
