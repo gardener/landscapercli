@@ -82,16 +82,19 @@ Afterwards, you can use the tools of your choice to push artifacts against the l
 TODO: verify special /etc/hosts domain name for docker push
 
 ### Landscaper Values
-The landscaper values are used during the internal helm install of the landscaper chart. Therefore, all values from the chart can be specified. For more options see also [here](https://github.com/gardener/landscaper/blob/master/charts/landscaper/values.yaml)
 
-> ❗ If you use the `--install-oci-registry` flag, set `landscaper.registryConfig.allowPlainHttpRegistries = true`
+The landscaper values are used during the internal helm install of the landscaper chart. Therefore, all values from the 
+chart can be specified. For more options see also [here](https://github.com/gardener/landscaper/blob/master/charts/landscaper/values.yaml)
+
+> ❗ If you use the `--install-oci-registry` flag and you have not configured an external https endpoint for the OCI registry, 
+>  set `landscaper.registryConfig.allowPlainHttpRegistries = true`.
 
 A minimum working example goes as follows:
 ```yaml
 landscaper:
 
   registryConfig: # contains optional oci secrets
-    allowPlainHttpRegistries: true
+    allowPlainHttpRegistries: false
     secrets: {}
 #     <name>: <docker config json>
 
