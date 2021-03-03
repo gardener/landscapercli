@@ -390,6 +390,11 @@ An example installation referencing the developed component in a normal OCI regi
 *[installation-for-normal-oci-registry](resources/installations/installation-for-normal-oci-registry.yaml)*.
 Be aware that the used baseUrl must be replaced by your location.
 
+In these examples the OCI registry is public, so that the artifacts can be accessed without credentials.
+If you use a secured OCI registry, you have to add a registry pull secret to the installation as described
+[here](../../accessing-private-oci-registries.md).
+
+
 
 
 

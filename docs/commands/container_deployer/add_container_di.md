@@ -274,6 +274,10 @@ Next we need an installation referencing the new component. An example could be 
 [here](resources/installations/installation.yaml). Be aware that you have to change the `baseUrl` to that of your
 OCI registry. 
 
+In this example the OCI registry is public, so that the artifacts can be accessed without credentials.
+If you use a secured OCI registry, you have to add a registry pull secret to the installation as described 
+[here](../../accessing-private-oci-registries.md).
+
 In the example we have set the input parameter `word` on *word1*, and the sleep times on 5 minutes. When you deploy
 this installation on the landscaper cluster after a short time a pod is started executing the script. During that
 time you could open a shell in the pod to analyze the settings with:
@@ -289,8 +293,3 @@ import data. After about five minutes you should also be able to see the output 
 
 - Docu
   - integrate other stuff like data in blueprint, component-descriptor, etc.
-
-- Implementation
-  - access to images in secured OCI registry
-  
-- integration tests
