@@ -5,16 +5,16 @@ import (
 )
 
 type InstallationTree struct {
-	SubInstallations []InstallationTree `json:"subInstallations,omitempty"`
-	Execution        *ExecutionTree     `json:"executions,omitempty"`
-	Installation     *lsv1alpha1.Installation
+	SubInstallations []*InstallationTree      `json:"subInstallations,omitempty"`
+	Execution        *ExecutionTree           `json:"execution,omitempty"`
+	Installation     *lsv1alpha1.Installation `json:"installation,omitempty"`
 }
 
 type ExecutionTree struct {
-	DeployItems []DeployItemTree `json:"deployItems,omitempty"`
-	Execution   *lsv1alpha1.Execution
+	DeployItems []*DeployItemLeaf     `json:"deployItems,omitempty"`
+	Execution   *lsv1alpha1.Execution `json:"execution,omitempty"`
 }
 
-type DeployItemTree struct {
-	DeployItem *lsv1alpha1.DeployItem
+type DeployItemLeaf struct {
+	DeployItem *lsv1alpha1.DeployItem `json:"deployItems,omitempty"`
 }

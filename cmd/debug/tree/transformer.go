@@ -13,7 +13,7 @@ type TransformOptions struct {
 	OnlyFailed     bool
 }
 
-func (t TransformOptions) TransformToPrintableTree(installationTrees []InstallationTree) ([]TreeElement, error) {
+func (t TransformOptions) TransformToPrintableTree(installationTrees []*InstallationTree) ([]TreeElement, error) {
 	var printableTrees []TreeElement
 
 	if t.OnlyFailed {
@@ -31,7 +31,7 @@ func (t TransformOptions) TransformToPrintableTree(installationTrees []Installat
 	return printableTrees, nil
 }
 
-func (t TransformOptions) transformInstallation(installationTree InstallationTree) (*TreeElement, error) {
+func (t TransformOptions) transformInstallation(installationTree *InstallationTree) (*TreeElement, error) {
 	printableNode := TreeElement{}
 
 	printableNode.Headline = fmt.Sprintf("[%s] Installation %s",
@@ -44,10 +44,8 @@ func (t TransformOptions) transformInstallation(installationTree InstallationTre
 		}
 		printableNode.Description = string(marshaledInstallation)
 
-	} else {
-		if installationTree.Installation.Status.LastError != nil {
-			printableNode.Description = fmt.Sprintf("Last error: %s", installationTree.Installation.Status.LastError.Message)
-		}
+	} else if installationTree.Installation.Status.LastError != nil {
+		printableNode.Description = fmt.Sprintf("Last error: %s", installationTree.Installation.Status.LastError.Message)
 	}
 
 	if len(installationTree.SubInstallations) > 0 {
@@ -56,23 +54,23 @@ func (t TransformOptions) transformInstallation(installationTree InstallationTre
 			if err != nil {
 				return nil, fmt.Errorf("Error in installation %s: %w", installationTree.Installation.Name, err)
 			}
-			printableNode.Childs = append(printableNode.Childs, *transformedInstalaltion)
+			printableNode.Childs = append(printableNode.Childs, transformedInstalaltion)
 		}
 	}
 
 	if installationTree.Execution != nil {
-		transformedExecution, err := t.transformExecution(*installationTree.Execution)
+		transformedExecution, err := t.transformExecution(installationTree.Execution)
 		if err != nil {
 			return nil, fmt.Errorf("Error in installation %s: %w", installationTree.Installation.Name, err)
 		}
-		printableNode.Childs = append(printableNode.Childs, *transformedExecution)
+		printableNode.Childs = append(printableNode.Childs, transformedExecution)
 
 	}
 
 	return &printableNode, nil
 }
 
-func (t TransformOptions) transformExecution(executionTree ExecutionTree) (*TreeElement, error) {
+func (t TransformOptions) transformExecution(executionTree *ExecutionTree) (*TreeElement, error) {
 	printableNode := TreeElement{}
 
 	if t.ShowExecutions || t.DetailedMode {
@@ -94,14 +92,14 @@ func (t TransformOptions) transformExecution(executionTree ExecutionTree) (*Tree
 			if err != nil {
 				return nil, fmt.Errorf("Error in Execution %s: %w", executionTree.Execution.Name, err)
 			}
-			printableNode.Childs = append(printableNode.Childs, *transformedDeployItem)
+			printableNode.Childs = append(printableNode.Childs, transformedDeployItem)
 		}
 	}
 
 	return &printableNode, nil
 }
 
-func (t TransformOptions) transformDeployItem(deployItemTree DeployItemTree) (*TreeElement, error) {
+func (t TransformOptions) transformDeployItem(deployItemTree *DeployItemLeaf) (*TreeElement, error) {
 	printableNode := TreeElement{}
 
 	printableNode.Headline = fmt.Sprintf("[%s] DeployItem %s",
@@ -113,9 +111,7 @@ func (t TransformOptions) transformDeployItem(deployItemTree DeployItemTree) (*T
 			return nil, fmt.Errorf("Failed marshaling deployitem %s: %w", deployItemTree.DeployItem.Name, err)
 		}
 		printableNode.Description = string(marshaledExecution)
-	}
-
-	if deployItemTree.DeployItem.Status.LastError != nil {
+	} else if deployItemTree.DeployItem.Status.LastError != nil {
 		printableNode.Description = fmt.Sprintf("Last error: %s", deployItemTree.DeployItem.Status.LastError.Message)
 	}
 

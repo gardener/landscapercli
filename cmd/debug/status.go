@@ -94,23 +94,23 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 	// transformedTree := tree.TransformToPrintableTree([]tree.InstallationTree{*installationTree})
 	// output := tree.PrintTree(transformedTree)
 
-	installationTree := createDummyInstallationTree()
+	installationTrees := createDummyInstallationTree()
 
 	if o.oyaml {
-		marshaledInstallationTree, err := yaml.Marshal(installationTree)
+		marshaledInstallationTrees, err := yaml.Marshal(installationTrees)
 		if err != nil {
 			return fmt.Errorf("Failed marshaling output to yaml: %w", err)
 		}
-		cmd.Print(string(marshaledInstallationTree))
+		cmd.Print(string(marshaledInstallationTrees))
 		return nil
 	}
 
 	if o.ojson {
-		marshaledInstallationTree, err := json.Marshal(installationTree)
+		marshaledInstallationTrees, err := json.Marshal(installationTrees)
 		if err != nil {
 			return fmt.Errorf("Failed marshaling output to json: %w", err)
 		}
-		cmd.Print(string(marshaledInstallationTree))
+		cmd.Print(string(marshaledInstallationTrees))
 		return nil
 	}
 
@@ -120,11 +120,11 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 		OnlyFailed:     o.showOnlyFailed,
 	}
 
-	transformedTree, err := transformer.TransformToPrintableTree(installationTree)
+	transformedTree, err := transformer.TransformToPrintableTree(installationTrees)
 	if err != nil {
 		cmd.PrintErrf("Error transforming CR to printable tree: %w", err)
 	}
-	output := tree.PrintTree(transformedTree)
+	output := tree.PrintTrees(transformedTree)
 
 	cmd.Print(output.String())
 
@@ -147,7 +147,7 @@ func (o *statusOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVarP(&o.ojson, "ojson", "j", false, "output in json format")
 }
 
-func createDummyInstallationTree() []tree.InstallationTree {
+func createDummyInstallationTree() []*tree.InstallationTree {
 	t := tree.InstallationTree{
 		Installation: &lsv1alpha1.Installation{
 			ObjectMeta: v1.ObjectMeta{Name: "main installation"},
@@ -165,7 +165,7 @@ func createDummyInstallationTree() []tree.InstallationTree {
 					Phase: lsv1alpha1.ExecutionPhaseInit,
 				},
 			},
-			DeployItems: []tree.DeployItemTree{tree.DeployItemTree{
+			DeployItems: []*tree.DeployItemLeaf{&tree.DeployItemLeaf{
 				DeployItem: &lsv1alpha1.DeployItem{
 					Status: lsv1alpha1.DeployItemStatus{
 						Phase: lsv1alpha1.ExecutionPhaseFailed,
@@ -173,7 +173,7 @@ func createDummyInstallationTree() []tree.InstallationTree {
 					ObjectMeta: v1.ObjectMeta{Name: "depItem"},
 				},
 			},
-				tree.DeployItemTree{
+				&tree.DeployItemLeaf{
 					DeployItem: &lsv1alpha1.DeployItem{
 						Status: lsv1alpha1.DeployItemStatus{
 							Phase: lsv1alpha1.ExecutionPhaseFailed,
@@ -181,8 +181,8 @@ func createDummyInstallationTree() []tree.InstallationTree {
 						ObjectMeta: v1.ObjectMeta{Name: "depItem"},
 					},
 				}}},
-		SubInstallations: []tree.InstallationTree{
-			tree.InstallationTree{
+		SubInstallations: []*tree.InstallationTree{
+			&tree.InstallationTree{
 				Installation: &lsv1alpha1.Installation{
 					ObjectMeta: v1.ObjectMeta{Name: "first sub installation"},
 					Status: lsv1alpha1.InstallationStatus{
@@ -197,7 +197,7 @@ func createDummyInstallationTree() []tree.InstallationTree {
 							Phase: lsv1alpha1.ExecutionPhaseSucceeded,
 						},
 					},
-					DeployItems: []tree.DeployItemTree{tree.DeployItemTree{
+					DeployItems: []*tree.DeployItemLeaf{&tree.DeployItemLeaf{
 						DeployItem: &lsv1alpha1.DeployItem{
 							Status: lsv1alpha1.DeployItemStatus{
 								Phase:     lsv1alpha1.ExecutionPhaseSucceeded,
@@ -206,7 +206,7 @@ func createDummyInstallationTree() []tree.InstallationTree {
 							ObjectMeta: v1.ObjectMeta{Name: "depItem"},
 						},
 					},
-						tree.DeployItemTree{
+						&tree.DeployItemLeaf{
 							DeployItem: &lsv1alpha1.DeployItem{
 								Status: lsv1alpha1.DeployItemStatus{
 									Phase: lsv1alpha1.ExecutionPhaseSucceeded,
@@ -217,7 +217,7 @@ func createDummyInstallationTree() []tree.InstallationTree {
 					},
 				},
 			},
-			tree.InstallationTree{
+			&tree.InstallationTree{
 				Installation: &lsv1alpha1.Installation{
 					ObjectMeta: v1.ObjectMeta{Name: "second sub installation"},
 					Status: lsv1alpha1.InstallationStatus{
@@ -232,7 +232,7 @@ func createDummyInstallationTree() []tree.InstallationTree {
 							Phase: lsv1alpha1.ExecutionPhaseInit,
 						},
 					},
-					DeployItems: []tree.DeployItemTree{tree.DeployItemTree{
+					DeployItems: []*tree.DeployItemLeaf{&tree.DeployItemLeaf{
 						DeployItem: &lsv1alpha1.DeployItem{
 							Status: lsv1alpha1.DeployItemStatus{
 								Phase:     lsv1alpha1.ExecutionPhaseFailed,
@@ -241,7 +241,7 @@ func createDummyInstallationTree() []tree.InstallationTree {
 							ObjectMeta: v1.ObjectMeta{Name: "depItem"},
 						},
 					},
-						tree.DeployItemTree{
+						&tree.DeployItemLeaf{
 							DeployItem: &lsv1alpha1.DeployItem{
 								Status: lsv1alpha1.DeployItemStatus{
 									Phase: lsv1alpha1.ExecutionPhaseSucceeded,
@@ -254,5 +254,5 @@ func createDummyInstallationTree() []tree.InstallationTree {
 			},
 		},
 	}
-	return []tree.InstallationTree{t, t}
+	return []*tree.InstallationTree{&t, &t}
 }

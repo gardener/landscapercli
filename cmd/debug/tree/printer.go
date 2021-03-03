@@ -3,8 +3,6 @@ package tree
 import (
 	"fmt"
 	"strings"
-
-	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 )
 
 const (
@@ -21,19 +19,19 @@ const terminalWidth = 200
 type TreeElement struct {
 	Headline    string
 	Description string
-	Childs      []TreeElement
+	Childs      []*TreeElement
 }
 
-func PrintTree(nodes []TreeElement) strings.Builder {
+func PrintTrees(nodes []TreeElement) strings.Builder {
 	output := strings.Builder{}
 	for _, node := range nodes {
-		printNode(node, "", &output, true, true)
+		printNode(&node, "", &output, true, true)
 		output.WriteString("\n")
 	}
 	return output
 }
 
-func printNode(node TreeElement, preFix string, output *strings.Builder, isLast bool, rootLevel bool) {
+func printNode(node *TreeElement, preFix string, output *strings.Builder, isLast bool, rootLevel bool) {
 	itemFormatHeading := middleItem
 	if isLast {
 		itemFormatHeading = lastItem
@@ -49,7 +47,7 @@ func printNode(node TreeElement, preFix string, output *strings.Builder, isLast 
 	if node.Headline != "" {
 		fmt.Fprintf(output, "%s%s%s\n", preFix, itemFormatHeading, node.Headline)
 		if node.Description != "" {
-			fmt.Fprintf(output, "%s", formatDescription(preFix, itemFormatDescription, node.Description))
+			fmt.Fprintf(output, "%s", formatDescription(preFix, itemFormatDescription, node.Description, isLast))
 		}
 		preFix = addEmptySpaceOrContinueItem(preFix, isLast)
 	}
@@ -59,7 +57,11 @@ func printNode(node TreeElement, preFix string, output *strings.Builder, isLast 
 	}
 }
 
-func formatDescription(preFix string, itemFormatDescription string, nodeDescription string) string {
+func formatDescription(preFix string, itemFormatDescription string, nodeDescription string, isLast bool) string {
+	if isLast {
+		itemFormatDescription = emptySpace
+	}
+
 	//break to long lines
 	lines := strings.Split(nodeDescription, "\n")
 	linesFixedLength := []string{}
@@ -104,13 +106,5 @@ func addEmptySpaceOrContinueItem(s string, isLast bool) string {
 	if isLast {
 		return addEmptySpaces(s)
 	}
-
 	return s + continueItem
-
-}
-
-func printErrorIfNecessary(err *lsv1alpha1.Error, preFix string, output *strings.Builder) {
-	if err != nil {
-		fmt.Fprintf(output, "%s%s", preFix, err.Message)
-	}
 }
