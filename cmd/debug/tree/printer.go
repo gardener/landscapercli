@@ -16,6 +16,8 @@ const (
 	rootItem     = "─── "
 )
 
+const terminalWidth = 200
+
 type TreeElement struct {
 	Headline    string
 	Description string
@@ -44,19 +46,43 @@ func printNode(node TreeElement, preFix string, output *strings.Builder, isLast 
 		itemFormatDescription = emptySpace
 	}
 
-	spaces := preFix
-
 	if node.Headline != "" {
-		fmt.Fprintf(output, "%s%s%s\n", spaces, itemFormatHeading, node.Headline)
+		fmt.Fprintf(output, "%s%s%s\n", preFix, itemFormatHeading, node.Headline)
 		if node.Description != "" {
-			fmt.Fprintf(output, "%s%s%s\n", spaces, itemFormatDescription, node.Description) //TODO: ensure it ends with exactly ONE newline
+			fmt.Fprintf(output, "%s", formatDescription(preFix, itemFormatDescription, node.Description))
 		}
-		spaces = addEmptySpaceOrContinueItem(preFix, isLast)
+		preFix = addEmptySpaceOrContinueItem(preFix, isLast)
 	}
 
 	for i, subNodes := range node.Childs {
-		printNode(subNodes, spaces, output, i == len(node.Childs)-1, false)
+		printNode(subNodes, preFix, output, i == len(node.Childs)-1, false)
 	}
+}
+
+func formatDescription(preFix string, itemFormatDescription string, nodeDescription string) string {
+	//break to long lines
+	lines := strings.Split(nodeDescription, "\n")
+	linesFixedLength := []string{}
+	for _, line := range lines {
+		if len(line) > terminalWidth {
+			for i := 0; i < len(line); i += terminalWidth {
+				endIndex := i + terminalWidth
+				if endIndex > len(line) {
+					endIndex = len(line)
+				}
+				linesFixedLength = append(linesFixedLength, line[i:endIndex])
+			}
+		} else {
+			linesFixedLength = append(linesFixedLength, line)
+		}
+	}
+
+	//add prefix and new line
+	for i, line := range linesFixedLength {
+		linesFixedLength[i] = fmt.Sprintf("%s%s%s\n", preFix, itemFormatDescription, line)
+	}
+
+	return strings.Join(linesFixedLength, "")
 }
 
 func formatEmptySpaces(depth int) string {
