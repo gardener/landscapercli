@@ -2,6 +2,7 @@ package debug
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/spf13/pflag"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/yaml"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -26,6 +28,9 @@ type statusOptions struct {
 	detailMode     bool
 	showExecutions bool
 	showOnlyFailed bool
+
+	oyaml bool
+	ojson bool
 }
 
 var (
@@ -89,19 +94,39 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 	// transformedTree := tree.TransformToPrintableTree([]tree.InstallationTree{*installationTree})
 	// output := tree.PrintTree(transformedTree)
 
+	installationTree := createDummyInstallationTree()
+
+	if o.oyaml {
+		marshaledInstallationTree, err := yaml.Marshal(installationTree)
+		if err != nil {
+			return fmt.Errorf("Failed marshaling output to yaml: %w", err)
+		}
+		cmd.Print(string(marshaledInstallationTree))
+		return nil
+	}
+
+	if o.ojson {
+		marshaledInstallationTree, err := json.Marshal(installationTree)
+		if err != nil {
+			return fmt.Errorf("Failed marshaling output to json: %w", err)
+		}
+		cmd.Print(string(marshaledInstallationTree))
+		return nil
+	}
+
 	transformer := tree.TransformOptions{
 		DetailedMode:   o.detailMode,
 		ShowExecutions: o.showExecutions,
 		OnlyFailed:     o.showOnlyFailed,
 	}
 
-	transformedTree, err := transformer.TransformToPrintableTree(createDummyInstallationTree())
+	transformedTree, err := transformer.TransformToPrintableTree(installationTree)
 	if err != nil {
 		cmd.PrintErrf("Error transforming CR to printable tree: %w", err)
 	}
 	output := tree.PrintTree(transformedTree)
 
-	fmt.Print(output.String())
+	cmd.Print(output.String())
 
 	return nil
 }
@@ -118,6 +143,8 @@ func (o *statusOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVarP(&o.detailMode, "details", "d", false, "show detailed information about installations, executions and deployitems")
 	fs.BoolVarP(&o.showExecutions, "show-executions", "e", false, "show the executions in the tree")
 	fs.BoolVarP(&o.showOnlyFailed, "show-failed", "f", false, "show failed items")
+	fs.BoolVarP(&o.oyaml, "oyaml", "y", false, "output in yaml format")
+	fs.BoolVarP(&o.ojson, "ojson", "j", false, "output in json format")
 }
 
 func createDummyInstallationTree() []tree.InstallationTree {
