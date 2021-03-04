@@ -78,6 +78,8 @@ type addContainerDeployItemOptions struct {
 	exportDefinitions map[string]*v1alpha1.ExportDefinition
 
 	clusterParam string
+
+	addComponentData bool
 }
 
 func NewAddContainerDeployItemCommand(ctx context.Context) *cobra.Command {
@@ -173,6 +175,12 @@ func (o *addContainerDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 		"cluster-param",
 		"",
 		"import parameter name for the target resource containing the access data of the target cluster (optional)")
+
+	fs.BoolVar(&o.addComponentData,
+		"add-component-data",
+		false,
+		"provide component descriptor and blueprint to container")
+
 }
 
 func (o *addContainerDeployItemOptions) validate() error {
@@ -415,7 +423,7 @@ func (o *addContainerDeployItemOptions) createExecutionFile() error {
 	return nil
 }
 
-const containerExecutionTemplateWithoutTarget = `deployItems:
+const containerExecutionTemplate = `deployItems:
 - name: {{.DeployItemName}}
   type: landscaper.gardener.cloud/container
   config:
@@ -425,8 +433,6 @@ const containerExecutionTemplateWithoutTarget = `deployItems:
 `
 
 func (o *addContainerDeployItemOptions) writeExecution(f io.Writer) error {
-	containerExecutionTemplate := containerExecutionTemplateWithoutTarget
-
 	t, err := template.New("").Parse(containerExecutionTemplate)
 	if err != nil {
 		return err
@@ -442,7 +448,18 @@ func (o *addContainerDeployItemOptions) writeExecution(f io.Writer) error {
 		return err
 	}
 
-	sections := indentLines(string(commandSection)+string(importValuesSection), 4)
+	sections := string(commandSection) + string(importValuesSection)
+
+	if o.addComponentData {
+		componentDataSection, err := o.getComponentDataSection()
+		if err != nil {
+			return err
+		}
+
+		sections += string(componentDataSection)
+	}
+
+	sections = indentLines(sections, 4)
 
 	data := struct {
 		DeployItemName            string
@@ -487,6 +504,21 @@ func (o *addContainerDeployItemOptions) getImportValuesSection() ([]byte, error)
 	b := strings.Builder{}
 
 	if _, err := b.WriteString("importValues: \n  {{ toJson .imports | indent 2 }}\n"); err != nil {
+		return nil, fmt.Errorf("could not write import values: %w", err)
+	}
+
+	return []byte(b.String()), nil
+}
+
+func (o *addContainerDeployItemOptions) getComponentDataSection() ([]byte, error) {
+	b := strings.Builder{}
+
+	_, err := b.WriteString("componentDescriptor: \n" +
+		"  {{ toJson .componentDescriptorDef | indent 2 }}\n" +
+		"blueprint: \n" +
+		"  {{ toJson .blueprint | indent 2 }}\n")
+
+	if err != nil {
 		return nil, fmt.Errorf("could not write import values: %w", err)
 	}
 
