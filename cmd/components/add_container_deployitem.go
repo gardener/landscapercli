@@ -118,11 +118,7 @@ func NewAddContainerDeployItemCommand(ctx context.Context) *cobra.Command {
 func (o *addContainerDeployItemOptions) Complete(args []string) error {
 	o.deployItemName = args[0]
 
-	if err := o.parseImportDefinitions(); err != nil {
-		return err
-	}
-
-	if err := o.parseExportDefinitions(); err != nil {
+	if err := o.parseParameterDefinitions(); err != nil {
 		return err
 	}
 
@@ -181,7 +177,22 @@ func (o *addContainerDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 		"add-component-data",
 		false,
 		"provide component descriptor and blueprint to container")
+}
 
+func (o *addContainerDeployItemOptions) parseParameterDefinitions() (err error) {
+	p := components.ParameterDefinitionParser{}
+
+	o.importDefinitions, err = p.ParseImportDefinitions(o.importParams)
+	if err != nil {
+		return err
+	}
+
+	o.exportDefinitions, err = p.ParseExportDefinitions(o.exportParams)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (o *addContainerDeployItemOptions) validate() error {
@@ -268,10 +279,6 @@ func (o *addContainerDeployItemOptions) addResource() error {
 }
 
 func (o *addContainerDeployItemOptions) createResources() (*cdresources.ResourceOptions, error) {
-	return o.createOciResource()
-}
-
-func (o *addContainerDeployItemOptions) createOciResource() (*cdresources.ResourceOptions, error) {
 	ociRegistryRef := cd.OCIRegistryAccess{
 		ObjectType:     cd.ObjectType{Type: cd.OCIRegistryType},
 		ImageReference: o.image,
@@ -312,100 +319,6 @@ func (o *addContainerDeployItemOptions) checkIfDeployItemNotAlreadyAdded() error
 
 	return fmt.Errorf("Deploy item was already added. The corresponding deploy execution file %s already exists\n",
 		util.ExecutionFilePath(o.componentPath, o.deployItemName))
-}
-
-func (o *addContainerDeployItemOptions) parseImportDefinitions() error {
-	o.importDefinitions = map[string]*v1alpha1.ImportDefinition{}
-	if o.importParams != nil {
-		for _, p := range *o.importParams {
-			importDefinition, err := o.parseImportDefinition(p)
-			if err != nil {
-				return err
-			}
-
-			_, exists := o.importDefinitions[importDefinition.Name]
-			if exists {
-				return fmt.Errorf("import parameter %s occurs more than once", importDefinition.Name)
-			}
-
-			o.importDefinitions[importDefinition.Name] = importDefinition
-		}
-	}
-
-	return nil
-}
-
-// parseImportDefinition creates a new ImportDefinition from a given parameter definition string.
-// The parameter definition string must have the format "name:type", for example "replicas:integer".
-// The supported types are: string, boolean, integer
-func (o *addContainerDeployItemOptions) parseImportDefinition(paramDef string) (*v1alpha1.ImportDefinition, error) {
-	fieldValueDef, err := o.parseFieldValueDefinition(paramDef)
-	if err != nil {
-		return nil, err
-	}
-
-	required := true
-
-	return &v1alpha1.ImportDefinition{
-		FieldValueDefinition: *fieldValueDef,
-		Required:             &required,
-	}, nil
-}
-
-func (o *addContainerDeployItemOptions) parseExportDefinitions() error {
-	o.exportDefinitions = map[string]*v1alpha1.ExportDefinition{}
-	if o.exportParams != nil {
-		for _, p := range *o.exportParams {
-			exportDefinition, err := o.parseExportDefinition(p)
-			if err != nil {
-				return err
-			}
-
-			_, exists := o.exportDefinitions[exportDefinition.Name]
-			if exists {
-				return fmt.Errorf("export parameter %s occurs more than once", exportDefinition.Name)
-			}
-
-			o.exportDefinitions[exportDefinition.Name] = exportDefinition
-		}
-	}
-
-	return nil
-}
-
-func (o *addContainerDeployItemOptions) parseExportDefinition(paramDef string) (*v1alpha1.ExportDefinition, error) {
-	fieldValueDef, err := o.parseFieldValueDefinition(paramDef)
-	if err != nil {
-		return nil, err
-	}
-
-	return &v1alpha1.ExportDefinition{
-		FieldValueDefinition: *fieldValueDef,
-	}, nil
-}
-
-func (o *addContainerDeployItemOptions) parseFieldValueDefinition(paramDef string) (*v1alpha1.FieldValueDefinition, error) {
-	a := strings.Index(paramDef, ":")
-
-	if a == -1 {
-		return nil, fmt.Errorf(
-			"parameter definition %s has the wrong format; the expected format is name:type",
-			paramDef)
-	}
-
-	name := paramDef[:a]
-	typ := paramDef[a+1:]
-
-	if !(typ == "string" || typ == "boolean" || typ == "integer") {
-		return nil, fmt.Errorf(
-			"parameter definition %s contains an unsupported type; the supported types are string, boolean, integer",
-			paramDef)
-	}
-
-	return &v1alpha1.FieldValueDefinition{
-		Name:   name,
-		Schema: &v1alpha1.JSONSchemaDefinition{RawMessage: []byte(fmt.Sprintf("{ \"type\": \"%s\" }", typ))},
-	}, nil
 }
 
 func (o *addContainerDeployItemOptions) createExecutionFile() error {

@@ -82,7 +82,7 @@ func TestWriteContainerExecution(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			err := test.options.parseImportDefinitions()
+			err := test.options.parseParameterDefinitions()
 			assert.Nil(t, err, "failed to parse import definitions: %w", err)
 			f := bytes.Buffer{}
 			err = test.options.writeExecution(&f)
