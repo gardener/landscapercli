@@ -21,7 +21,8 @@ landscaper-cli component add container deployitem \
   --export-param [param-name:param-type (optional, multi-value)] \
   --command [command with modifier (optional, multi-value)] \
   --args [arguments (optional, multi-value)] \
-  --cluster-param [target-cluster-param-name (optional)] 
+  --cluster-param [target-cluster-param-name (optional)] \
+  --add-component-data (optional)
 ```
 
 The meaning of the arguments and flags is as follows:
@@ -43,6 +44,9 @@ The meaning of the arguments and flags is as follows:
 - cluster-param: Defines the name of the import parameter of the blueprint for access data to e.g. access 
   data to a target cluster. Only if this parameter is specified the target information is added to the
   import data of the container.
+  
+- add-component-data: If set, adds the resolved component descriptor and blueprint with all contained files to the data
+  that are available during runtime.
   
 We will describe the command and parameters in more detail in the following.
 
@@ -256,6 +260,22 @@ The command makes the following changes to the component:
 - It adds the reference to the OCI image as a resource to the 
   [resources.yaml](resources/02-add-container-deploy-item/demo-component/resources.yaml).
 
+### Provide Component Descriptor an Blueprint Data
+
+The command `landscaper-cli component add container deployitem` has an optional flag `add-component-data`.
+If set, the component descriptor and the blueprint are available at runtime. Access is provided by the following
+environment variables.
+
+- COMPONENT_DESCRIPTOR_PATH: The path to the JSON file containing the resolved component descriptor.
+  An example can be found [here](resources/misc/resolved-component-descriptor.json).
+  Remark: the *resolved* component descriptor contains the resources of the component itself and also the
+  dependent components with their resources.
+
+- CONTENT_PATH: The path to a directory containing a copy of all blueprint data, i.e. in our example a copy of
+  [blueprint](resources/02-add-container-deploy-item/demo-component/blueprint). If you add further directories and
+  files to the [blueprint](resources/02-add-container-deploy-item/demo-component/blueprint) directory, they will
+  also be copied. In this way you can provide whatever data your container needs.
+
 ### Upload the Component
 
 As already described in [creates.md](../create_component/create.md#3-upload-component-into-an-oci-registry), we now 
@@ -282,14 +302,4 @@ kubectl -n some-namespace exec --stdin --tty pod-name  -- /bin/sh
 
 During the first 5 minutes you can already see the 
 import data. After about five minutes you should also be able to see the output data in the file `$EXPORTS_PATH`.
-
-## Todo
-
-- Docu
-  - integrate other stuff like data in blueprint, component-descriptor, etc.
-
-  - *blueprint*: contains the name of the blueprint
-  - *cd*: the component descriptor
-  - *componentDescriptorDef*: base information of the component
-  - *components*: the resolved component descriptor list, which means that all transitive component descriptors are
-    included in a list
+  

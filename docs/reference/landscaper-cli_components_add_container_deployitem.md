@@ -23,6 +23,7 @@ landscaper-cli component add container deployitem \
   --import-param replicas:integer \
   --export-param message:string \
   --cluster-param target-cluster \
+  --add-component-data
 
 ```
 
