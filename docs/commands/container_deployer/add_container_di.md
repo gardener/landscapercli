@@ -41,7 +41,8 @@ The meaning of the arguments and flags is as follows:
 - args: Arguments for the command.
 
 - cluster-param: Defines the name of the import parameter of the blueprint for access data to e.g. access 
-  data to a target cluster.
+  data to a target cluster. Only if this parameter is specified the target information is added to the
+  import data of the container.
   
 We will describe the command and parameters in more detail in the following.
 
@@ -102,17 +103,10 @@ variables are set:
   deploy item was deleted, and a potential clean up should be executed.
   
 - IMPORTS: Describes the path to a json file containing the input data for your program. You can find an example in
-  the file [imports.json](./resources/misc/imports.json). In this file you find the following sections:
-  
-  - *blueprint*: contains the name of the blueprint
-  - *cd*: the component descriptor
-  - *componentDescriptorDef*: base information of the component
-  - *components*: the resolved component descriptor list, which means that all transitive component descriptors are 
-    included in a list
-  - *imports*: a JSON structure containing the values of all import parameters. The input parameter are read 
-  with `IMPORTS=$(cat $IMPORTS_PATH)`. In the example above we expect 4 input 
-  parameters in the following format (of course more complex data is possible). In the example script, we do not use the
-  target-cluster parameter, but we included it to illustrate how to access a target object. 
+  the file [imports.json](./resources/misc/imports.json). In this file you find a JSON structure containing the values 
+  of all import parameters. The input parameter are read with `IMPORTS=$(cat $IMPORTS_PATH)`. In the example above we 
+  expect 4 input parameters in the following format (of course more complex data is possible). In the example script, 
+  we do not use the target-cluster parameter, but we included it to illustrate how to access a target object. 
   
       ```yaml
       {
@@ -219,7 +213,7 @@ landscaper-cli component add container deployitem \
   --resource-version 0.1.0 \
   --component-directory $LS_COMPONENT_DIR/demo-component \
   --image your-registry/your-path/containerexample:0.1.0 \
-  --cluster-param target-cluster
+  --cluster-param target-cluster \
   --import-param word:string \
   --import-param sleepTimeBefore:integer \
   --import-param sleepTimeAfter:integer \
@@ -293,3 +287,9 @@ import data. After about five minutes you should also be able to see the output 
 
 - Docu
   - integrate other stuff like data in blueprint, component-descriptor, etc.
+
+  - *blueprint*: contains the name of the blueprint
+  - *cd*: the component descriptor
+  - *componentDescriptorDef*: base information of the component
+  - *components*: the resolved component descriptor list, which means that all transitive component descriptors are
+    included in a list

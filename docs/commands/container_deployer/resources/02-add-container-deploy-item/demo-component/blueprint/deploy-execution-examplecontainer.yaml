@@ -12,5 +12,5 @@ deployItems:
     command:
     - ./script.sh
     importValues: 
-      {{ toJson . | indent 2 }}
+      {{ toJson .imports | indent 2 }}
     

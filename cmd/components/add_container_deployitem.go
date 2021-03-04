@@ -415,18 +415,6 @@ func (o *addContainerDeployItemOptions) createExecutionFile() error {
 	return nil
 }
 
-const containerExecutionTemplateWithTarget = `deployItems:
-- name: {{.DeployItemName}}
-  type: landscaper.gardener.cloud/container
-  target:
-    name: {{.TargetNameExpression}}
-    namespace: {{.TargetNamespaceExpression}}
-  config:
-    apiVersion: container.deployer.landscaper.gardener.cloud/v1alpha1
-    kind: ProviderConfiguration
-    image: {{.Image}}
-`
-
 const containerExecutionTemplateWithoutTarget = `deployItems:
 - name: {{.DeployItemName}}
   type: landscaper.gardener.cloud/container
@@ -437,10 +425,7 @@ const containerExecutionTemplateWithoutTarget = `deployItems:
 `
 
 func (o *addContainerDeployItemOptions) writeExecution(f io.Writer) error {
-	containerExecutionTemplate := containerExecutionTemplateWithTarget
-	if o.clusterParam == "" {
-		containerExecutionTemplate = containerExecutionTemplateWithoutTarget
-	}
+	containerExecutionTemplate := containerExecutionTemplateWithoutTarget
 
 	t, err := template.New("").Parse(containerExecutionTemplate)
 	if err != nil {
@@ -501,7 +486,7 @@ func (o *addContainerDeployItemOptions) getCommandSection() ([]byte, error) {
 func (o *addContainerDeployItemOptions) getImportValuesSection() ([]byte, error) {
 	b := strings.Builder{}
 
-	if _, err := b.WriteString("importValues: \n  {{ toJson . | indent 2 }}\n"); err != nil {
+	if _, err := b.WriteString("importValues: \n  {{ toJson .imports | indent 2 }}\n"); err != nil {
 		return nil, fmt.Errorf("could not write import values: %w", err)
 	}
 
