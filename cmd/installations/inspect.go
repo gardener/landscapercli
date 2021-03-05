@@ -1,4 +1,4 @@
-package debug
+package installations
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gardener/landscapercli/cmd/debug/tree"
+	"github.com/gardener/landscapercli/cmd/installations/debug/tree"
 
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/go-logr/logr"
@@ -45,13 +45,13 @@ func init() {
 	_ = lsv1alpha1.AddToScheme(scheme)
 }
 
-func NewStatusCommand(ctx context.Context) *cobra.Command {
+func NewInspectCommand(ctx context.Context) *cobra.Command {
 	opts := &statusOptions{}
 	cmd := &cobra.Command{
-		Use:     "status [installationName] [namespace] --kubeconfig [kubeconfig.yaml]",
-		Aliases: []string{"s"},
+		Use:     "inspect [installationName] [namespace] --kubeconfig [kubeconfig.yaml]",
+		Aliases: []string{"i", "status"},
 		Args:    cobra.MaximumNArgs(1),
-		Example: "landscaper-cli debug status my-installation --namespace my-namespace --kubeconfig kubeconfig.yaml",
+		Example: "landscaper-cli installation inspect my-installation --namespace my-namespace --kubeconfig kubeconfig.yaml",
 		Short:   "create an installation template for a component which is stored in an OCI registry",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.validateArgs(args); err != nil {
