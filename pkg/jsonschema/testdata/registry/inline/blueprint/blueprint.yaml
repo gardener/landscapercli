@@ -1,0 +1,12 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Blueprint
+
+annotations:
+  local/name: inline-bp
+  local/version: 1.0.0
+
+imports:
+- name: imp1
+  schema:
+    "$schema": "https://json-schema.org/draft/2019-09/schema" # optional, defaulted to .jsonSchema
+    type: string

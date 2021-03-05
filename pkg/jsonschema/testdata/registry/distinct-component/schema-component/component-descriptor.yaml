@@ -1,0 +1,23 @@
+meta:
+  schemaVersion: v2
+
+component:
+  name: example.com/distinct-component/schema-component
+  version: v0.1.0
+
+  provider: internal
+  sources: []
+  componentReferences: []
+
+  repositoryContexts:
+  - type: ociRegistry
+    baseUrl: "./testdata"
+
+  resources:
+   - type: landscaper.gardener.cloud/jsonschema
+     name: my-type
+     version: v0.1.0
+     relation: local
+     access:
+       type: localFilesystemBlob
+       filename: my-type.json

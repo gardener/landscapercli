@@ -3,7 +3,6 @@ package installations
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -18,7 +17,7 @@ import (
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/pkg/kubernetes"
 	lsjsonschema "github.com/gardener/landscaper/pkg/landscaper/jsonschema"
-	registrycomponents "github.com/gardener/landscaper/pkg/landscaper/registry/components"
+	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
 	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
 	"github.com/gardener/landscaper/pkg/utils"
 	"github.com/go-logr/logr"
@@ -27,12 +26,12 @@ import (
 	"github.com/mandelsoft/vfs/pkg/vfs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/xeipuuv/gojsonschema"
 	yamlv3 "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/yaml"
 
+	"github.com/gardener/landscapercli/pkg/jsonschema"
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
 )
@@ -105,7 +104,7 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		return fmt.Errorf("unable to to fetch component descriptor %s: %w", ociRef, err)
 	}
 
-	blueprintRes, err := o.getBlueprintResource(cd)
+	blueprintRes, err := util.GetBlueprintResource(cd, o.blueprintResourceName)
 	if err != nil {
 		return err
 	}
@@ -134,22 +133,21 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 
 	var marshaledYaml []byte
 	if o.renderSchemaInfo {
-		ociRegistry, err := registrycomponents.NewOCIRegistryWithOCIClient(ociClient)
+		ociRegistry, err := componentsregistry.NewOCIRegistryWithOCIClient(ociClient)
 		if err != nil {
 			return fmt.Errorf("cannot build oci registry: %w", err)
 		}
 
-		schemaRefResolver := &jsonschemaRefResolver{
-			loaderConfig: &lsjsonschema.LoaderConfig{
-				LocalTypes:                 blueprint.LocalTypes,
-				BlueprintFs:                memFS,
-				ComponentDescriptor:        cd,
-				ComponentResolver:          ociRegistry,
-				ComponentReferenceResolver: cdutils.ComponentReferenceResolverFromResolver(ociRegistry, repoCtx),
-			},
+		loaderConfig := lsjsonschema.LoaderConfig{
+			LocalTypes:                 blueprint.LocalTypes,
+			BlueprintFs:                memFS,
+			ComponentDescriptor:        cd,
+			ComponentResolver:          ociRegistry,
+			ComponentReferenceResolver: cdutils.ComponentReferenceResolverFromResolver(ociRegistry, repoCtx),
 		}
+		jsonschemaResolver := jsonschema.NewJSONSchemaResolver(&loaderConfig, 10)
 
-		commentedYaml, err := annotateInstallationWithSchemaComments(installation, blueprint, schemaRefResolver)
+		commentedYaml, err := annotateInstallationWithSchemaComments(installation, blueprint, jsonschemaResolver)
 		if err != nil {
 			return fmt.Errorf("cannot add JSON schema comment: %w", err)
 		}
@@ -208,7 +206,7 @@ func (o *createOpts) Complete(args []string) error {
 	return nil
 }
 
-func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installation, blueprint *lsv1alpha1.Blueprint, schemaRefResolver *jsonschemaRefResolver) (*yamlv3.Node, error) {
+func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installation, blueprint *lsv1alpha1.Blueprint, schemaRefResolver *jsonschema.JSONSchemaResolver) (*yamlv3.Node, error) {
 	out, err := yaml.Marshal(installation)
 	if err != nil {
 		return nil, fmt.Errorf("cannot marshal installation yaml: %w", err)
@@ -260,38 +258,7 @@ func resolveBlueprint(ctx context.Context, blueprintRes cdv2.Resource, ociClient
 	return &data, nil
 }
 
-func (o *createOpts) getBlueprintResource(cd *cdv2.ComponentDescriptor) (*cdv2.Resource, error) {
-	blueprintResources := map[string]cdv2.Resource{}
-	for _, resource := range cd.ComponentSpec.Resources {
-		if resource.IdentityObjectMeta.Type == lsv1alpha1.BlueprintResourceType || resource.IdentityObjectMeta.Type == lsv1alpha1.OldBlueprintType {
-			blueprintResources[resource.Name] = resource
-		}
-	}
-
-	var blueprintRes cdv2.Resource
-	numberOfBlueprints := len(blueprintResources)
-	if numberOfBlueprints == 0 {
-		return nil, fmt.Errorf("no blueprint resources defined in the component descriptor")
-	} else if numberOfBlueprints == 1 && o.blueprintResourceName == "" {
-		// access the only blueprint in the map. the flag blueprint-resource-name is ignored in this case.
-		for _, entry := range blueprintResources {
-			blueprintRes = entry
-		}
-	} else {
-		if o.blueprintResourceName == "" {
-			return nil, fmt.Errorf("the blueprint resource name must be defined since multiple blueprint resources exist in the component descriptor")
-		}
-		ok := false
-		blueprintRes, ok = blueprintResources[o.blueprintResourceName]
-		if !ok {
-			return nil, fmt.Errorf("blueprint %s is not defined as a resource in the component descriptor", o.blueprintResourceName)
-		}
-	}
-
-	return &blueprintRes, nil
-}
-
-func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaRefResolver *jsonschemaRefResolver) error {
+func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaRefResolver *jsonschema.JSONSchemaResolver) error {
 	_, exportsDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.exports.data")
 	if exportsDataValueNode != nil {
 
@@ -307,13 +274,12 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 				}
 			}
 
-			schemaLoader := gojsonschema.NewBytesLoader(expdef.Schema.RawMessage)
-			schemas, err := schemaRefResolver.resolveRefs("", schemaLoader)
+			schemas, err := schemaRefResolver.Resolve(expdef.Schema)
 			if err != nil {
-				return fmt.Errorf("cannot load jsonschema for export definition %s: %w", expdef.Name, err)
+				return fmt.Errorf("cannot resolve jsonschema for export definition %s: %w", expdef.Name, err)
 			}
 
-			schemasStr, err := schemas.toString()
+			schemasStr, err := schemas.ToString()
 			if err != nil {
 				return err
 			}
@@ -341,7 +307,7 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 	return nil
 }
 
-func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaRefResolver *jsonschemaRefResolver) error {
+func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaRefResolver *jsonschema.JSONSchemaResolver) error {
 	_, importDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.imports.data")
 	if importDataValueNode != nil {
 		for _, dataImportNode := range importDataValueNode.Content {
@@ -356,13 +322,12 @@ func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 				}
 			}
 
-			schemaLoader := gojsonschema.NewBytesLoader(impdef.Schema.RawMessage)
-			schemas, err := schemaRefResolver.resolveRefs("", schemaLoader)
+			schemas, err := schemaRefResolver.Resolve(impdef.Schema)
 			if err != nil {
-				return fmt.Errorf("cannot load jsonschema for import definition %s: %w", impdef.Name, err)
+				return fmt.Errorf("cannot resolve jsonschema for import definition %s: %w", impdef.Name, err)
 			}
 
-			schemasStr, err := schemas.toString()
+			schemasStr, err := schemas.ToString()
 			if err != nil {
 				return err
 			}
@@ -464,104 +429,4 @@ func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes c
 	}
 
 	return obj
-}
-
-type jsonSchema struct {
-	Ref    string                 `json:"ref"`
-	Schema map[string]interface{} `json:"schema"`
-}
-type jsonSchemaList []jsonSchema
-
-func (l jsonSchemaList) toString() (string, error) {
-	if len(l) == 0 {
-		return "", nil
-	}
-
-	buf := bytes.Buffer{}
-
-	_, err := buf.WriteString("JSON schema\n")
-	if err != nil {
-		return "", fmt.Errorf("cannot write to buffer: %w", err)
-	}
-
-	inlineSchema, err := json.MarshalIndent(l[0].Schema, "", "  ")
-	if err != nil {
-		return "", fmt.Errorf(`cannot marshal inline jsonschema: %w`, err)
-	}
-
-	_, err = buf.Write(inlineSchema)
-	if err != nil {
-		return "", fmt.Errorf("cannot write to buffer: %w", err)
-	}
-
-	if len(l) > 1 {
-		_, err = buf.WriteString("\n \nReferenced JSON schemas\n")
-		if err != nil {
-			return "", fmt.Errorf("cannot write to buffer: %w", err)
-		}
-
-		marshaledReferencedSchemas, err := json.MarshalIndent(l[1:], "", "  ")
-		if err != nil {
-			return "", fmt.Errorf(`cannot marshal referenced jsonschemas: %w`, err)
-		}
-
-		_, err = buf.Write(marshaledReferencedSchemas)
-		if err != nil {
-			return "", fmt.Errorf("cannot write to buffer: %w", err)
-		}
-	}
-
-	return buf.String(), nil
-}
-
-type jsonschemaRefResolver struct {
-	loaderConfig *lsjsonschema.LoaderConfig
-}
-
-func (l *jsonschemaRefResolver) resolveRefs(ref string, schemaLoader gojsonschema.JSONLoader) (jsonSchemaList, error) {
-	//Wrap default loader if config is defined
-	if l.loaderConfig != nil {
-		schemaLoader = lsjsonschema.NewWrappedLoader(*l.loaderConfig, schemaLoader)
-	}
-
-	schema, err := schemaLoader.LoadJSON()
-	if err != nil {
-		return nil, fmt.Errorf("cannot load schema: %w", err)
-	}
-
-	schemamap, ok := schema.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("cannot convert schema to map[string]interface{}")
-	}
-
-	allSchemas := jsonSchemaList{}
-	allSchemas = append(allSchemas, jsonSchema{Ref: ref, Schema: schemamap})
-
-	for key, value := range schemamap {
-		if key == "$ref" {
-			refStr, ok := value.(string)
-			if !ok {
-				return nil, fmt.Errorf("cannot convert $ref to string: $ref = %+v", value)
-			}
-
-			newLoader := schemaLoader.LoaderFactory().New(refStr)
-			ref, err := newLoader.JsonReference()
-			if err != nil {
-				return nil, fmt.Errorf("cannot create json reference: %w", err)
-			}
-
-			if !ref.IsCanonical() {
-				return nil, fmt.Errorf("ref %s must be canonical", ref.String())
-			}
-
-			subSchemas, err := l.resolveRefs(ref.String(), newLoader)
-			if err != nil {
-				return nil, fmt.Errorf("cannot resolve ref %s: %w", ref.String(), err)
-			}
-
-			allSchemas = append(allSchemas, subSchemas...)
-		}
-	}
-
-	return allSchemas, nil
 }
