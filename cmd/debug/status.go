@@ -14,10 +14,13 @@ import (
 	"github.com/spf13/pflag"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 type statusOptions struct {
@@ -47,8 +50,8 @@ func NewStatusCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "status [installationName] [namespace] --kubeconfig [kubeconfig.yaml]",
 		Aliases: []string{"s"},
-		Args:    cobra.ExactArgs(2),
-		Example: "landscaper-cli debug status my-installation my-namespace --kubeconfig kubeconfig.yaml",
+		Args:    cobra.MaximumNArgs(1),
+		Example: "landscaper-cli debug status my-installation --namespace my-namespace --kubeconfig kubeconfig.yaml",
 		Short:   "create an installation template for a component which is stored in an OCI registry",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.validateArgs(args); err != nil {
@@ -66,35 +69,25 @@ func NewStatusCommand(ctx context.Context) *cobra.Command {
 	cmd.SetOut(os.Stdout)
 
 	opts.AddFlags(cmd.Flags())
-	cmd.MarkFlagRequired("kubeconfig")
 
 	return cmd
 }
 
 func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Logger) error {
-	// cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfig)
-	// if err != nil {
-	// 	return fmt.Errorf("cannot parse K8s config: %w", err)
-	// }
+	k8sClient, err := o.buildKubeClientFromConfigOrCurrentClusterContext()
+	if err != nil {
+		return fmt.Errorf("cannot build k8s client: %w", err)
+	}
 
-	// k8sClient, err := client.New(cfg, client.Options{
-	// 	Scheme: scheme,
-	// })
-	// if err != nil {
-	// 	return fmt.Errorf("cannot build K8s client: %w", err)
-	// }
+	coll := tree.Collector{
+		K8sClient: k8sClient,
+	}
+	installationTrees, err := coll.CollectInstallationsInCluster(o.installationName, o.namespace)
+	if err != nil {
+		return fmt.Errorf("cannot collect installation: %w", err)
+	}
 
-	// coll := tree.Collector{
-	// 	K8sClient: k8sClient,
-	// }
-	// installationTree, err := coll.CollectInstallationTree(o.installationName, o.namespace)
-	// if err != nil {
-	// 	return fmt.Errorf("cannot collect installation: %w", err)
-	// }
-	// transformedTree := tree.TransformToPrintableTree([]tree.InstallationTree{*installationTree})
-	// output := tree.PrintTree(transformedTree)
-
-	installationTrees := createDummyInstallationTree()
+	// installationTrees := createDummyInstallationTree()
 
 	if o.oyaml {
 		marshaledInstallationTrees, err := yaml.Marshal(installationTrees)
@@ -131,15 +124,54 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 	return nil
 }
 
-func (o *statusOptions) validateArgs(args []string) error {
-	o.installationName = args[0]
-	o.namespace = args[1]
+func (o *statusOptions) buildKubeClientFromConfigOrCurrentClusterContext() (client.Client, error) {
+	var cfg *rest.Config
+	var err error
+	if o.kubeconfig != "" {
+		cfg, err = clientcmd.BuildConfigFromFlags("", o.kubeconfig)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse K8s config: %w", err)
+		}
+	} else {
+		rules := clientcmd.NewDefaultClientConfigLoadingRules()
+		rules.DefaultClientConfig = &clientcmd.DefaultClientConfig
 
+		overrides := &clientcmd.ConfigOverrides{ClusterDefaults: clientcmd.ClusterDefaults}
+		clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, overrides)
+		cfg, err = clientConfig.ClientConfig()
+
+		if err != nil {
+			return nil, fmt.Errorf("could build k8s config %w:", err)
+		}
+
+		if o.namespace == "" {
+			o.namespace, _, err = clientConfig.Namespace()
+			if err != nil {
+				return nil, fmt.Errorf("error extracting namespace from current k8s context. You may have to specify the namespace manualy: %w:", err)
+			}
+		}
+	}
+
+	k8sClient, err := client.New(cfg, client.Options{
+		Scheme: scheme,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("cannot build K8s client: %w", err)
+	}
+
+	return k8sClient, nil
+}
+
+func (o *statusOptions) validateArgs(args []string) error {
+	if len(args) == 1 {
+		o.installationName = args[0]
+	}
 	return nil
 }
 
 func (o *statusOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfig, "kubeconfig", "", "path to the kubeconfig of the cluster")
+	fs.StringVarP(&o.kubeconfig, "namespace", "n", "", "namespace of the installation")
 	fs.BoolVarP(&o.detailMode, "details", "d", false, "show detailed information about installations, executions and deployitems")
 	fs.BoolVarP(&o.showExecutions, "show-executions", "e", false, "show the executions in the tree")
 	fs.BoolVarP(&o.showOnlyFailed, "show-failed", "f", false, "show failed items")

@@ -12,7 +12,32 @@ type Collector struct {
 	K8sClient client.Client
 }
 
-func (c *Collector) CollectInstallationTree(name string, namespace string) (*InstallationTree, error) {
+func (c *Collector) CollectInstallationsInCluster(name string, namespace string) ([]*InstallationTree, error) {
+	if name != "" {
+		installation, err := c.collectInstallationTree(name, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error resolving installation %s: %w", name, err)
+		}
+		return []*InstallationTree{installation}, nil
+	}
+	instList := lsv1alpha1.InstallationList{}
+	installationTreeList := []*InstallationTree{}
+
+	err := c.K8sClient.List(context.TODO(), &instList, client.InNamespace(namespace))
+	if err != nil {
+		return nil, fmt.Errorf("cannot list installations for namespace %s: %w", namespace, err)
+	}
+	for _, inst := range instList.Items {
+		filledInst, err := c.collectInstallationTree(inst.Name, inst.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get installation details %s: %w", inst.Name, err)
+		} //TODO adapt logic to not query everything again, since installation is already filled
+		installationTreeList = append(installationTreeList, filledInst)
+	}
+	return installationTreeList, nil
+}
+
+func (c *Collector) collectInstallationTree(name string, namespace string) (*InstallationTree, error) {
 	key := client.ObjectKey{Name: name, Namespace: namespace}
 	inst := lsv1alpha1.Installation{}
 	err := c.K8sClient.Get(context.TODO(), key, &inst)
@@ -26,7 +51,7 @@ func (c *Collector) CollectInstallationTree(name string, namespace string) (*Ins
 
 	//resolve all sub installations
 	for _, subInst := range inst.Status.InstallationReferences {
-		subInstTree, err := c.CollectInstallationTree(subInst.Name, namespace)
+		subInstTree, err := c.collectInstallationTree(subInst.Name, namespace)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get installation %s: %w", subInst.Name, err)
 		}
