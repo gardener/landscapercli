@@ -31,7 +31,7 @@ func (c *Collector) CollectInstallationsInCluster(name string, namespace string)
 		filledInst, err := c.collectInstallationTree(inst.Name, inst.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get installation details %s: %w", inst.Name, err)
-		} //TODO adapt logic to not query everything again, since installation is already filled
+		}
 		installationTreeList = append(installationTreeList, filledInst)
 	}
 	return installationTreeList, nil
