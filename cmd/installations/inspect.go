@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gardener/landscapercli/cmd/installations/debug/tree"
+	tree "github.com/gardener/landscapercli/cmd/installations/debug"
 
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/go-logr/logr"
@@ -74,9 +74,13 @@ func NewInspectCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Logger) error {
-	k8sClient, err := o.buildKubeClientFromConfigOrCurrentClusterContext()
+	k8sClient, namespace, err := o.buildKubeClientFromConfigOrCurrentClusterContext()
 	if err != nil {
 		return fmt.Errorf("cannot build k8s client: %w", err)
+	}
+
+	if namespace != "" && o.namespace == "" {
+		o.namespace = namespace
 	}
 
 	coll := tree.Collector{
@@ -124,13 +128,14 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 	return nil
 }
 
-func (o *statusOptions) buildKubeClientFromConfigOrCurrentClusterContext() (client.Client, error) {
+func (o *statusOptions) buildKubeClientFromConfigOrCurrentClusterContext() (client.Client, string, error) {
 	var cfg *rest.Config
 	var err error
+	namespace := ""
 	if o.kubeconfig != "" {
 		cfg, err = clientcmd.BuildConfigFromFlags("", o.kubeconfig)
 		if err != nil {
-			return nil, fmt.Errorf("cannot parse K8s config: %w", err)
+			return nil, namespace, fmt.Errorf("cannot parse K8s config: %w", err)
 		}
 	} else {
 		rules := clientcmd.NewDefaultClientConfigLoadingRules()
@@ -141,25 +146,23 @@ func (o *statusOptions) buildKubeClientFromConfigOrCurrentClusterContext() (clie
 		cfg, err = clientConfig.ClientConfig()
 
 		if err != nil {
-			return nil, fmt.Errorf("could build k8s config %w:", err)
+			return nil, namespace, fmt.Errorf("could build k8s config %w:", err)
+		}
+		namespace, _, err = clientConfig.Namespace()
+		if err != nil {
+			return nil, namespace, fmt.Errorf("error extracting namespace from current k8s context. You may have to specify the namespace manualy: %w:", err)
 		}
 
-		if o.namespace == "" {
-			o.namespace, _, err = clientConfig.Namespace()
-			if err != nil {
-				return nil, fmt.Errorf("error extracting namespace from current k8s context. You may have to specify the namespace manualy: %w:", err)
-			}
-		}
 	}
 
 	k8sClient, err := client.New(cfg, client.Options{
 		Scheme: scheme,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("cannot build K8s client: %w", err)
+		return nil, namespace, fmt.Errorf("cannot build K8s client: %w", err)
 	}
 
-	return k8sClient, nil
+	return k8sClient, namespace, nil
 }
 
 func (o *statusOptions) validateArgs(args []string) error {

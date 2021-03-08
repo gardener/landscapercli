@@ -14,7 +14,7 @@ const (
 	rootItem     = "─── "
 )
 
-const terminalWidth = 200
+const terminalWidth = 120
 
 type TreeElement struct {
 	Headline    string
