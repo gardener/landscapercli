@@ -84,7 +84,7 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 	}
 
 	if o.namespace == "" {
-		return fmt.Errorf("namespace was not defined. Use --namespace to specify a namespace.")
+		return fmt.Errorf("namespace was not defined. Use --namespace to specify a namespace")
 	}
 
 	coll := tree.Collector{
