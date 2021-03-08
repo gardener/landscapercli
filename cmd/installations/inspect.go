@@ -100,7 +100,7 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 	if o.oyaml {
 		marshaledInstallationTrees, err := yaml.Marshal(installationTrees)
 		if err != nil {
-			return fmt.Errorf("Failed marshaling output to yaml: %w", err)
+			return fmt.Errorf("failed marshaling output to yaml: %w", err)
 		}
 		cmd.Print(string(marshaledInstallationTrees))
 		return nil
@@ -109,7 +109,7 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 	if o.ojson {
 		marshaledInstallationTrees, err := json.Marshal(installationTrees)
 		if err != nil {
-			return fmt.Errorf("Failed marshaling output to json: %w", err)
+			return fmt.Errorf("failed marshaling output to json: %w", err)
 		}
 		cmd.Print(string(marshaledInstallationTrees))
 		return nil
@@ -123,7 +123,7 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 
 	transformedTree, err := transformer.TransformToPrintableTree(installationTrees)
 	if err != nil {
-		cmd.PrintErrf("Error transforming CR to printable tree: %w", err)
+		return fmt.Errorf("error transforming CR to printable tree: %w", err)
 	}
 	output := tree.PrintTrees(transformedTree)
 
