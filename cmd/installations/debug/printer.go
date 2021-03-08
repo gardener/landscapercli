@@ -11,7 +11,6 @@ const (
 	middleItem   = "├── "
 	continueItem = "│   "
 	lastItem     = "└── "
-	rootItem     = "─── "
 )
 
 const terminalWidth = 120

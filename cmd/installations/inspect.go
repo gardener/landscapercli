@@ -48,11 +48,11 @@ func init() {
 func NewInspectCommand(ctx context.Context) *cobra.Command {
 	opts := &statusOptions{}
 	cmd := &cobra.Command{
-		Use:     "inspect [installationName] [namespace] --kubeconfig [kubeconfig.yaml]",
+		Use:     "inspect [installationName] [--namespace namespace] [--kubeconfig kubeconfig.yaml]",
 		Aliases: []string{"i", "status"},
 		Args:    cobra.MaximumNArgs(1),
 		Example: "landscaper-cli installation inspect my-installation --namespace my-namespace --kubeconfig kubeconfig.yaml",
-		Short:   "create an installation template for a component which is stored in an OCI registry",
+		Short:   "displays status installations for the installation and depending executions and deployitems",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.validateArgs(args); err != nil {
 				cmd.PrintErr(err.Error())
@@ -81,6 +81,10 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 
 	if namespace != "" && o.namespace == "" {
 		o.namespace = namespace
+	}
+
+	if o.namespace == "" {
+		return fmt.Errorf("namespace was not defined. Use --namespace to specify a namespace.")
 	}
 
 	coll := tree.Collector{

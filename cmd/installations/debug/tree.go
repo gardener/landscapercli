@@ -16,5 +16,5 @@ type ExecutionTree struct {
 }
 
 type DeployItemLeaf struct {
-	DeployItem *lsv1alpha1.DeployItem `json:"deployItems,omitempty"`
+	DeployItem *lsv1alpha1.DeployItem `json:"deployItem,omitempty"`
 }
