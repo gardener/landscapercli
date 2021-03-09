@@ -3,7 +3,7 @@ kind: Blueprint
 
 annotations:
   local/name: distinct-component-bp
-  local/version: 1.0.0
+  local/version: v0.1.0
 
 imports:
 - name: imp1

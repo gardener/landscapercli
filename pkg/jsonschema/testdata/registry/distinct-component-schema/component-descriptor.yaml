@@ -2,7 +2,7 @@ meta:
   schemaVersion: v2
 
 component:
-  name: example.com/distinct-component/schema-component
+  name: example.com/distinct-component/schema
   version: v0.1.0
 
   provider: internal
@@ -20,4 +20,4 @@ component:
      relation: local
      access:
        type: localFilesystemBlob
-       filename: my-type.json
+       filename: distinct-component-my-type

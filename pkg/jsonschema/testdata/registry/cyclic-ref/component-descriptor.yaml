@@ -2,15 +2,12 @@ meta:
   schemaVersion: v2
 
 component:
-  name: example.com/distinct-component/bp-component
+  name: example.com/cyclic-ref
   version: v0.1.0
 
   provider: internal
   sources: []
-  componentReferences:
-  - name: schema-component
-    componentName: example.com/distinct-component/schema-component
-    version: v0.1.0
+  componentReferences: []
 
   repositoryContexts:
   - type: ociRegistry
@@ -18,7 +15,7 @@ component:
 
   resources:
   - type: blueprint
-    name: distinct-component-bp
+    name: cyclic-ref-bp
     version: v0.1.0
     relation: local
     access:

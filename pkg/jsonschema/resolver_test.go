@@ -5,10 +5,9 @@ import (
 	"path"
 	"testing"
 
-	v2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
-	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
 	"github.com/gardener/landscapercli/pkg/blueprints"
 	logrtesting "github.com/go-logr/logr/testing"
 	"github.com/mandelsoft/vfs/pkg/osfs"
@@ -24,9 +23,9 @@ func TestResolve(t *testing.T) {
 		expectedSchemas JSONSchemaList
 	}{
 		{
-			name:       "inline",
+			name:          "inline",
 			componentName: "example.com/inline",
-			assetsPath: "./testdata/registry/inline",
+			assetsPath:    "./testdata/registry/inline",
 			expectedSchemas: JSONSchemaList{
 				{
 					Ref: "root",
@@ -38,9 +37,9 @@ func TestResolve(t *testing.T) {
 			},
 		},
 		{
-			name:       "local-types",
+			name:          "local-types",
 			componentName: "example.com/local-types",
-			assetsPath: "./testdata/registry/local-types",
+			assetsPath:    "./testdata/registry/local-types",
 			expectedSchemas: JSONSchemaList{
 				{
 					Ref: "root",
@@ -57,9 +56,9 @@ func TestResolve(t *testing.T) {
 			},
 		},
 		{
-			name:       "blueprint-fs",
+			name:          "blueprint-fs",
 			componentName: "example.com/blueprint-fs",
-			assetsPath: "./testdata/registry/blueprint-fs",
+			assetsPath:    "./testdata/registry/blueprint-fs",
 			expectedSchemas: JSONSchemaList{
 				{
 					Ref: "root",
@@ -75,35 +74,52 @@ func TestResolve(t *testing.T) {
 				},
 			},
 		},
-		// {
-		// 	name:       "distinct-component",
-		// 	componentName: "example.com/distinct-component/bp-component",
-		// 	assetsPath: "./testdata/registry/distinct-component/bp-component",
-		// 	expectedSchemas: JSONSchemaList{
-		// 		{
-		// 			Ref: "root",
-		// 			Schema: map[string]interface{}{
-		// 				"$ref": "blueprint://my-type.json",
-		// 			},
-		// 		},
-		// 		{
-		// 			Ref: "blueprint://my-type.json",
-		// 			Schema: map[string]interface{}{
-		// 				"type": "string",
-		// 			},
-		// 		},
-		// 	},
-		// },
+		{
+			name:          "cyclic reference",
+			componentName: "example.com/inline",
+			assetsPath:    "./testdata/registry/cyclic-ref",
+			expectedSchemas: JSONSchemaList{
+				{
+					Ref: "root",
+					Schema: map[string]interface{}{
+						"$ref": "blueprint://my-type.json",
+					},
+				},
+				{
+					Ref: "blueprint://my-type.json",
+					Schema: map[string]interface{}{
+						"$schema": "http://json-schema.org/draft-04/schema#",
+						"definitions": map[string]interface{}{
+							"author": map[string]interface{}{
+								"properties": map[string]interface{}{
+									"name": map[string]interface{}{
+										"type": "string",
+									},
+									"co-author": map[string]interface{}{
+										"$ref": "#/definitions/author",
+									},
+								},
+							},
+						},
+						"type": "object",
+						"properties": map[string]interface{}{
+							"author": map[string]interface{}{
+								"$ref": "#/definitions/author",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	fakeCompRepo, err := componentsregistry.NewLocalClient(logrtesting.NullLogger{}, "./testdata/registry")
 	assert.NoError(t, err)
 
-	repoCtx := v2.RepositoryContext{
+	repoCtx := cdv2.RepositoryContext{
 		Type:    "local",
-		BaseURL: "./testdata",
+		BaseURL: "./testdata/registry",
 	}
-	refResolver := cdutils.ComponentReferenceResolverFromResolver(fakeCompRepo, repoCtx)
 
 	for _, tt := range tests {
 		tt := tt
@@ -120,12 +136,11 @@ func TestResolve(t *testing.T) {
 			bp, err := blueprintReader.Read()
 			assert.NoError(t, err)
 
-			loaderConfig:= jsonschema.LoaderConfig{
-				LocalTypes:                 bp.LocalTypes,
-				BlueprintFs:                blueprintFs,
-				ComponentDescriptor:        cd,
-				ComponentResolver:          fakeCompRepo,
-				ComponentReferenceResolver: refResolver,
+			loaderConfig := jsonschema.LoaderConfig{
+				LocalTypes:          bp.LocalTypes,
+				BlueprintFs:         blueprintFs,
+				ComponentDescriptor: cd,
+				ComponentResolver:   fakeCompRepo,
 			}
 
 			resolver := NewJSONSchemaResolver(&loaderConfig, 2)
@@ -136,5 +151,4 @@ func TestResolve(t *testing.T) {
 			assert.Equal(t, tt.expectedSchemas, schemas)
 		})
 	}
-
 }
