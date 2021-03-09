@@ -6,7 +6,6 @@ import (
 )
 
 const (
-	newLine      = "\n"
 	emptySpace   = "    "
 	middleItem   = "├── "
 	continueItem = "│   "
@@ -15,12 +14,14 @@ const (
 
 const terminalWidth = 120
 
+//TreeElement contains the structure for a printable tree.
 type TreeElement struct {
 	Headline    string
 	Description string
 	Childs      []*TreeElement
 }
 
+//PrintTrees turns the given TreeElements into a formated tree as strings.Builder.
 func PrintTrees(nodes []TreeElement) strings.Builder {
 	output := strings.Builder{}
 	for _, node := range nodes {
@@ -86,19 +87,8 @@ func formatDescription(preFix string, itemFormatDescription string, nodeDescript
 	return strings.Join(linesFixedLength, "")
 }
 
-func formatEmptySpaces(depth int) string {
-	emptySpaces := ""
-	for i := 0; i < depth; i++ {
-		emptySpaces += emptySpace
-	}
-	return emptySpaces
-}
-
 func addEmptySpaces(s string) string {
 	return s + emptySpace
-}
-func addContinueItem(s string) string {
-	return s + continueItem
 }
 
 func addEmptySpaceOrContinueItem(s string, isLast bool) string {

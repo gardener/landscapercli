@@ -7,13 +7,15 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type TransformOptions struct {
+//Transformer can transform from []*InstallationTree to a printable []TreeElement with different transformation options.
+type Transformer struct {
 	DetailedMode   bool
 	ShowExecutions bool
 	OnlyFailed     bool
 }
 
-func (t TransformOptions) TransformToPrintableTree(installationTrees []*InstallationTree) ([]TreeElement, error) {
+//TransformToPrintableTree transform a []*InstallationTree to a []TreeElement for the Printer.
+func (t Transformer) TransformToPrintableTree(installationTrees []*InstallationTree) ([]TreeElement, error) {
 	var printableTrees []TreeElement
 
 	if t.OnlyFailed {
@@ -31,7 +33,7 @@ func (t TransformOptions) TransformToPrintableTree(installationTrees []*Installa
 	return printableTrees, nil
 }
 
-func (t TransformOptions) transformInstallation(installationTree *InstallationTree) (*TreeElement, error) {
+func (t Transformer) transformInstallation(installationTree *InstallationTree) (*TreeElement, error) {
 	printableNode := TreeElement{}
 
 	printableNode.Headline = fmt.Sprintf("[%s] Installation %s",
@@ -70,7 +72,7 @@ func (t TransformOptions) transformInstallation(installationTree *InstallationTr
 	return &printableNode, nil
 }
 
-func (t TransformOptions) transformExecution(executionTree *ExecutionTree) (*TreeElement, error) {
+func (t Transformer) transformExecution(executionTree *ExecutionTree) (*TreeElement, error) {
 	printableNode := TreeElement{}
 
 	if t.ShowExecutions || t.DetailedMode {
@@ -99,7 +101,7 @@ func (t TransformOptions) transformExecution(executionTree *ExecutionTree) (*Tre
 	return &printableNode, nil
 }
 
-func (t TransformOptions) transformDeployItem(deployItemTree *DeployItemLeaf) (*TreeElement, error) {
+func (t Transformer) transformDeployItem(deployItemTree *DeployItemLeaf) (*TreeElement, error) {
 	printableNode := TreeElement{}
 
 	printableNode.Headline = fmt.Sprintf("[%s] DeployItem %s",

@@ -51,7 +51,7 @@ func NewInspectCommand(ctx context.Context) *cobra.Command {
 		Use:     "inspect [installationName] [--namespace namespace] [--kubeconfig kubeconfig.yaml]",
 		Aliases: []string{"i", "status"},
 		Args:    cobra.MaximumNArgs(1),
-		Example: "landscaper-cli installation inspect my-installation --namespace my-namespace --kubeconfig kubeconfig.yaml",
+		Example: "landscaper-cli installation inspect my-installation --namespace my-namespace",
 		Short:   "displays status installations for the installation and depending executions and deployitems",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.validateArgs(args); err != nil {
@@ -115,7 +115,7 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 		return nil
 	}
 
-	transformer := tree.TransformOptions{
+	transformer := tree.Transformer{
 		DetailedMode:   o.detailMode,
 		ShowExecutions: o.showExecutions,
 		OnlyFailed:     o.showOnlyFailed,

@@ -2,6 +2,8 @@ package tree
 
 import "github.com/gardener/landscaper/apis/core/v1alpha1"
 
+//FilterForFailedItemsInTree returns []installationTree (with executions and deployitems) with only the path
+//containing an item with Status.Phase == Failed.
 func FilterForFailedItemsInTree(installationTrees []*InstallationTree) []*InstallationTree {
 	filteredInstallationTree := []*InstallationTree{}
 	for _, installation := range installationTrees {
