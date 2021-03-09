@@ -6,7 +6,7 @@ import (
 
 func TestGetBlueprintResource(t *testing.T) {
 	tests := []struct {
-		name              string
+		name string
 	}{}
 
 	for _, tt := range tests {

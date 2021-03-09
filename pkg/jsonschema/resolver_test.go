@@ -8,11 +8,12 @@ import (
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
-	"github.com/gardener/landscapercli/pkg/blueprints"
 	logrtesting "github.com/go-logr/logr/testing"
 	"github.com/mandelsoft/vfs/pkg/osfs"
 	"github.com/mandelsoft/vfs/pkg/projectionfs"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/gardener/landscapercli/pkg/blueprints"
 )
 
 func TestResolve(t *testing.T) {
