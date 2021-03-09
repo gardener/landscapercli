@@ -21,7 +21,8 @@ landscaper-cli component add container deployitem \
   --export-param [param-name:param-type (optional, multi-value)] \
   --command [command with modifier (optional, multi-value)] \
   --args [arguments (optional, multi-value)] \
-  --cluster-param [target-cluster-param-name (optional)] 
+  --cluster-param [target-cluster-param-name (optional)] \
+  --add-component-data (optional)
 ```
 
 The meaning of the arguments and flags is as follows:
@@ -41,7 +42,11 @@ The meaning of the arguments and flags is as follows:
 - args: Arguments for the command.
 
 - cluster-param: Defines the name of the import parameter of the blueprint for access data to e.g. access 
-  data to a target cluster.
+  data to a target cluster. Only if this parameter is specified the target information is added to the
+  import data of the container.
+  
+- add-component-data: If set, adds the resolved component descriptor and blueprint with all contained files to the data
+  that are available during runtime.
   
 We will describe the command and parameters in more detail in the following.
 
@@ -102,17 +107,10 @@ variables are set:
   deploy item was deleted, and a potential clean up should be executed.
   
 - IMPORTS: Describes the path to a json file containing the input data for your program. You can find an example in
-  the file [imports.json](./resources/misc/imports.json). In this file you find the following sections:
-  
-  - *blueprint*: contains the name of the blueprint
-  - *cd*: the component descriptor
-  - *componentDescriptorDef*: base information of the component
-  - *components*: the resolved component descriptor list, which means that all transitive component descriptors are 
-    included in a list
-  - *imports*: a JSON structure containing the values of all import parameters. The input parameter are read 
-  with `IMPORTS=$(cat $IMPORTS_PATH)`. In the example above we expect 4 input 
-  parameters in the following format (of course more complex data is possible). In the example script, we do not use the
-  target-cluster parameter, but we included it to illustrate how to access a target object. 
+  the file [imports.json](./resources/misc/imports.json). In this file you find a JSON structure containing the values 
+  of all import parameters. The input parameter are read with `IMPORTS=$(cat $IMPORTS_PATH)`. In the example above we 
+  expect 4 input parameters in the following format (of course more complex data is possible). In the example script, 
+  we do not use the target-cluster parameter, but we included it to illustrate how to access a target object. 
   
       ```yaml
       {
@@ -219,7 +217,7 @@ landscaper-cli component add container deployitem \
   --resource-version 0.1.0 \
   --component-directory $LS_COMPONENT_DIR/demo-component \
   --image your-registry/your-path/containerexample:0.1.0 \
-  --cluster-param target-cluster
+  --cluster-param target-cluster \
   --import-param word:string \
   --import-param sleepTimeBefore:integer \
   --import-param sleepTimeAfter:integer \
@@ -262,6 +260,22 @@ The command makes the following changes to the component:
 - It adds the reference to the OCI image as a resource to the 
   [resources.yaml](resources/02-add-container-deploy-item/demo-component/resources.yaml).
 
+### Provide Component Descriptor an Blueprint Data
+
+The command `landscaper-cli component add container deployitem` has an optional flag `add-component-data`.
+If set, the component descriptor and the blueprint are available at runtime. Access is provided by the following
+environment variables.
+
+- COMPONENT_DESCRIPTOR_PATH: The path to the JSON file containing the resolved component descriptor.
+  An example can be found [here](resources/misc/resolved-component-descriptor.json).
+  Remark: the *resolved* component descriptor contains the resources of the component itself and also the
+  dependent components with their resources.
+
+- CONTENT_PATH: The path to a directory containing a copy of all blueprint data, i.e. in our example a copy of
+  [blueprint](resources/02-add-container-deploy-item/demo-component/blueprint). If you add further directories and
+  files to the [blueprint](resources/02-add-container-deploy-item/demo-component/blueprint) directory, they will
+  also be copied. In this way you can provide whatever data your container needs.
+
 ### Upload the Component
 
 As already described in [creates.md](../create_component/create.md#3-upload-component-into-an-oci-registry), we now 
@@ -274,6 +288,10 @@ Next we need an installation referencing the new component. An example could be 
 [here](resources/installations/installation.yaml). Be aware that you have to change the `baseUrl` to that of your
 OCI registry. 
 
+In this example the OCI registry is public, so that the artifacts can be accessed without credentials.
+If you use a secured OCI registry, you have to add a registry pull secret to the installation as described 
+[here](../../accessing-private-oci-registries.md).
+
 In the example we have set the input parameter `word` on *word1*, and the sleep times on 5 minutes. When you deploy
 this installation on the landscaper cluster after a short time a pod is started executing the script. During that
 time you could open a shell in the pod to analyze the settings with:
@@ -284,14 +302,4 @@ kubectl -n some-namespace exec --stdin --tty pod-name  -- /bin/sh
 
 During the first 5 minutes you can already see the 
 import data. After about five minutes you should also be able to see the output data in the file `$EXPORTS_PATH`.
-
-## Todo
-
-- Docu
-  - integrate target-cluster
-  - integrate other stuff like data in blueprint, component-descriptor, etc.
-
-- Implementation
-  - access to images in secured OCI registry
   
-- integration tests

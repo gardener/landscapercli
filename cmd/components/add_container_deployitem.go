@@ -47,6 +47,7 @@ landscaper-cli component add container deployitem \
   --import-param replicas:integer \
   --export-param message:string \
   --cluster-param target-cluster \
+  --add-component-data
 `
 
 const addContainerDeployItemShort = `
@@ -78,6 +79,8 @@ type addContainerDeployItemOptions struct {
 	exportDefinitions map[string]*v1alpha1.ExportDefinition
 
 	clusterParam string
+
+	addComponentData bool
 }
 
 func NewAddContainerDeployItemCommand(ctx context.Context) *cobra.Command {
@@ -115,11 +118,7 @@ func NewAddContainerDeployItemCommand(ctx context.Context) *cobra.Command {
 func (o *addContainerDeployItemOptions) Complete(args []string) error {
 	o.deployItemName = args[0]
 
-	if err := o.parseImportDefinitions(); err != nil {
-		return err
-	}
-
-	if err := o.parseExportDefinitions(); err != nil {
+	if err := o.parseParameterDefinitions(); err != nil {
 		return err
 	}
 
@@ -173,6 +172,27 @@ func (o *addContainerDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 		"cluster-param",
 		"",
 		"import parameter name for the target resource containing the access data of the target cluster (optional)")
+
+	fs.BoolVar(&o.addComponentData,
+		"add-component-data",
+		false,
+		"provide component descriptor and blueprint to container")
+}
+
+func (o *addContainerDeployItemOptions) parseParameterDefinitions() (err error) {
+	p := components.ParameterDefinitionParser{}
+
+	o.importDefinitions, err = p.ParseImportDefinitions(o.importParams)
+	if err != nil {
+		return err
+	}
+
+	o.exportDefinitions, err = p.ParseExportDefinitions(o.exportParams)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (o *addContainerDeployItemOptions) validate() error {
@@ -259,10 +279,6 @@ func (o *addContainerDeployItemOptions) addResource() error {
 }
 
 func (o *addContainerDeployItemOptions) createResources() (*cdresources.ResourceOptions, error) {
-	return o.createOciResource()
-}
-
-func (o *addContainerDeployItemOptions) createOciResource() (*cdresources.ResourceOptions, error) {
 	ociRegistryRef := cd.OCIRegistryAccess{
 		ObjectType:     cd.ObjectType{Type: cd.OCIRegistryType},
 		ImageReference: o.image,
@@ -305,100 +321,6 @@ func (o *addContainerDeployItemOptions) checkIfDeployItemNotAlreadyAdded() error
 		util.ExecutionFilePath(o.componentPath, o.deployItemName))
 }
 
-func (o *addContainerDeployItemOptions) parseImportDefinitions() error {
-	o.importDefinitions = map[string]*v1alpha1.ImportDefinition{}
-	if o.importParams != nil {
-		for _, p := range *o.importParams {
-			importDefinition, err := o.parseImportDefinition(p)
-			if err != nil {
-				return err
-			}
-
-			_, exists := o.importDefinitions[importDefinition.Name]
-			if exists {
-				return fmt.Errorf("import parameter %s occurs more than once", importDefinition.Name)
-			}
-
-			o.importDefinitions[importDefinition.Name] = importDefinition
-		}
-	}
-
-	return nil
-}
-
-// parseImportDefinition creates a new ImportDefinition from a given parameter definition string.
-// The parameter definition string must have the format "name:type", for example "replicas:integer".
-// The supported types are: string, boolean, integer
-func (o *addContainerDeployItemOptions) parseImportDefinition(paramDef string) (*v1alpha1.ImportDefinition, error) {
-	fieldValueDef, err := o.parseFieldValueDefinition(paramDef)
-	if err != nil {
-		return nil, err
-	}
-
-	required := true
-
-	return &v1alpha1.ImportDefinition{
-		FieldValueDefinition: *fieldValueDef,
-		Required:             &required,
-	}, nil
-}
-
-func (o *addContainerDeployItemOptions) parseExportDefinitions() error {
-	o.exportDefinitions = map[string]*v1alpha1.ExportDefinition{}
-	if o.exportParams != nil {
-		for _, p := range *o.exportParams {
-			exportDefinition, err := o.parseExportDefinition(p)
-			if err != nil {
-				return err
-			}
-
-			_, exists := o.exportDefinitions[exportDefinition.Name]
-			if exists {
-				return fmt.Errorf("export parameter %s occurs more than once", exportDefinition.Name)
-			}
-
-			o.exportDefinitions[exportDefinition.Name] = exportDefinition
-		}
-	}
-
-	return nil
-}
-
-func (o *addContainerDeployItemOptions) parseExportDefinition(paramDef string) (*v1alpha1.ExportDefinition, error) {
-	fieldValueDef, err := o.parseFieldValueDefinition(paramDef)
-	if err != nil {
-		return nil, err
-	}
-
-	return &v1alpha1.ExportDefinition{
-		FieldValueDefinition: *fieldValueDef,
-	}, nil
-}
-
-func (o *addContainerDeployItemOptions) parseFieldValueDefinition(paramDef string) (*v1alpha1.FieldValueDefinition, error) {
-	a := strings.Index(paramDef, ":")
-
-	if a == -1 {
-		return nil, fmt.Errorf(
-			"parameter definition %s has the wrong format; the expected format is name:type",
-			paramDef)
-	}
-
-	name := paramDef[:a]
-	typ := paramDef[a+1:]
-
-	if !(typ == "string" || typ == "boolean" || typ == "integer") {
-		return nil, fmt.Errorf(
-			"parameter definition %s contains an unsupported type; the supported types are string, boolean, integer",
-			paramDef)
-	}
-
-	return &v1alpha1.FieldValueDefinition{
-		Name:   name,
-		Schema: &v1alpha1.JSONSchemaDefinition{RawMessage: []byte(fmt.Sprintf("{ \"type\": \"%s\" }", typ))},
-	}, nil
-}
-
 func (o *addContainerDeployItemOptions) createExecutionFile() error {
 	f, err := os.Create(util.ExecutionFilePath(o.componentPath, o.deployItemName))
 	if err != nil {
@@ -415,19 +337,7 @@ func (o *addContainerDeployItemOptions) createExecutionFile() error {
 	return nil
 }
 
-const containerExecutionTemplateWithTarget = `deployItems:
-- name: {{.DeployItemName}}
-  type: landscaper.gardener.cloud/container
-  target:
-    name: {{.TargetNameExpression}}
-    namespace: {{.TargetNamespaceExpression}}
-  config:
-    apiVersion: container.deployer.landscaper.gardener.cloud/v1alpha1
-    kind: ProviderConfiguration
-    image: {{.Image}}
-`
-
-const containerExecutionTemplateWithoutTarget = `deployItems:
+const containerExecutionTemplate = `deployItems:
 - name: {{.DeployItemName}}
   type: landscaper.gardener.cloud/container
   config:
@@ -437,11 +347,6 @@ const containerExecutionTemplateWithoutTarget = `deployItems:
 `
 
 func (o *addContainerDeployItemOptions) writeExecution(f io.Writer) error {
-	containerExecutionTemplate := containerExecutionTemplateWithTarget
-	if o.clusterParam == "" {
-		containerExecutionTemplate = containerExecutionTemplateWithoutTarget
-	}
-
 	t, err := template.New("").Parse(containerExecutionTemplate)
 	if err != nil {
 		return err
@@ -457,7 +362,18 @@ func (o *addContainerDeployItemOptions) writeExecution(f io.Writer) error {
 		return err
 	}
 
-	sections := indentLines(string(commandSection)+string(importValuesSection), 4)
+	sections := string(commandSection) + string(importValuesSection)
+
+	if o.addComponentData {
+		componentDataSection, err := o.getComponentDataSection()
+		if err != nil {
+			return err
+		}
+
+		sections += string(componentDataSection)
+	}
+
+	sections = indentLines(sections, 4)
 
 	data := struct {
 		DeployItemName            string
@@ -501,7 +417,22 @@ func (o *addContainerDeployItemOptions) getCommandSection() ([]byte, error) {
 func (o *addContainerDeployItemOptions) getImportValuesSection() ([]byte, error) {
 	b := strings.Builder{}
 
-	if _, err := b.WriteString("importValues: \n  {{ toJson . | indent 2 }}\n"); err != nil {
+	if _, err := b.WriteString("importValues: \n  {{ toJson .imports | indent 2 }}\n"); err != nil {
+		return nil, fmt.Errorf("could not write import values: %w", err)
+	}
+
+	return []byte(b.String()), nil
+}
+
+func (o *addContainerDeployItemOptions) getComponentDataSection() ([]byte, error) {
+	b := strings.Builder{}
+
+	_, err := b.WriteString("componentDescriptor: \n" +
+		"  {{ toJson .componentDescriptorDef | indent 2 }}\n" +
+		"blueprint: \n" +
+		"  {{ toJson .blueprint | indent 2 }}\n")
+
+	if err != nil {
 		return nil, fmt.Errorf("could not write import values: %w", err)
 	}
 

@@ -1,7 +1,7 @@
-# Installation
+# Installation of the Landscaper CLI
 
 Prerequisites: 
-  - Golang 1.15 or higher
+  - Golang 1.16 or higher
 
 The Landscaper CLI can be installed by cloning the landscaper-cli github repository and call the following
 commands in the root folder of the repo: 
