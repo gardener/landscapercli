@@ -18,12 +18,6 @@ func NewBlueprintBuilder(blueprint *v1alpha1.Blueprint) *BlueprintBuilder {
 	}
 }
 
-func (b *BlueprintBuilder) AddImports(importDefinitions []v1alpha1.ImportDefinition) {
-	for _, importDefinition := range importDefinitions {
-		b.AddImport(&importDefinition)
-	}
-}
-
 func (b *BlueprintBuilder) AddImportsFromMap(importDefinitions map[string]*v1alpha1.ImportDefinition) {
 	for _, importDefinition := range importDefinitions {
 		b.AddImport(importDefinition)

@@ -23,12 +23,14 @@ landscaper-cli component add container deployitem \
   --import-param replicas:integer \
   --export-param message:string \
   --cluster-param target-cluster \
+  --add-component-data
 
 ```
 
 ### Options
 
 ```
+      --add-component-data           provide component descriptor and blueprint to container
   -a, --args strings                 arguments (optional, multi-value)
       --cluster-param string         import parameter name for the target resource containing the access data of the target cluster (optional)
   -c, --command strings              command (optional, multi-value)

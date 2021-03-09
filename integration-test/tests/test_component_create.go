@@ -85,6 +85,11 @@ func (t *componentCreateTest) run() error {
 		return err
 	}
 
+	err = t.addContainerDeployItem(ctx)
+	if err != nil {
+		return err
+	}
+
 	err = t.addResources(ctx)
 	if err != nil {
 		return err
@@ -213,6 +218,39 @@ func (t *componentCreateTest) addManifestDeployItem(ctx context.Context) error {
 	err = cmd.Execute()
 	if err != nil {
 		return fmt.Errorf("adding manifest deploy item failed: %w", err)
+	}
+
+	return nil
+}
+
+func (t *componentCreateTest) addContainerDeployItem(ctx context.Context) error {
+	fmt.Println("Adding container deploy item")
+
+	const (
+		image   = "eu.gcr.io/sap-gcp-cp-k8s-stable-hub/examples/landscaper/integrationtests/images/containerexample:0.1.0"
+		command = "./script.sh"
+	)
+
+	cmd := components.NewAddContainerDeployItemCommand(ctx)
+	outBuf := &bytes.Buffer{}
+	cmd.SetOut(outBuf)
+	args := []string{
+		"containertestitem",
+		"--resource-version", "0.1.0",
+		"--component-directory", t.componentDir,
+		"--cluster-param", "target-cluster",
+		"--import-param", "word:string",
+		"--import-param", "sleepTimeBefore:integer",
+		"--import-param", "sleepTimeAfter:integer",
+		"--export-param", "sentence:string",
+		"--image", image,
+		"--command", command,
+	}
+	cmd.SetArgs(args)
+
+	err := cmd.Execute()
+	if err != nil {
+		return fmt.Errorf("adding container deploy item failed: %w", err)
 	}
 
 	return nil
@@ -387,6 +425,9 @@ func (t *componentCreateTest) createInstallation(ctx context.Context) error {
 				"nginx-namespace": lsv1alpha1.AnyJSON{RawMessage: []byte(`"` + t.config.TestNamespace + `"`)},
 				"password-1":      lsv1alpha1.AnyJSON{RawMessage: []byte(`"pw1"`)},
 				"password-2":      lsv1alpha1.AnyJSON{RawMessage: []byte(`"pw2"`)},
+				"word":            lsv1alpha1.AnyJSON{RawMessage: []byte(`"test"`)},
+				"sleepTimeBefore": lsv1alpha1.AnyJSON{RawMessage: []byte(`0`)},
+				"sleepTimeAfter":  lsv1alpha1.AnyJSON{RawMessage: []byte(`0`)},
 			},
 		},
 	}

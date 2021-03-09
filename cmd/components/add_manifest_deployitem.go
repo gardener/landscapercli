@@ -14,6 +14,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/gardener/landscapercli/pkg/components"
+
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/apis/deployer/manifest"
 	"github.com/go-logr/logr"
@@ -59,7 +61,7 @@ type addManifestDeployItemOptions struct {
 	importParams *[]string
 
 	// parsed import parameter definitions
-	importDefinitions []v1alpha1.ImportDefinition
+	importDefinitions map[string]*v1alpha1.ImportDefinition
 
 	// a map that assigns with each import parameter name a uuid
 	replacement map[string]string
@@ -106,23 +108,8 @@ func NewAddManifestDeployItemCommand(ctx context.Context) *cobra.Command {
 func (o *addManifestDeployItemOptions) Complete(args []string) error {
 	o.deployItemName = args[0]
 
-	o.importDefinitions = []v1alpha1.ImportDefinition{}
-	o.replacement = map[string]string{}
-	if o.importParams != nil {
-		for _, p := range *o.importParams {
-			importDefinition, err := o.parseImportDefinition(p)
-			if err != nil {
-				return err
-			}
-
-			o.importDefinitions = append(o.importDefinitions, *importDefinition)
-
-			if _, ok := o.replacement[importDefinition.Name]; ok {
-				return fmt.Errorf("import parameter %s occurs more than once", importDefinition.Name)
-			}
-
-			o.replacement[importDefinition.Name] = string(uuid.NewUUID())
-		}
+	if err := o.parseParameterDefinitions(); err != nil {
+		return err
 	}
 
 	return o.validate()
@@ -153,6 +140,22 @@ func (o *addManifestDeployItemOptions) AddFlags(fs *pflag.FlagSet) {
 		"cluster-param",
 		"targetCluster",
 		"import parameter name for the target resource containing the access data of the target cluster")
+}
+
+func (o *addManifestDeployItemOptions) parseParameterDefinitions() (err error) {
+	p := components.ParameterDefinitionParser{}
+
+	o.importDefinitions, err = p.ParseImportDefinitions(o.importParams)
+	if err != nil {
+		return err
+	}
+
+	o.replacement = map[string]string{}
+	for paramName := range o.importDefinitions {
+		o.replacement[paramName] = string(uuid.NewUUID())
+	}
+
+	return nil
 }
 
 func (o *addManifestDeployItemOptions) validate() error {
@@ -210,7 +213,7 @@ func (o *addManifestDeployItemOptions) run(ctx context.Context, log logr.Logger)
 
 	blueprintBuilder.AddDeployExecution(o.deployItemName)
 	blueprintBuilder.AddImportForTarget(o.clusterParam)
-	blueprintBuilder.AddImports(o.importDefinitions)
+	blueprintBuilder.AddImportsFromMap(o.importDefinitions)
 
 	return blueprints.NewBlueprintWriter(blueprintPath).Write(blueprint)
 }
@@ -232,31 +235,17 @@ func (o *addManifestDeployItemOptions) checkIfDeployItemNotAlreadyAdded() error 
 // The parameter definition string must have the format "name:type", for example "replicas:integer".
 // The supported types are: string, boolean, integer
 func (o *addManifestDeployItemOptions) parseImportDefinition(paramDef string) (*v1alpha1.ImportDefinition, error) {
-	a := strings.Index(paramDef, ":")
-
-	if a == -1 {
-		return nil, fmt.Errorf(
-			"import parameter definition %s has the wrong format; the expected format is name:type",
-			paramDef)
-	}
-
-	name := paramDef[:a]
-	typ := paramDef[a+1:]
-
-	if !(typ == "string" || typ == "boolean" || typ == "integer") {
-		return nil, fmt.Errorf(
-			"import parameter definition %s contains an unsupported type; the supported types are string, boolean, integer",
-			paramDef)
+	p := components.ParameterDefinitionParser{}
+	fieldValueDef, err := p.ParseFieldValueDefinition(paramDef)
+	if err != nil {
+		return nil, err
 	}
 
 	required := true
 
 	return &v1alpha1.ImportDefinition{
-		FieldValueDefinition: v1alpha1.FieldValueDefinition{
-			Name:   name,
-			Schema: &v1alpha1.JSONSchemaDefinition{RawMessage: []byte(fmt.Sprintf("{ \"type\": \"%s\" }", typ))},
-		},
-		Required: &required,
+		FieldValueDefinition: *fieldValueDef,
+		Required:             &required,
 	}, nil
 }
 

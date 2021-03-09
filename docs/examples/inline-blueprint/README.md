@@ -20,7 +20,7 @@ helm chart push localhost:5000/echo-server-chart:v1.1.0
 ```
 4. Apply the target to your cluster
 
-Adapt the `target.yaml` to contain the kubeconfig of your target cluster.
+Adapt the [`target.yaml`](../target.yaml) to contain the kubeconfig of your target cluster.
 The target cluster can be any kubernetes cluster (including the same cluster).
 ```
 kubectl apply -f ../target.yaml

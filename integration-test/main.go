@@ -191,7 +191,7 @@ func parseConfig() *inttestutil.Config {
 		LandscaperNamespace: landscaperNamespace,
 		TestNamespace:       testNamespace,
 		MaxRetries:          maxRetries,
-		SleepTime:           5 * time.Second,
+		SleepTime:           10 * time.Second,
 		RegistryBaseURL:     registryBaseURL,
 	}
 
