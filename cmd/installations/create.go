@@ -206,7 +206,7 @@ func (o *createOpts) Complete(args []string) error {
 	return nil
 }
 
-func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installation, blueprint *lsv1alpha1.Blueprint, schemaRefResolver *jsonschema.JSONSchemaResolver) (*yamlv3.Node, error) {
+func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installation, blueprint *lsv1alpha1.Blueprint, schemaResolver *jsonschema.JSONSchemaResolver) (*yamlv3.Node, error) {
 	out, err := yaml.Marshal(installation)
 	if err != nil {
 		return nil, fmt.Errorf("cannot marshal installation yaml: %w", err)
@@ -218,12 +218,12 @@ func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installatio
 		return nil, fmt.Errorf("cannot unmarshal installation yaml: %w", err)
 	}
 
-	err = addImportSchemaComments(commentedInstallationYaml, blueprint, schemaRefResolver)
+	err = addImportSchemaComments(commentedInstallationYaml, blueprint, schemaResolver)
 	if err != nil {
 		return nil, fmt.Errorf("cannot add schema comments for imports: %w", err)
 	}
 
-	err = addExportSchemaComments(commentedInstallationYaml, blueprint, schemaRefResolver)
+	err = addExportSchemaComments(commentedInstallationYaml, blueprint, schemaResolver)
 	if err != nil {
 		return nil, fmt.Errorf("cannot add schema comments for exports: %w", err)
 	}
@@ -258,7 +258,7 @@ func resolveBlueprint(ctx context.Context, blueprintRes cdv2.Resource, ociClient
 	return &data, nil
 }
 
-func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaRefResolver *jsonschema.JSONSchemaResolver) error {
+func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaResolver *jsonschema.JSONSchemaResolver) error {
 	_, exportsDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.exports.data")
 	if exportsDataValueNode != nil {
 
@@ -274,7 +274,7 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 				}
 			}
 
-			schemas, err := schemaRefResolver.Resolve(expdef.Schema)
+			schemas, err := schemaResolver.Resolve(expdef.Schema)
 			if err != nil {
 				return fmt.Errorf("cannot resolve jsonschema for export definition %s: %w", expdef.Name, err)
 			}
@@ -307,7 +307,7 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 	return nil
 }
 
-func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaRefResolver *jsonschema.JSONSchemaResolver) error {
+func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaResolver *jsonschema.JSONSchemaResolver) error {
 	_, importDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.imports.data")
 	if importDataValueNode != nil {
 		for _, dataImportNode := range importDataValueNode.Content {
@@ -322,7 +322,7 @@ func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 				}
 			}
 
-			schemas, err := schemaRefResolver.Resolve(impdef.Schema)
+			schemas, err := schemaResolver.Resolve(impdef.Schema)
 			if err != nil {
 				return fmt.Errorf("cannot resolve jsonschema for import definition %s: %w", impdef.Name, err)
 			}
