@@ -117,7 +117,7 @@ Headline2
         └── Headline2-2-2
 
 `
-	t.Run("Correct printing of nested tree strcture", func(t *testing.T) {
+	t.Run("Correct printing of nested tree structure", func(t *testing.T) {
 		assert.Equal(t, expectedTreeString, treesAsStringBuilder.String())
 	})
 }
