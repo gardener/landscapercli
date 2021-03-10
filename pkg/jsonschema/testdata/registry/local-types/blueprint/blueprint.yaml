@@ -1,0 +1,16 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Blueprint
+
+annotations:
+  local/name: local-types-bp
+  local/version: v0.1.0
+
+imports:
+- name: imp1
+  schema:
+    $ref: "local://my-type"
+
+jsonSchema: "https://json-schema.org/draft/2019-09/schema" # required
+localTypes:
+  my-type:
+    type: string

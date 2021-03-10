@@ -1,0 +1,25 @@
+meta:
+  schemaVersion: v2
+
+component:
+  name: example.com/distinct-component/bp
+  version: v0.1.0
+
+  provider: internal
+  sources: []
+  componentReferences:
+  - name: schema-component
+    componentName: example.com/distinct-component/schema
+    version: v0.1.0
+
+  repositoryContexts:
+  - type: ociRegistry
+    baseUrl: "./testdata"
+
+  resources:
+  - type: blueprint
+    name: distinct-component-bp
+    version: v0.1.0
+    relation: local
+    access:
+      type: local
