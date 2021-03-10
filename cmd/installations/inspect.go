@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	tree "github.com/gardener/landscapercli/cmd/installations/debug"
+	tree "github.com/gardener/landscapercli/cmd/installations/inspect"
 
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/go-logr/logr"
