@@ -8,13 +8,14 @@ import (
 
 	tree "github.com/gardener/landscapercli/cmd/installations/inspect"
 
-	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
+
+	"github.com/gardener/landscapercli/pkg/logger"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -50,8 +51,8 @@ func NewInspectCommand(ctx context.Context) *cobra.Command {
 		Use:     "inspect [installationName] [--namespace namespace] [--kubeconfig kubeconfig.yaml]",
 		Aliases: []string{"i", "status"},
 		Args:    cobra.MaximumNArgs(1),
-		Example: "landscaper-cli installation inspect my-installation --namespace my-namespace",
-		Short:   "displays status installations for the installation and depending executions and deployitems",
+		Example: "landscaper-cli installations inspect",
+		Short:   "displays status information for Installations and depending Executions and DeployItems",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.validateArgs(args); err != nil {
 				cmd.PrintErr(err.Error())
