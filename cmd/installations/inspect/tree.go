@@ -4,14 +4,14 @@ import (
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 )
 
-//InstallationTree contains the Installation and the references to subInstallations and the Execution.
+//InstallationTree contains the Installation and the references to Sub-Installations and the Execution.
 type InstallationTree struct {
 	SubInstallations []*InstallationTree      `json:"subInstallations,omitempty"`
 	Execution        *ExecutionTree           `json:"execution,omitempty"`
 	Installation     *lsv1alpha1.Installation `json:"installation,omitempty"`
 }
 
-//ExecutionTree contains the Execution and the references to all deployItems.
+//ExecutionTree contains the Execution and the references to all DeployItems.
 type ExecutionTree struct {
 	DeployItems []*DeployItemLeaf     `json:"deployItems,omitempty"`
 	Execution   *lsv1alpha1.Execution `json:"execution,omitempty"`

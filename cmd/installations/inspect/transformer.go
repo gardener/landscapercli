@@ -25,7 +25,7 @@ func (t Transformer) TransformToPrintableTree(installationTrees []*InstallationT
 	for _, installationTree := range installationTrees {
 		transformedInstalaltion, err := t.transformInstallation(installationTree)
 		if err != nil {
-			return nil, fmt.Errorf("Error in installation %s: %w", installationTree.Installation.Name, err)
+			return nil, fmt.Errorf("error in installation %s: %w", installationTree.Installation.Name, err)
 		}
 
 		printableTrees = append(printableTrees, *transformedInstalaltion)
@@ -42,7 +42,7 @@ func (t Transformer) transformInstallation(installationTree *InstallationTree) (
 	if t.DetailedMode {
 		marshaledInstallation, err := yaml.Marshal(installationTree.Installation)
 		if err != nil {
-			return nil, fmt.Errorf("Failed marshaling instalaltion %s: %w", installationTree.Installation.Name, err)
+			return nil, fmt.Errorf("failed marshaling installation %s: %w", installationTree.Installation.Name, err)
 		}
 		printableNode.Description = string(marshaledInstallation)
 
@@ -54,7 +54,7 @@ func (t Transformer) transformInstallation(installationTree *InstallationTree) (
 		for _, inst := range installationTree.SubInstallations {
 			transformedInstalaltion, err := t.transformInstallation(inst)
 			if err != nil {
-				return nil, fmt.Errorf("Error in installation %s: %w", installationTree.Installation.Name, err)
+				return nil, fmt.Errorf("error in subinstallation %s: %w", installationTree.Installation.Name, err)
 			}
 			printableNode.Childs = append(printableNode.Childs, transformedInstalaltion)
 		}
@@ -63,7 +63,7 @@ func (t Transformer) transformInstallation(installationTree *InstallationTree) (
 	if installationTree.Execution != nil {
 		transformedExecution, err := t.transformExecution(installationTree.Execution)
 		if err != nil {
-			return nil, fmt.Errorf("Error in installation %s: %w", installationTree.Installation.Name, err)
+			return nil, fmt.Errorf("error in installation %s: %w", installationTree.Installation.Name, err)
 		}
 		printableNode.Childs = append(printableNode.Childs, transformedExecution)
 
@@ -83,7 +83,7 @@ func (t Transformer) transformExecution(executionTree *ExecutionTree) (*TreeElem
 	if t.DetailedMode {
 		marshaledExecution, err := yaml.Marshal(executionTree.Execution)
 		if err != nil {
-			return nil, fmt.Errorf("Failed marshaling execution %s: %w", executionTree.Execution.Name, err)
+			return nil, fmt.Errorf("failed marshaling Execution %s: %w", executionTree.Execution.Name, err)
 		}
 		printableNode.Description = string(marshaledExecution)
 	}
@@ -92,7 +92,7 @@ func (t Transformer) transformExecution(executionTree *ExecutionTree) (*TreeElem
 		for _, depItem := range executionTree.DeployItems {
 			transformedDeployItem, err := t.transformDeployItem(depItem)
 			if err != nil {
-				return nil, fmt.Errorf("Error in Execution %s: %w", executionTree.Execution.Name, err)
+				return nil, fmt.Errorf("error in Execution %s: %w", executionTree.Execution.Name, err)
 			}
 			printableNode.Childs = append(printableNode.Childs, transformedDeployItem)
 		}
@@ -110,7 +110,7 @@ func (t Transformer) transformDeployItem(deployItemTree *DeployItemLeaf) (*TreeE
 	if t.DetailedMode {
 		marshaledExecution, err := yaml.Marshal(deployItemTree.DeployItem)
 		if err != nil {
-			return nil, fmt.Errorf("Failed marshaling deployitem %s: %w", deployItemTree.DeployItem.Name, err)
+			return nil, fmt.Errorf("failed marshaling DeployItem %s: %w", deployItemTree.DeployItem.Name, err)
 		}
 		printableNode.Description = string(marshaledExecution)
 	} else if deployItemTree.DeployItem.Status.LastError != nil {

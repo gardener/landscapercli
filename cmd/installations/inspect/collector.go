@@ -34,7 +34,7 @@ func (c *Collector) CollectInstallationsInCluster(name string, namespace string)
 	for _, inst := range instList.Items {
 		filledInst, err := c.collectInstallationTree(inst.Name, inst.Namespace)
 		if err != nil {
-			return nil, fmt.Errorf("cannot get installation details %s: %w", inst.Name, err)
+			return nil, fmt.Errorf("cannot get installation details for %s: %w", inst.Name, err)
 		}
 		installationTreeList = append(installationTreeList, filledInst)
 	}
