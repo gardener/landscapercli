@@ -32,11 +32,13 @@ func (c *Collector) CollectInstallationsInCluster(name string, namespace string)
 		return nil, fmt.Errorf("cannot list installations for namespace %s: %w", namespace, err)
 	}
 	for _, inst := range instList.Items {
-		filledInst, err := c.collectInstallationTree(inst.Name, inst.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("cannot get installation details for %s: %w", inst.Name, err)
+		if inst.OwnerReferences == nil { //filters for root installations (since subInstallations have a owner reference)
+			filledInst, err := c.collectInstallationTree(inst.Name, inst.Namespace)
+			if err != nil {
+				return nil, fmt.Errorf("cannot get installation details for %s: %w", inst.Name, err)
+			}
+			installationTreeList = append(installationTreeList, filledInst)
 		}
-		installationTreeList = append(installationTreeList, filledInst)
 	}
 	return installationTreeList, nil
 }
@@ -55,9 +57,9 @@ func (c *Collector) collectInstallationTree(name string, namespace string) (*Ins
 
 	//resolve all sub installations
 	for _, subInst := range inst.Status.InstallationReferences {
-		subInstTree, err := c.collectInstallationTree(subInst.Name, namespace)
+		subInstTree, err := c.collectInstallationTree(subInst.Reference.Name, namespace)
 		if err != nil {
-			return nil, fmt.Errorf("cannot get installation %s: %w", subInst.Name, err)
+			return nil, fmt.Errorf("cannot get installation %s: %w", subInst.Reference.Name, err)
 		}
 		tree.SubInstallations = append(tree.SubInstallations, subInstTree)
 	}
