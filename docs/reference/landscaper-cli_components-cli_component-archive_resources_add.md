@@ -33,7 +33,7 @@ relation: 'local'
 input:
   type: "file"
   path: "some/path"
-  mediaType: "application/octet-stream" # optional, defaulted to "application/octet-stream" or "application/gzip" if compress=true
+  mediaType: "application/octet-stream" # optional, defaulted to "application/octet-stream" or "application/gzip" if compress=true 
 ...
 ---
 name: 'myconfig'
@@ -44,7 +44,7 @@ input:
   path: /my/path
   compress: true # defaults to false
   exclude: "*.txt"
-  mediaType: "application/gzip" # optional, defaulted to "application/x-tar" or "application/gzip" if compress=true
+  mediaType: "application/gzip" # optional, defaulted to "application/x-tar" or "application/gzip" if compress=true 
 ...
 
 </pre>
