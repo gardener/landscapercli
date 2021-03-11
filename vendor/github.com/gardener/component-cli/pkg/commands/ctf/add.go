@@ -18,12 +18,16 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/gardener/component-cli/pkg/componentarchive"
 	"github.com/gardener/component-cli/pkg/logger"
+	"github.com/gardener/component-cli/pkg/utils"
 )
 
 type AddOptions struct {
 	// CTFPath is the path to the directory containing the ctf archive.
 	CTFPath string
+	// ArchiveFormat defines the component archive format of a component archive defines in a filesystem
+	ArchiveFormat ctf.ArchiveFormat
 
 	ComponentArchives []string
 }
@@ -55,7 +59,7 @@ func NewAddCommand(ctx context.Context) *cobra.Command {
 	return cmd
 }
 
-func (o *AddOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
+func (o *AddOptions) Run(_ context.Context, log logr.Logger, fs vfs.FileSystem) error {
 	info, err := fs.Stat(o.CTFPath)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
@@ -90,20 +94,19 @@ It is expected that the given path points to a CTF Archive`, o.CTFPath)
 	}
 
 	for _, caPath := range o.ComponentArchives {
-		file, err := fs.Open(caPath)
+		ca, _, err := componentarchive.Parse(fs, caPath)
 		if err != nil {
-			return fmt.Errorf("unable to read component archive from %q: %s", caPath, err.Error())
+			return err
 		}
-		ca, err := ctf.NewComponentArchiveFromTarReader(file)
-		if err != nil {
-			return fmt.Errorf("unable to parse component archive from %q: %s", caPath, err.Error())
-		}
-		if err := file.Close(); err != nil {
-			return fmt.Errorf("unable to close component archive from %q: %s", caPath, err.Error())
-		}
-		if err := ctfArchive.AddComponentArchive(ca); err != nil {
+		if err := ctfArchive.AddComponentArchiveWithName(
+			utils.CTFComponentArchiveFilename(ca.ComponentDescriptor.GetName(),
+				ca.ComponentDescriptor.GetVersion()),
+			ca,
+			o.ArchiveFormat,
+		); err != nil {
 			return fmt.Errorf("unable to add component archive %q to ctf: %s", ca.ComponentDescriptor.GetName(), err.Error())
 		}
+		log.Info(fmt.Sprintf("Successfully added component archive from %q", caPath))
 	}
 	if err := ctfArchive.Write(); err != nil {
 		return fmt.Errorf("unable to write modified ctf archive: %s", err.Error())
@@ -131,10 +134,16 @@ func (o *AddOptions) Validate() error {
 		return errors.New("no archives to add")
 	}
 
-	// todo: validate references exist
+	if o.ArchiveFormat != ctf.ArchiveFormatTar &&
+		o.ArchiveFormat != ctf.ArchiveFormatTarGzip {
+		return fmt.Errorf("unsupported archive format %q", o.ArchiveFormat)
+	}
 	return nil
 }
 
 func (o *AddOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringArrayVarP(&o.ComponentArchives, "component-archive", "f", []string{}, "path to the component archives to be added. Note that the component archives have to be tar archives.")
+	fs.StringArrayVarP(&o.ComponentArchives, "component-archive", "f", []string{},
+		"path to the component archives to be added. Note that the component archives have to be tar archives.")
+	componentarchive.OutputFormatVar(fs, &o.ArchiveFormat, "format", ctf.ArchiveFormatTar,
+		componentarchive.ArchiveOutputFormatUsage)
 }

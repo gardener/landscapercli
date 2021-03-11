@@ -5,7 +5,9 @@
 package resources
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,16 +29,22 @@ import (
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	"github.com/gardener/component-cli/pkg/componentarchive"
 	"github.com/gardener/component-cli/pkg/logger"
+	"github.com/gardener/component-cli/pkg/template"
 	"github.com/gardener/component-cli/pkg/utils"
 )
 
 // Options defines the options that are used to add resources to a component descriptor
 type Options struct {
 	componentarchive.BuilderOptions
+	TemplateOptions template.Options
 
 	// either components can be added by a yaml resource template or by input flags
-	// ResourceObjectPath defines the path to the resources defined as yaml or json
+	// ResourceObjectPaths defines the path to the resources defined as yaml or json
+	// DEPRECATED
 	ResourceObjectPath string
+	// ResourceObjectPaths contains paths to read the yaml resource template from.
+	// If "-" is provided, the resource is read from stdin
+	ResourceObjectPaths []string
 }
 
 // ResourceOptions contains options that are used to describe a resource
@@ -45,14 +53,21 @@ type ResourceOptions struct {
 	Input *input.BlobInput `json:"input,omitempty"`
 }
 
+// InternalResourceOptions contains options that are used to describe a resource
+// as well as the filepath of the resource that is used to search for the input blob
+type InternalResourceOptions struct {
+	ResourceOptions
+	Path string
+}
+
 // NewAddCommand creates a command to add additional resources to a component descriptor.
 func NewAddCommand(ctx context.Context) *cobra.Command {
 	opts := &Options{}
 	cmd := &cobra.Command{
-		Use:   "add [component archive path] [-r resource-path]",
-		Args:  cobra.RangeArgs(0, 1),
+		Use:   "add [component archive path] [resource-path]...",
+		Args:  cobra.MinimumNArgs(1),
 		Short: "Adds a resource to an component archive",
-		Long: `
+		Long: fmt.Sprintf(`
 add generates resources from a resource template and adds it to the given component descriptor in the component archive.
 If the resource is already defined (quality by identity) in the component-descriptor it will be overwritten.
 
@@ -81,6 +96,7 @@ relation: 'local'
 input:
   type: "file"
   path: "some/path"
+  mediaType: "application/octet-stream" # optional, defaulted to "application/octet-stream" or "application/gzip" if compress=true
 ...
 ---
 name: 'myconfig'
@@ -91,10 +107,13 @@ input:
   path: /my/path
   compress: true # defaults to false
   exclude: "*.txt"
+  mediaType: "application/gzip" # optional, defaulted to "application/x-tar" or "application/gzip" if compress=true
 ...
 
 </pre>
-`,
+
+%s
+`, opts.TemplateOptions.Usage()),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
@@ -121,7 +140,7 @@ func (o *Options) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) e
 		return err
 	}
 
-	resources, err := o.generateResources(fs, archive.ComponentDescriptor)
+	resources, err := o.generateResources(log, fs, archive.ComponentDescriptor)
 	if err != nil {
 		return err
 	}
@@ -169,10 +188,19 @@ func (o *Options) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) e
 }
 
 func (o *Options) Complete(args []string) error {
-	if len(args) != 0 {
-		o.BuilderOptions.ComponentArchivePath = args[0]
+	args = o.TemplateOptions.Parse(args)
+
+	if len(args) == 0 {
+		return errors.New("at least a component archive path argument has to be defined")
 	}
+	o.BuilderOptions.ComponentArchivePath = args[0]
 	o.BuilderOptions.Default()
+
+	o.ResourceObjectPaths = append(o.ResourceObjectPaths, args[1:]...)
+	if len(o.ResourceObjectPath) != 0 {
+		o.ResourceObjectPaths = append(o.ResourceObjectPaths, o.ResourceObjectPath)
+	}
+
 	return o.validate()
 }
 
@@ -184,34 +212,78 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.BuilderOptions.AddFlags(fs)
 	// specify the resource
 	fs.StringVarP(&o.ResourceObjectPath, "resource", "r", "", "The path to the resources defined as yaml or json")
+	_ = fs.MarkDeprecated("resource", "the flag r is deprecated use command args instead")
 }
 
-func (o *Options) generateResources(fs vfs.FileSystem, cd *cdv2.ComponentDescriptor) ([]ResourceOptions, error) {
-	resources := make([]ResourceOptions, 0)
-	if len(o.ResourceObjectPath) != 0 {
-		resourceObjectReader, err := fs.Open(o.ResourceObjectPath)
+func (o *Options) generateResources(log logr.Logger, fs vfs.FileSystem, cd *cdv2.ComponentDescriptor) ([]InternalResourceOptions, error) {
+	if len(o.ResourceObjectPaths) == 0 {
+		// try to read from stdin if no resources are defined
+		resources := make([]InternalResourceOptions, 0)
+		stdinInfo, err := os.Stdin.Stat()
 		if err != nil {
-			return nil, fmt.Errorf("unable to read resource object from %s: %w", o.ResourceObjectPath, err)
+			log.V(3).Info("unable to read from stdin", "error", err.Error())
+			return nil, nil
 		}
-		defer resourceObjectReader.Close()
-		resources, err = generateResourcesFromReader(cd, resourceObjectReader)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read resources from %s: %w", o.ResourceObjectPath, err)
+		if (stdinInfo.Mode()&os.ModeNamedPipe != 0) || stdinInfo.Size() != 0 {
+			stdinResources, err := o.generateResourcesFromReader(log, cd, os.Stdin)
+			if err != nil {
+				return nil, fmt.Errorf("unable to read from stdin: %w", err)
+			}
+			resources = append(resources, convertToInternalResourceOptions(stdinResources, "")...)
 		}
+		return resources, nil
 	}
 
-	stdinInfo, err := os.Stdin.Stat()
-	if err != nil {
-		return nil, fmt.Errorf("unable to read from stdin: %w", err)
-	}
-	if (stdinInfo.Mode()&os.ModeNamedPipe != 0) || stdinInfo.Size() != 0 {
-		stdinResources, err := generateResourcesFromReader(cd, os.Stdin)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read from stdin: %w", err)
+	resources := make([]InternalResourceOptions, 0)
+	for _, resourcePath := range o.ResourceObjectPaths {
+		if resourcePath == "-" {
+			stdinInfo, err := os.Stdin.Stat()
+			if err != nil {
+				return nil, fmt.Errorf("unable to read from stdin: %w", err)
+			}
+			if (stdinInfo.Mode()&os.ModeNamedPipe != 0) || stdinInfo.Size() != 0 {
+				stdinResources, err := o.generateResourcesFromReader(log, cd, os.Stdin)
+				if err != nil {
+					return nil, fmt.Errorf("unable to read from stdin: %w", err)
+				}
+				resources = append(resources, convertToInternalResourceOptions(stdinResources, "")...)
+			}
+			continue
 		}
-		resources = append(resources, stdinResources...)
+
+		resourceObjectReader, err := fs.Open(resourcePath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read resource object from %s: %w", resourcePath, err)
+		}
+		newResources, err := o.generateResourcesFromReader(log, cd, resourceObjectReader)
+		if err != nil {
+			if err2 := resourceObjectReader.Close(); err2 != nil {
+				log.Error(err, "unable to close file reader", "path", resourcePath)
+			}
+			return nil, fmt.Errorf("unable to read resources from %s: %w", resourcePath, err)
+		}
+		if err := resourceObjectReader.Close(); err != nil {
+			return nil, fmt.Errorf("unable to read resource from %q: %w", resourcePath, err)
+		}
+		resources = append(resources, convertToInternalResourceOptions(newResources, resourcePath)...)
 	}
+
 	return resources, nil
+}
+
+// generateResourcesFromPath generates a resource given resource options and a resource template file.
+func (o *Options) generateResourcesFromReader(log logr.Logger, cd *cdv2.ComponentDescriptor, reader io.Reader) ([]ResourceOptions, error) {
+	var data bytes.Buffer
+	if _, err := io.Copy(&data, reader); err != nil {
+		return nil, err
+	}
+	// template data
+	tmplData, err := o.TemplateOptions.Template(data.String())
+	if err != nil {
+		return nil, fmt.Errorf("unable to template resource: %w", err)
+	}
+	log.V(5).Info(tmplData)
+	return generateResourcesFromReader(cd, bytes.NewBuffer([]byte(tmplData)))
 }
 
 // generateResourcesFromPath generates a resource given resource options and a resource template file.
@@ -241,8 +313,8 @@ func generateResourcesFromReader(cd *cdv2.ComponentDescriptor, reader io.Reader)
 	return resources, nil
 }
 
-func (o *Options) addInputBlob(fs vfs.FileSystem, archive *ctf.ComponentArchive, resource *ResourceOptions) error {
-	blob, err := resource.Input.Read(fs, o.ResourceObjectPath)
+func (o *Options) addInputBlob(fs vfs.FileSystem, archive *ctf.ComponentArchive, resource *InternalResourceOptions) error {
+	blob, err := resource.Input.Read(fs, resource.Path)
 	if err != nil {
 		return err
 	}
@@ -262,4 +334,19 @@ func (o *Options) addInputBlob(fs vfs.FileSystem, archive *ctf.ComponentArchive,
 		return fmt.Errorf("unable to close input file: %w", err)
 	}
 	return nil
+}
+
+func convertToInternalResourceOptions(resOpts []ResourceOptions, filepath string) []InternalResourceOptions {
+	if len(resOpts) == 0 {
+		return nil
+	}
+	resources := make([]InternalResourceOptions, len(resOpts))
+	for i, resOpt := range resOpts {
+		opt := resOpt
+		resources[i] = InternalResourceOptions{
+			ResourceOptions: opt,
+			Path:            filepath,
+		}
+	}
+	return resources
 }

@@ -16,7 +16,7 @@ landscaper-cli:
             triggering_policy: 'always'
             recipients:
             - email_addresses:
-              - DL_5FE20D672BF0A1703D213F8C@global.corp.sap
+              - K8SAppHubPipelineNotification@sap.com
             - committers
             - codeowners
       component_descriptor: ~

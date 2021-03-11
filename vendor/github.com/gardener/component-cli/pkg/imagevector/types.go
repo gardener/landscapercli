@@ -40,6 +40,7 @@ var (
 // ImageVector defines a image vector that defines oci images with specific requirements
 type ImageVector struct {
 	Images []ImageEntry `json:"images"`
+	Labels cdv2.Labels  `json:"labels,omitempty"`
 }
 
 // ImageEntry defines one image entry of a image vector
@@ -57,5 +58,5 @@ type ImageEntry struct {
 	// +optional
 	TargetVersion *string `json:"targetVersion,omitempty"`
 	// +optional
-	Labels []cdv2.Label `json:"labels,omitempty"`
+	Labels cdv2.Labels `json:"labels,omitempty"`
 }
