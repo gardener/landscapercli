@@ -176,7 +176,7 @@ func (o *statusOptions) validateArgs(args []string) error {
 
 func (o *statusOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfig, "kubeconfig", "", "path to the kubeconfig of the cluster")
-	fs.StringVarP(&o.kubeconfig, "namespace", "n", "", "namespace of the installation. Required if --kubeconfig is used.")
+	fs.StringVarP(&o.namespace, "namespace", "n", "", "namespace of the installation. Required if --kubeconfig is used.")
 	fs.BoolVarP(&o.detailMode, "show-details", "d", false, "show detailed information about installations, executions and deployitems")
 	fs.BoolVarP(&o.showExecutions, "show-executions", "e", false, "show the executions in the tree")
 	fs.BoolVarP(&o.showOnlyFailed, "show-failed", "f", false, "show only failed items")
