@@ -40,7 +40,12 @@ resources:
     imageReference: gcr.io/google_containers/pause-amd64:3.1
 </pre>
 
-2. The image matches the given "--component-prefixes" which will add the image as label ("imagevector.gardener.cloud/images") to the "componentReference".
+2. The image is defined by another component so the image is added as label ("imagevector.gardener.cloud/images") to the "componentReference".
+
+Images that are defined by other components can be specified
+1. [DEPRECATED] when the image's repository matches the given "--component-prefixes"
+2. the image is labeled with "imagevector.gardener.cloud/component-reference"
+
 If the component reference is not yet defined it will be automatically added.
 If multiple images are defined for the same component reference they are added to the images list in the label.
 
@@ -51,6 +56,12 @@ images:
   repository: eu.gcr.io/gardener-project/gardener/autoscaler/cluster-autoscaler
   targetVersion: "< 1.16"
   tag: "v0.10.0"
+  labels: # recommended bbut only needed when "--component-prefixes" is not defined
+  - name: imagevector.gardener.cloud/component-reference
+    value:
+      name: cla # defaults to image.name
+      componentName: github.com/gardener/autoscaler # defaults to image.sourceRepository
+      version: v0.10.0 # defaults to image.version
 </pre>
 
 <pre>
@@ -58,7 +69,7 @@ meta:
   schemaVersion: 'v2'
 ...
 componentReferences:
-- name: cluster-autoscaler
+- name: cla
   componentName: github.com/gardener/autoscaler
   version: v0.10.0
   extraIdentity:
@@ -74,7 +85,12 @@ componentReferences:
 	    targetVersion: '< 1.16'
 </pre>
 
-3. The image is defined as "--generic-dependency" which will add the image as label ("imagevector.gardener.cloud/images") to the component descriptor. 
+3. The image is a generic dependency where the actual images are defined by the overwrite.
+A generic dependency image is not part of a component descriptors resource but will be added as label ("imagevector.gardener.cloud/images") to the component descriptor.
+
+Generic dependencies can be defined by
+1. [DEPRECATED] defined as "--generic-dependency=<image name>"
+2. the label "imagevector.gardener.cloud/generic"
 
 <pre>
 images:
@@ -82,6 +98,8 @@ images:
   sourceRepository: github.com/kubernetes/kubernetes
   repository: k8s.gcr.io/hyperkube
   targetVersion: "< 1.19"
+  labels: # only needed if "--generic-dependency" is not set
+  - name: imagevector.gardener.cloud/generic
 </pre>
 
 <pre>
