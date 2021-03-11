@@ -15,6 +15,9 @@ func FilterForFailedItemsInTree(installationTrees []*InstallationTree) []*Instal
 }
 
 func filterForFailedInstallation(installationTree *InstallationTree) *InstallationTree {
+	if installationTree == nil {
+		return nil
+	}
 	filteredSubInstallations := []*InstallationTree{}
 	for _, subInstallation := range installationTree.SubInstallations {
 		if filteredSubInstallation := filterForFailedInstallation(subInstallation); filteredSubInstallation != nil {
@@ -32,6 +35,10 @@ func filterForFailedInstallation(installationTree *InstallationTree) *Installati
 }
 
 func filterFailedExecutions(executionTree *ExecutionTree) *ExecutionTree {
+	if executionTree == nil {
+		return nil
+	}
+
 	filteredDeployItems := []*DeployItemLeaf{}
 	for _, depItem := range executionTree.DeployItems {
 		if filteredDeployItem := filterFailedDeployItems(depItem); filteredDeployItem != nil {
@@ -48,6 +55,9 @@ func filterFailedExecutions(executionTree *ExecutionTree) *ExecutionTree {
 }
 
 func filterFailedDeployItems(deployItemTree *DeployItemLeaf) *DeployItemLeaf {
+	if deployItemTree == nil {
+		return nil
+	}
 	if deployItemTree.DeployItem.Status.Phase == v1alpha1.ExecutionPhaseFailed {
 		return deployItemTree
 	}
