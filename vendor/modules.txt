@@ -117,11 +117,11 @@ github.com/gardener/landscaper/apis/core/validation
 github.com/gardener/landscaper/apis/deployer/manifest
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
-# github.com/go-logr/logr v0.4.0
+# github.com/go-logr/logr v0.3.0
 ## explicit
 github.com/go-logr/logr
 github.com/go-logr/logr/testing
-# github.com/go-logr/zapr v0.4.0
+# github.com/go-logr/zapr v0.3.0
 ## explicit
 github.com/go-logr/zapr
 # github.com/gogo/protobuf v1.3.1

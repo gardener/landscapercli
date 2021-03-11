@@ -16,8 +16,8 @@ require (
 	github.com/gardener/component-spec/bindings-go v0.0.33
 	github.com/gardener/landscaper v0.6.1-0.20210301125512-022a523e6c63
 	github.com/gardener/landscaper/apis v0.0.0-00010101000000-000000000000
-	github.com/go-logr/logr v0.4.0
-	github.com/go-logr/zapr v0.4.0
+	github.com/go-logr/logr v0.3.0
+	github.com/go-logr/zapr v0.3.0
 	github.com/golang/mock v1.4.4
 	github.com/mandelsoft/vfs v0.0.0-20201002134249-3c471f64a4d1
 	github.com/onsi/ginkgo v1.14.2
