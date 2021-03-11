@@ -16,10 +16,10 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/util"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -131,37 +131,25 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 }
 
 func (o *statusOptions) buildKubeClientFromConfigOrCurrentClusterContext() (client.Client, string, error) {
-	var cfg *rest.Config
 	var err error
 	namespace := ""
+	var k8sClient client.Client
 	if o.kubeconfig != "" {
-		cfg, err = clientcmd.BuildConfigFromFlags("", o.kubeconfig)
+		cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfig)
 		if err != nil {
 			return nil, namespace, fmt.Errorf("cannot parse K8s config: %w", err)
 		}
+		k8sClient, err = client.New(cfg, client.Options{
+			Scheme: scheme,
+		})
+		if err != nil {
+			return nil, namespace, fmt.Errorf("cannot build K8s client: %w", err)
+		}
 	} else {
-		rules := clientcmd.NewDefaultClientConfigLoadingRules()
-		rules.DefaultClientConfig = &clientcmd.DefaultClientConfig
-
-		overrides := &clientcmd.ConfigOverrides{ClusterDefaults: clientcmd.ClusterDefaults}
-		clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, overrides)
-		cfg, err = clientConfig.ClientConfig()
-
+		k8sClient, namespace, err = util.GetK8sClientFromCurrentConfiguredCluster()
 		if err != nil {
-			return nil, namespace, fmt.Errorf("cannot build k8s config %w", err)
+			return nil, namespace, fmt.Errorf("cannot build K8s client from current cluster config: %w", err)
 		}
-		namespace, _, err = clientConfig.Namespace()
-		if err != nil {
-			return nil, namespace, fmt.Errorf("error extracting namespace from current k8s context. %w", err)
-		}
-
-	}
-
-	k8sClient, err := client.New(cfg, client.Options{
-		Scheme: scheme,
-	})
-	if err != nil {
-		return nil, namespace, fmt.Errorf("cannot build K8s client: %w", err)
 	}
 
 	return k8sClient, namespace, nil
