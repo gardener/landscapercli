@@ -1,0 +1,10 @@
+component:
+  componentReferences: []
+  name: example.com/render-cmd
+  provider: internal
+  repositoryContexts: []
+  resources: []
+  sources: []
+  version: 0.1.0
+meta:
+  schemaVersion: v2

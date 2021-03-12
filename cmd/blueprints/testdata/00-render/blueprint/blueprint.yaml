@@ -1,0 +1,22 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Blueprint
+
+imports:
+- name: cluster
+  targetType: example.com/my-type
+- name: imp1
+  schema:
+    type: string
+
+deployExecutions:
+- name: execution-name
+  type: GoTemplate
+  template: |
+    deployItems:
+    - name: first-di
+      type: mock
+      target:
+        name: {{ .imports.cluster.metadata.name }}
+        namespace: {{ .imports.cluster.metadata.namespace }}
+      config: {{ toJson . }}
+
