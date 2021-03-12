@@ -19,7 +19,9 @@ make generate
 # check if make generate created new files
 generated_files="$(git status --porcelain docs)"
 if [[ "$generated_files" ]]; then
-  echo "Newly generated files detected:"
+  echo "ERROR! The files in docs folder are inconsistent with the documentation annotations in the source code."
+  echo "This may happen if you committed files that changes the documentation without regenerating the documentation."
+  echo "To fix, please run ‚make generate‘ and commit missing files:"
   echo "$generated_files"
   exit 1
 fi
