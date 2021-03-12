@@ -9,10 +9,10 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
@@ -28,7 +28,7 @@ func NewUninstallCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "uninstall --kubeconfig [kubconfig.yaml]",
 		Aliases: []string{"u"},
-		Short:   "command to uninstall the landscaper and OCI registry (from the install command) in a target cluster",
+		Short:   "command to uninstall Landscaper and OCI registry (from the install command) in a target cluster",
 		Example: "landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace landscaper",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -54,12 +54,18 @@ func (o *uninstallOptions) run(ctx context.Context, log logr.Logger) error {
 		return fmt.Errorf("Cannot parse K8s config: %w", err)
 	}
 
-	k8sClient, err := kubernetes.NewForConfig(cfg)
+	k8sClient, err := client.New(cfg, client.Options{
+		Scheme: scheme,
+	})
 	if err != nil {
-		return fmt.Errorf("Cannot build K8s clientset: %w", err)
+		return fmt.Errorf("cannot build K8s client: %w", err)
 	}
 
-	_, err = k8sClient.CoreV1().Namespaces().Get(ctx, o.namespace, v1.GetOptions{})
+	key := client.ObjectKey{
+		Name: o.namespace,
+	}
+	ns := corev1.Namespace{}
+	err = k8sClient.Get(ctx, key, &ns)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			fmt.Printf("Cannot find namespace %s\n", o.namespace)
@@ -69,14 +75,14 @@ func (o *uninstallOptions) run(ctx context.Context, log logr.Logger) error {
 	}
 
 	fmt.Println("Uninstall OCI Registry...")
-	err = uninstallOCIRegistry(ctx, o.namespace, k8sClient)
+	err = o.uninstallOCIRegistry(ctx, k8sClient)
 	if err != nil {
 		return fmt.Errorf("Cannot uninstall OCI registry: %w", err)
 	}
 	fmt.Print("OCI registry uninstall succeeded!\n\n")
 
 	fmt.Println("Uninstall Landscaper...")
-	err = uninstallLandscaper(ctx, o.kubeconfigPath, o.namespace)
+	err = o.uninstallLandscaper(ctx)
 	if err != nil {
 		return fmt.Errorf("Cannot uninstall landscaper: %w", err)
 	}
@@ -94,13 +100,16 @@ func (o *uninstallOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where the landscaper and the OCI registry are installed")
 }
 
-func uninstallOCIRegistry(ctx context.Context, namespace string, k8sClient kubernetes.Interface) error {
-	ociRegistry := NewOCIRegistry(namespace, k8sClient)
+func (o *uninstallOptions) uninstallOCIRegistry(ctx context.Context, k8sClient client.Client) error {
+	ociRegistryOpts := &ociRegistryOpts{
+		namespace: o.namespace,
+	}
+	ociRegistry := NewOCIRegistry(ociRegistryOpts, k8sClient)
 	return ociRegistry.uninstall(ctx)
 }
 
-func uninstallLandscaper(ctx context.Context, kubeconfigPath, namespace string) error {
-	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", namespace, kubeconfigPath))
+func (o *uninstallOptions) uninstallLandscaper(ctx context.Context) error {
+	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", o.namespace, o.kubeconfigPath))
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			// Ignore error if the release that should be deleted was not found ;)

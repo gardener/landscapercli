@@ -2,10 +2,28 @@ package util
 
 import (
 	"bytes"
+	"fmt"
+	"io/ioutil"
 	"strings"
 
 	yamlv3 "gopkg.in/yaml.v3"
+	"sigs.k8s.io/yaml"
 )
+
+func ReadYamlFile(path string) (map[string]interface{}, error) {
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read file: %w", err)
+	}
+
+	unmarshaledContent := map[string]interface{}{}
+	err = yaml.UnmarshalStrict(content, &unmarshaledContent)
+	if err != nil {
+		return nil, fmt.Errorf("cannot unmarshall file content: %w", err)
+	}
+
+	return unmarshaledContent, nil
+}
 
 func MarshalYaml(node *yamlv3.Node) ([]byte, error) {
 	buf := bytes.Buffer{}
