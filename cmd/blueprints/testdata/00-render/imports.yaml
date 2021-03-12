@@ -1,0 +1,8 @@
+imports:
+  cluster:
+    apiVersion: landscaper.gardener.cloud/v1alpha1
+    kind: Target
+    metadata:
+      name: my-target
+      namespace: test
+  imp1: first-value
