@@ -39,6 +39,8 @@ func (t Transformer) transformInstallation(installationTree *InstallationTree) (
 		return &printableNode, nil
 	}
 
+	installationTree.Installation.SetManagedFields(nil)
+
 	printableNode.Headline = fmt.Sprintf("[%s] Installation %s",
 		formatStatus(string(installationTree.Installation.Status.Phase)), installationTree.Installation.Name)
 
@@ -81,6 +83,8 @@ func (t Transformer) transformExecution(executionTree *ExecutionTree) (*TreeElem
 		return &printableNode, nil
 	}
 
+	executionTree.Execution.SetManagedFields(nil)
+
 	if t.ShowExecutions || t.DetailedMode {
 		printableNode.Headline = fmt.Sprintf("[%s] Execution %s",
 			formatStatus(string(executionTree.Execution.Status.Phase)), executionTree.Execution.Name)
@@ -112,6 +116,8 @@ func (t Transformer) transformDeployItem(deployItemTree *DeployItemLeaf) (*TreeE
 	if deployItemTree == nil {
 		return &printableNode, nil
 	}
+
+	deployItemTree.DeployItem.SetManagedFields(nil)
 
 	printableNode.Headline = fmt.Sprintf("[%s] DeployItem %s",
 		formatStatus(string(deployItemTree.DeployItem.Status.Phase)), deployItemTree.DeployItem.Name)

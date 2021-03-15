@@ -11,63 +11,6 @@ metadata:
   labels:
     execution.landscaper.gardener.cloud/managed-by: echo-server
     execution.landscaper.gardener.cloud/name: deploy
-  managedFields:
-  - apiVersion: landscaper.gardener.cloud/v1alpha1
-    fieldsType: FieldsV1
-    fieldsV1:
-      f:metadata:
-        f:annotations:
-          .: {}
-          f:execution.landscaper.gardener.cloud/dependsOn: {}
-        f:finalizers:
-          .: {}
-          v:"finalizer.landscaper.gardener.cloud": {}
-        f:generateName: {}
-        f:labels:
-          .: {}
-          f:execution.landscaper.gardener.cloud/managed-by: {}
-          f:execution.landscaper.gardener.cloud/name: {}
-        f:ownerReferences:
-          .: {}
-          k:{"uid":"829f889c-ff3a-4599-886e-2ae41779c838"}:
-            .: {}
-            f:apiVersion: {}
-            f:blockOwnerDeletion: {}
-            f:controller: {}
-            f:kind: {}
-            f:name: {}
-            f:uid: {}
-      f:spec:
-        .: {}
-        f:config:
-          .: {}
-          f:apiVersion: {}
-          f:chart:
-            .: {}
-            f:ref: {}
-          f:kind: {}
-          f:name: {}
-          f:namespace: {}
-          f:updateStrategy: {}
-        f:target:
-          .: {}
-          f:name: {}
-          f:namespace: {}
-        f:type: {}
-      f:status:
-        .: {}
-        f:lastError:
-          .: {}
-          f:lastTransitionTime: {}
-          f:lastUpdateTime: {}
-          f:message: {}
-          f:operation: {}
-          f:reason: {}
-        f:observedGeneration: {}
-        f:phase: {}
-    manager: landscaper-controller
-    operation: Update
-    time: "2021-02-25T13:09:29Z"
   name: echo-server-deploy-k4v5p
   namespace: ls-cli-inttest
   ownerReferences:

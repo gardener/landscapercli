@@ -5,49 +5,6 @@ metadata:
   finalizers:
   - finalizer.landscaper.gardener.cloud
   generation: 1
-  managedFields:
-  - apiVersion: landscaper.gardener.cloud/v1alpha1
-    fieldsType: FieldsV1
-    fieldsV1:
-      f:spec:
-        .: {}
-        f:blueprint:
-          .: {}
-          f:inline:
-            .: {}
-            f:filesystem: {}
-        f:exports: {}
-        f:importDataMappings:
-          .: {}
-          f:appname: {}
-          f:appnamespace: {}
-        f:imports:
-          .: {}
-          f:targets: {}
-    manager: __debug_bin
-    operation: Update
-    time: "2021-02-25T13:09:28Z"
-  - apiVersion: landscaper.gardener.cloud/v1alpha1
-    fieldsType: FieldsV1
-    fieldsV1:
-      f:metadata:
-        f:finalizers:
-          .: {}
-          v:"finalizer.landscaper.gardener.cloud": {}
-      f:status:
-        .: {}
-        f:conditions: {}
-        f:configGeneration: {}
-        f:executionRef:
-          .: {}
-          f:name: {}
-          f:namespace: {}
-        f:imports: {}
-        f:observedGeneration: {}
-        f:phase: {}
-    manager: landscaper-controller
-    operation: Update
-    time: "2021-02-25T13:09:29Z"
   name: echo-server
   namespace: ls-cli-inttest
   resourceVersion: "1652"

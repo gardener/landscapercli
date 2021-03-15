@@ -5,35 +5,6 @@ metadata:
   finalizers:
   - finalizer.landscaper.gardener.cloud
   generation: 1
-  managedFields:
-  - apiVersion: landscaper.gardener.cloud/v1alpha1
-    fieldsType: FieldsV1
-    fieldsV1:
-      f:metadata:
-        f:finalizers:
-          .: {}
-          v:"finalizer.landscaper.gardener.cloud": {}
-        f:ownerReferences:
-          .: {}
-          k:{"uid":"42d73688-8325-455d-829d-d87d4aea7acc"}:
-            .: {}
-            f:apiVersion: {}
-            f:blockOwnerDeletion: {}
-            f:controller: {}
-            f:kind: {}
-            f:name: {}
-            f:uid: {}
-      f:spec:
-        .: {}
-        f:deployItems: {}
-      f:status:
-        .: {}
-        f:deployItemRefs: {}
-        f:observedGeneration: {}
-        f:phase: {}
-    manager: landscaper-controller
-    operation: Update
-    time: "2021-02-25T13:09:29Z"
   name: echo-server
   namespace: ls-cli-inttest
   ownerReferences:
