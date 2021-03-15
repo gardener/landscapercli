@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"strings"
 	"time"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
@@ -16,31 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// GetValueFromNestedMap extracts the value in a given value path (e.g. landscaper.registryConfig.allowPlainHttpRegistries) or returns an error
-// if the path does not exists.
-func GetValueFromNestedMap(data map[string]interface{}, valuePath string) (interface{}, error) {
-	var val interface{}
-	var ok bool
-
-	keys := strings.Split(valuePath, ".")
-	for index, key := range keys {
-		if index == len(keys)-1 {
-			val, ok = data[key]
-			if !ok {
-				return nil, fmt.Errorf("Cannot get value for path %s", valuePath)
-			}
-		} else {
-			tmp := data[key]
-			data, ok = tmp.(map[string]interface{})
-			if !ok {
-				return nil, fmt.Errorf("Cannot get value for path %s", valuePath)
-			}
-		}
-	}
-
-	return val, nil
-}
 
 // CheckConditionPeriodically checks the success of a function peridically. Returns timeout(bool) to indicate the success of the function
 // and propagates possible errors of the function.

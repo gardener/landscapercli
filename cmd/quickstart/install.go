@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gardener/landscapercli/pkg/version"
+	"sigs.k8s.io/yaml"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -42,7 +43,20 @@ type installOptions struct {
 
 	// set during execution
 	registryIngressHost string
-	landscaperValues    map[string]interface{}
+	landscaperValues    landscaperValues
+}
+
+type landscaperValues struct {
+	Landscaper struct {
+		RegistryConfig struct {
+			AllowPlainHttpRegistries bool `json:"allowPlainHttpRegistries"`
+			Secrets                  struct {
+				Defaults struct {
+					Auths map[string]interface{} `json:"auths"`
+				} `json:"default"`
+			} `json:"secrets"`
+		} `json:"registryConfig"`
+	} `json:"landscaper"`
 }
 
 func NewInstallCommand(ctx context.Context) *cobra.Command {
@@ -88,10 +102,26 @@ prerequisites (!):
 	fs.StringVar(&o.registryPassword, "registry-password", "", "password for authenticating at the OCI registry")
 }
 
+func (o *installOptions) ReadLandscaperValues() error {
+	content, err := ioutil.ReadFile(o.landscaperValuesPath)
+	if err != nil {
+		return fmt.Errorf("cannot read file: %w", err)
+	}
+
+	unmarshaledContent := landscaperValues{}
+	err = yaml.Unmarshal(content, &unmarshaledContent)
+	if err != nil {
+		return fmt.Errorf("cannot unmarshall file content: %w", err)
+	}
+	o.landscaperValues = unmarshaledContent
+
+	return nil
+}
+
 func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 	cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfigPath)
 	if err != nil {
-		return fmt.Errorf("Cannot parse K8s config: %w", err)
+		return fmt.Errorf("cannot parse K8s config: %w", err)
 	}
 
 	k8sClient, err := client.New(cfg, client.Options{
@@ -101,109 +131,120 @@ func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 		return fmt.Errorf("cannot build K8s client: %w", err)
 	}
 
-	landscaperValues, err := util.ReadYamlFile(o.landscaperValuesPath)
-	if err != nil {
-		return fmt.Errorf("cannot build K8s client: %w", err)
+	if o.instOCIRegistry && o.instRegistryIngress {
+		registryIngressHost := strings.Replace(cfg.Host, "https://api", "o.ingress", 1)
+		if len(registryIngressHost) > 64 {
+			return fmt.Errorf("no certificate could be created because domain exceeds 64 characters: " + registryIngressHost)
+		}
+		o.registryIngressHost = registryIngressHost
 	}
-	o.landscaperValues = landscaperValues
 
-	fmt.Printf("Creating namespace %s", o.namespace)
+	if o.landscaperValuesPath != "" {
+		err = o.ReadLandscaperValues()
+		if err != nil {
+			return fmt.Errorf("cannot read landscaper values: %w", err)
+		}
+	}
+
+	err = o.checkConfiguration()
+	if err != nil {
+		return fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	err = o.createNamespace(ctx, k8sClient)
+	if err != nil {
+		return err
+	}
+
+	if o.instOCIRegistry {
+		err = o.installOCIRegistry(ctx, k8sClient)
+		if err != nil {
+			return fmt.Errorf("cannot install OCI registry: %w", err)
+		}
+	}
+
+	err = o.installLandscaper(ctx)
+	if err != nil {
+		return fmt.Errorf("cannot install landscaper: %w", err)
+	}
+
+	if o.instOCIRegistry {
+		if o.instRegistryIngress {
+			fmt.Println("The OCI registry can be accessed via the URL https://" + o.registryIngressHost)
+			fmt.Println("It might take some minutes until the TLS certificate is created")
+		} else {
+			fmt.Println("The OCI registry can be accessed via kubectl port-forward <oci-registry-pod> 5000:5000")
+		}
+	}
+
+	return nil
+}
+
+func (o *installOptions) createNamespace(ctx context.Context, k8sClient client.Client) error {
+	fmt.Printf("Creating namespace %s\n", o.namespace)
+
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: o.namespace,
 		},
 	}
-	err = k8sClient.Create(ctx, ns, &client.CreateOptions{})
+	err := k8sClient.Create(ctx, ns, &client.CreateOptions{})
 	if err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
-			fmt.Printf("Namespace %s already exists...Skipping\n", o.namespace)
+			fmt.Printf("Namespace %s already exists...Skipping\n\n", o.namespace)
 		} else {
-			return fmt.Errorf("Cannot create namespace: %w", err)
-		}
-	}
-
-	if o.instOCIRegistry {
-		registryIngressHost := strings.Replace(cfg.Host, "https://api", "o.ingress", 1)
-		if len(registryIngressHost) > 64 {
-			return fmt.Errorf("No certificate could be created because your domain exceeds 64 characters: " + registryIngressHost)
-		}
-		o.registryIngressHost = registryIngressHost
-
-		fmt.Println("Installing OCI registry...")
-		err = o.installOCIRegistry(ctx, k8sClient)
-		if err != nil {
-			return fmt.Errorf("Cannot install OCI registry: %w", err)
-		}
-		fmt.Print("OCI registry installation succeeded!\n\n")
-	}
-
-	fmt.Println("Installing Landscaper...")
-	err = o.installLandscaper(ctx)
-	if err != nil {
-		return fmt.Errorf("Cannot install landscaper: %w", err)
-	}
-	fmt.Printf("Landscaper installation succeeded!\n\n")
-
-	err = o.runPostInstallChecks(log)
-	if err != nil {
-		msg := fmt.Sprintf("Found problems during post-install checks: %s", err)
-		log.V(util.LogLevelWarning).Info(msg)
-	}
-
-	fmt.Println("Installation succeeded")
-
-	if o.instOCIRegistry {
-		if o.instRegistryIngress {
-			fmt.Println("You can access the OCI registry via the URL https://" + o.registryIngressHost)
-			fmt.Println("It might take some minutes until the TLS certificate is created")
-		} else {
-			fmt.Println("You can access the OCI registry via kubectl port-forward <oci-registry-pod> 5000:5000")
+			return fmt.Errorf("cannot create namespace: %w", err)
 		}
 	}
 
 	return nil
 }
 
-func (o *installOptions) readValues() error {
-	return nil
-}
-
-func (o *installOptions) runPostInstallChecks(log logr.Logger) error {
-	var allowPlainHttpRegistries, ok bool
-	if o.landscaperValuesPath != "" {
-		valuePath := "landscaper.registryConfig.allowPlainHttpRegistries"
-		val, err := util.GetValueFromNestedMap(o.landscaperValues, valuePath)
-		if err != nil {
-			return fmt.Errorf("Cannot access Helm values: %w", err)
-		}
-
-		allowPlainHttpRegistries, ok = val.(bool)
-		if !ok {
-			return fmt.Errorf("Value for path %s must be of type boolean", valuePath)
+func (o *installOptions) checkConfiguration() error {
+	if o.instOCIRegistry && o.instRegistryIngress {
+		registryAuths := o.landscaperValues.Landscaper.RegistryConfig.Secrets.Defaults.Auths
+		_, ok := registryAuths[o.registryIngressHost]
+		if ok {
+			// if the credentials for the ingress host we will create are already set in the values from the user, throw an error
+			return fmt.Errorf("registry credentials for %s are already set in the provided Landscaper values. please remove them from your configuration as they will get configured automatically.", o.registryIngressHost)
 		}
 	}
 
-	if o.instOCIRegistry && !allowPlainHttpRegistries {
-		log.V(util.LogLevelWarning).Info("You installed the cluster-internal OCI registry without enabling support for HTTP-only registries on the Landscaper.")
-		log.V(util.LogLevelWarning).Info("For using the landscaper with the cluster-internal OCI registry, please set landscaper.registryConfig.allowPlainHttpRegistries in the Landscaper Helm values to true.")
+	allowHttpRegistries := o.landscaperValues.Landscaper.RegistryConfig.AllowPlainHttpRegistries
+	allowHttpRegistriesPath := "landscaper.registryConfig.allowPlainHttpRegistries"
+
+	if o.instOCIRegistry && o.instRegistryIngress && allowHttpRegistries {
+		return fmt.Errorf("%s must be set to false when installing Landscaper together with the OCI registry with ingress access", allowHttpRegistriesPath)
+	}
+
+	if o.instOCIRegistry && !o.instRegistryIngress && !allowHttpRegistries {
+		return fmt.Errorf("%s must be set to true when installing Landscaper together with the OCI registry without ingress access", allowHttpRegistriesPath)
 	}
 
 	return nil
 }
 
 func (o *installOptions) Complete(args []string) error {
-	if o.instRegistryIngress == true {
-		if o.registryUsername == "" {
-			return fmt.Errorf("username must be provided if --install-ingress is set to true")
-		}
-		if o.registryPassword == "" {
-			return fmt.Errorf("password must be provided if --install-ingress is set to true")
+	if !o.instOCIRegistry && o.instRegistryIngress {
+		return fmt.Errorf("you can only set --install-registry-ingress to true together with --install-oci-registry")
+	}
+
+	if o.instOCIRegistry {
+		if o.instRegistryIngress {
+			if o.registryUsername == "" {
+				return fmt.Errorf("username must be provided if --install-registry-ingress is set to true")
+			}
+			if o.registryPassword == "" {
+				return fmt.Errorf("password must be provided if --install-registry-ingress is set to true")
+			}
 		}
 	}
 	return nil
 }
 
 func (o *installOptions) installLandscaper(ctx context.Context) error {
+	fmt.Println("Installing Landscaper...")
+
 	landscaperChartURI := fmt.Sprintf("eu.gcr.io/gardener-project/landscaper/charts/landscaper-controller:%s", o.landscaperChartVersion)
 	pullCmd := fmt.Sprintf("helm chart pull %s", landscaperChartURI)
 	err := util.ExecCommandBlocking(pullCmd)
@@ -242,26 +283,15 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 	installCommand := fmt.Sprintf("helm upgrade --install --namespace %s landscaper %s --kubeconfig %s -f %s", o.namespace, chartPath, o.kubeconfigPath, o.landscaperValuesPath)
 
 	if o.instRegistryIngress {
+		// when installing the ingress, we must add the registry credentials to the Landscaper values file
+		// also, we must keep any other set of credentials that might have been configured for another registry
+
 		credentials := fmt.Sprintf("%s:%s", o.registryUsername, o.registryPassword)
 		encodedCredentials := base64.StdEncoding.EncodeToString([]byte(credentials))
-
-		valuePath := "landscaper.registryConfig.secrets"
-		val, err := util.GetValueFromNestedMap(o.landscaperValues, valuePath)
-		fmt.Println(val)
-
-		landscaperValuesOverride := fmt.Sprintf(`
-landscaper:
-  registryConfig:
-    allowPlainHttpRegistries: false
-    secrets: 
-      default: {
-        "auths": {
-          "%s":  {
-            "auth": "%s"
-          }
-        }
-      }
-`, o.registryIngressHost, encodedCredentials)
+		registryAuths := o.landscaperValues.Landscaper.RegistryConfig.Secrets.Defaults.Auths
+		registryAuths[o.registryIngressHost] = map[string]interface{}{
+			"auth": encodedCredentials,
+		}
 
 		tmpFile, err := ioutil.TempFile(".", "landscaper-values-override-")
 		if err != nil {
@@ -270,13 +300,13 @@ landscaper:
 		defer func() {
 			err := os.Remove(tmpFile.Name())
 			if err != nil {
-				fmt.Printf("cannot remove temporary file %s: %s", tmpFile.Name(), err.Error())
+				fmt.Printf("cannot remove temporary file %s: %s\n", tmpFile.Name(), err.Error())
 			}
 		}()
 
-		err = ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValuesOverride), os.ModePerm)
+		err = util.WriteYaml(tmpFile.Name(), o.landscaperValues)
 		if err != nil {
-			return fmt.Errorf("cannot write to file: %w", err)
+			return fmt.Errorf("cannot write values override file: %w", err)
 		}
 
 		installCommand = fmt.Sprintf("%s -f %s", installCommand, tmpFile.Name())
@@ -287,10 +317,13 @@ landscaper:
 		return err
 	}
 
+	fmt.Printf("Landscaper installation succeeded!\n\n")
 	return nil
 }
 
 func (o *installOptions) installOCIRegistry(ctx context.Context, k8sClient client.Client) error {
+	fmt.Println("Installing OCI registry...")
+
 	ociRegistryOpts := &ociRegistryOpts{
 		namespace:      o.namespace,
 		installIngress: o.instRegistryIngress,
@@ -299,5 +332,12 @@ func (o *installOptions) installOCIRegistry(ctx context.Context, k8sClient clien
 		password:       o.registryPassword,
 	}
 	ociRegistry := NewOCIRegistry(ociRegistryOpts, k8sClient)
-	return ociRegistry.install(ctx)
+
+	err := ociRegistry.install(ctx)
+	if err != nil {
+		return err
+	}
+
+	fmt.Print("OCI registry installation succeeded!\n\n")
+	return nil
 }

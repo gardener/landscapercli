@@ -4,25 +4,25 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 
 	yamlv3 "gopkg.in/yaml.v3"
 	"sigs.k8s.io/yaml"
 )
 
-func ReadYamlFile(path string) (map[string]interface{}, error) {
-	content, err := ioutil.ReadFile(path)
+func WriteYaml(filename string, content interface{}) error {
+	marshaledContent, err := yaml.Marshal(content)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read file: %w", err)
+		return fmt.Errorf("cannot marshal file content: %w", err)
 	}
 
-	unmarshaledContent := map[string]interface{}{}
-	err = yaml.UnmarshalStrict(content, &unmarshaledContent)
+	err = ioutil.WriteFile(filename, marshaledContent, os.ModePerm)
 	if err != nil {
-		return nil, fmt.Errorf("cannot unmarshall file content: %w", err)
+		return fmt.Errorf("cannot write file: %w", err)
 	}
 
-	return unmarshaledContent, nil
+	return nil
 }
 
 func MarshalYaml(node *yamlv3.Node) ([]byte, error) {
