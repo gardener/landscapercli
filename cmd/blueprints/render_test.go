@@ -5,10 +5,11 @@
 package blueprints_test
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
-	testing2 "github.com/go-logr/logr/testing"
+	logrtesting "github.com/go-logr/logr/testing"
 	"github.com/mandelsoft/vfs/pkg/layerfs"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
 	"github.com/mandelsoft/vfs/pkg/osfs"
@@ -27,7 +28,7 @@ func TestRenderCommandWithComponentDescriptor(t *testing.T) {
 	assertNestedString := assertNestedStringFunc(a)
 
 	testdataFs, err := createTestdataFs("./testdata/00-render")
-	a.NoError(err)
+	fail(a.NoError(err))
 	renderOpts := &blueprints.RenderOptions{
 		ComponentDescriptorPath: "./component-descriptor.yaml",
 		ValueFiles:              []string{"./imports.yaml"},
@@ -35,16 +36,16 @@ func TestRenderCommandWithComponentDescriptor(t *testing.T) {
 		OutputFormat:            blueprints.YAMLOut,
 	}
 
-	a.NoError(renderOpts.Complete([]string{"./blueprint"}, testdataFs))
+	a.NoError(renderOpts.Complete(logrtesting.NullLogger{}, []string{"./blueprint"}, testdataFs))
 	fail(a.Equal("./blueprint", renderOpts.BlueprintPath))
-	a.NoError(renderOpts.Run(testing2.NullLogger{}, testdataFs))
+	fail(a.NoError(renderOpts.Run(logrtesting.NullLogger{}, testdataFs)))
 
 	renderedFiles, err := vfs.ReadDir(testdataFs, filepath.Join(renderOpts.OutDir, blueprints.DeployItemOutputDir))
 	fail(a.NoError(err))
 	a.Len(renderedFiles, 1)
 
 	data, err := vfs.ReadFile(testdataFs, filepath.Join(renderOpts.OutDir, blueprints.DeployItemOutputDir, renderedFiles[0].Name()))
-	a.NoError(err)
+	fail(a.NoError(err))
 	var actual unstructured.Unstructured
 	fail(a.NoError(yaml.Unmarshal(data, &actual)))
 	a.Equal(actual.GetKind(), "DeployItem")
@@ -64,23 +65,23 @@ func TestRenderCommandWithDefaults(t *testing.T) {
 	assertNestedString := assertNestedStringFunc(a)
 
 	testdataFs, err := createTestdataFs("./testdata/00-render")
-	a.NoError(err)
+	fail(a.NoError(err))
 	renderOpts := &blueprints.RenderOptions{
 		ValueFiles:   []string{"./imports.yaml"},
 		OutDir:       "./out",
 		OutputFormat: blueprints.YAMLOut,
 	}
 
-	a.NoError(renderOpts.Complete([]string{"./blueprint"}, testdataFs))
+	a.NoError(renderOpts.Complete(logrtesting.NullLogger{}, []string{"./blueprint"}, testdataFs))
 	fail(a.Equal("./blueprint", renderOpts.BlueprintPath))
-	a.NoError(renderOpts.Run(testing2.NullLogger{}, testdataFs))
+	fail(a.NoError(renderOpts.Run(logrtesting.NullLogger{}, testdataFs)))
 
 	renderedFiles, err := vfs.ReadDir(testdataFs, filepath.Join(renderOpts.OutDir, blueprints.DeployItemOutputDir))
 	fail(a.NoError(err))
 	a.Len(renderedFiles, 1)
 
 	data, err := vfs.ReadFile(testdataFs, filepath.Join(renderOpts.OutDir, blueprints.DeployItemOutputDir, renderedFiles[0].Name()))
-	a.NoError(err)
+	fail(a.NoError(err))
 	var actual unstructured.Unstructured
 	fail(a.NoError(yaml.Unmarshal(data, &actual)))
 	a.Equal(actual.GetKind(), "DeployItem")
@@ -92,6 +93,102 @@ func TestRenderCommandWithDefaults(t *testing.T) {
 	assertNestedString(actual, "example-blueprint", "spec", "config", "blueprint", "ref", "resourceName")
 	assertNestedString(actual, "my-example-component", "spec", "config", "componentDescriptorDef", "ref", "componentName")
 	assertNestedString(actual, "v0.0.0", "spec", "config", "componentDescriptorDef", "ref", "version")
+}
+
+func TestImportValidationOfRenderCommand(t *testing.T) {
+
+	t.Run("should validate a import of an invalid schema", func(t *testing.T) {
+		a := assert.New(t)
+		fail := failFunc(a)
+
+		testdataFs, err := createTestdataFs("./testdata/00-render")
+		fail(a.NoError(err))
+		renderOpts := &blueprints.RenderOptions{
+			ComponentDescriptorPath: "./component-descriptor.yaml",
+			ValueFiles:              []string{"./imports.yaml"},
+			OutDir:                  "./out",
+			OutputFormat:            blueprints.YAMLOut,
+		}
+		importData := `
+imports:
+  cluster:
+    apiVersion: landscaper.gardener.cloud/v1alpha1
+    kind: Target
+    metadata:
+      name: my-target
+      namespace: test
+    spec:
+      type: example.com/my-type
+  imp1: 10
+`
+		fail(a.NoError(vfs.WriteFile(testdataFs, renderOpts.ValueFiles[0], []byte(importData), os.ModePerm)))
+
+		a.NoError(renderOpts.Complete(logrtesting.NullLogger{}, []string{"./blueprint"}, testdataFs))
+		fail(a.Equal("./blueprint", renderOpts.BlueprintPath))
+		fail(a.Error(renderOpts.Run(logrtesting.NullLogger{}, testdataFs)))
+	})
+
+	t.Run("should validate a import of an invalid target type", func(t *testing.T) {
+		a := assert.New(t)
+		fail := failFunc(a)
+
+		testdataFs, err := createTestdataFs("./testdata/00-render")
+		fail(a.NoError(err))
+		renderOpts := &blueprints.RenderOptions{
+			ComponentDescriptorPath: "./component-descriptor.yaml",
+			ValueFiles:              []string{"./imports.yaml"},
+			OutDir:                  "./out",
+			OutputFormat:            blueprints.YAMLOut,
+		}
+		importData := `
+imports:
+  cluster:
+    apiVersion: landscaper.gardener.cloud/v1alpha1
+    kind: Target
+    metadata:
+      name: my-target
+      namespace: test
+    spec:
+      type: no-mock
+  imp1: abc
+`
+		fail(a.NoError(vfs.WriteFile(testdataFs, renderOpts.ValueFiles[0], []byte(importData), os.ModePerm)))
+
+		a.NoError(renderOpts.Complete(logrtesting.NullLogger{}, []string{"./blueprint"}, testdataFs))
+		fail(a.Equal("./blueprint", renderOpts.BlueprintPath))
+		fail(a.Error(renderOpts.Run(logrtesting.NullLogger{}, testdataFs)))
+	})
+
+	t.Run("should validate a required import", func(t *testing.T) {
+		a := assert.New(t)
+		fail := failFunc(a)
+
+		testdataFs, err := createTestdataFs("./testdata/00-render")
+		fail(a.NoError(err))
+		renderOpts := &blueprints.RenderOptions{
+			ComponentDescriptorPath: "./component-descriptor.yaml",
+			ValueFiles:              []string{"./imports.yaml"},
+			OutDir:                  "./out",
+			OutputFormat:            blueprints.YAMLOut,
+		}
+		importData := `
+imports:
+  cluster:
+    apiVersion: landscaper.gardener.cloud/v1alpha1
+    kind: Target
+    metadata:
+      name: my-target
+      namespace: test
+    spec:
+      type: example.com/my-type
+`
+		fail(a.NoError(vfs.WriteFile(testdataFs, renderOpts.ValueFiles[0], []byte(importData), os.ModePerm)))
+
+		a.NoError(renderOpts.Complete(logrtesting.NullLogger{}, []string{"./blueprint"}, testdataFs))
+		fail(a.Equal("./blueprint", renderOpts.BlueprintPath))
+		fail(a.Error(renderOpts.Run(logrtesting.NullLogger{}, testdataFs)))
+	})
+
 }
 
 func assertNestedStringFunc(a *assert.Assertions) func(obj unstructured.Unstructured, expected string, fields ...string) {

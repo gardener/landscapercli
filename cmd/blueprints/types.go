@@ -14,7 +14,7 @@ type Values struct {
 }
 
 // ValidateValues validates values file.
-func ValidateValues(values *Values) error {
+func ValidateValues(values Values) error {
 	allErrs := field.ErrorList{}
 
 	fldPath := field.NewPath("imports")
