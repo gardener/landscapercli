@@ -1,9 +1,9 @@
 ## landscaper-cli installations inspect
 
-displays status information for Installations and depending Executions and DeployItems
+Displays status information for all installations and depending executions and deployItems in cluster and namespace of the current kubectl cluster context. To display only one installation, specify the installation-name.
 
 ```
-landscaper-cli installations inspect [installationName] [--namespace namespace] [--kubeconfig kubeconfig.yaml] [flags]
+landscaper-cli installations inspect [installation-name] [--namespace namespace] [--kubeconfig kubeconfig.yaml] [flags]
 ```
 
 ### Examples
@@ -16,13 +16,13 @@ landscaper-cli installations inspect
 
 ```
   -h, --help                help for inspect
-      --kubeconfig string   path to the kubeconfig of the cluster
+      --kubeconfig string   path to the kubeconfig for the cluster. Required if the cluster is not the same as the current-context of kubectl.
   -n, --namespace string    namespace of the installation. Required if --kubeconfig is used.
-  -j, --ojson               output in json format
-  -y, --oyaml               output in yaml format
-  -d, --show-details        show detailed information about installations, executions and deployitems
-  -e, --show-executions     show the executions in the tree
-  -f, --show-failed         show only failed items
+  -j, --ojson               output in json format.
+  -y, --oyaml               output in yaml format.
+  -d, --show-details        show detailed information about installations, executions and deployitems. Similar to kubectl describe installation installation-name.
+  -e, --show-executions     show the executions in the tree. By default, the executions are not shown.
+  -f, --show-failed         show only items that are in phase 'Failed'. It also prints parent elements to the failed items.
 ```
 
 ### Options inherited from parent commands

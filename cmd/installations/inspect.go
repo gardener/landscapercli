@@ -48,11 +48,11 @@ func init() {
 func NewInspectCommand(ctx context.Context) *cobra.Command {
 	opts := &statusOptions{}
 	cmd := &cobra.Command{
-		Use:     "inspect [installationName] [--namespace namespace] [--kubeconfig kubeconfig.yaml]",
+		Use:     "inspect [installation-name] [--namespace namespace] [--kubeconfig kubeconfig.yaml]",
 		Aliases: []string{"i", "status"},
 		Args:    cobra.MaximumNArgs(1),
 		Example: "landscaper-cli installations inspect",
-		Short:   "displays status information for Installations and depending Executions and DeployItems",
+		Short:   "Displays status information for all installations and depending executions and deployItems in cluster and namespace of the current kubectl cluster context. To display only one installation, specify the installation-name.",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.validateArgs(args); err != nil {
 				cmd.PrintErr(err.Error())
@@ -163,11 +163,11 @@ func (o *statusOptions) validateArgs(args []string) error {
 }
 
 func (o *statusOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.kubeconfig, "kubeconfig", "", "path to the kubeconfig of the cluster")
+	fs.StringVar(&o.kubeconfig, "kubeconfig", "", "path to the kubeconfig for the cluster. Required if the cluster is not the same as the current-context of kubectl.")
 	fs.StringVarP(&o.namespace, "namespace", "n", "", "namespace of the installation. Required if --kubeconfig is used.")
-	fs.BoolVarP(&o.detailMode, "show-details", "d", false, "show detailed information about installations, executions and deployitems")
-	fs.BoolVarP(&o.showExecutions, "show-executions", "e", false, "show the executions in the tree")
-	fs.BoolVarP(&o.showOnlyFailed, "show-failed", "f", false, "show only failed items")
-	fs.BoolVarP(&o.oyaml, "oyaml", "y", false, "output in yaml format")
-	fs.BoolVarP(&o.ojson, "ojson", "j", false, "output in json format")
+	fs.BoolVarP(&o.detailMode, "show-details", "d", false, "show detailed information about installations, executions and deployitems. Similar to kubectl describe installation installation-name.")
+	fs.BoolVarP(&o.showExecutions, "show-executions", "e", false, "show the executions in the tree. By default, the executions are not shown.")
+	fs.BoolVarP(&o.showOnlyFailed, "show-failed", "f", false, "show only items that are in phase 'Failed'. It also prints parent elements to the failed items.")
+	fs.BoolVarP(&o.oyaml, "oyaml", "y", false, "output in yaml format.")
+	fs.BoolVarP(&o.ojson, "ojson", "j", false, "output in json format.")
 }
