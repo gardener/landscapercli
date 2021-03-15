@@ -1,0 +1,56 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Execution
+metadata:
+  creationTimestamp: "2021-03-11T14:09:45Z"
+  finalizers:
+  - finalizer.landscaper.gardener.cloud
+  generation: 1
+  name: ingress-hhsjf
+  namespace: inttest
+  ownerReferences:
+  - apiVersion: landscaper.gardener.cloud/v1alpha1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Installation
+    name: ingress-hhsjf
+    uid: c701444d-7cae-4531-84b7-697f6483c861
+  resourceVersion: "12748228"
+  selfLink: /apis/landscaper.gardener.cloud/v1alpha1/namespaces/inttest/executions/ingress-hhsjf
+  uid: 23ef8d8d-8db0-44ab-96a5-c92831b7837e
+spec:
+  deployItems:
+  - config:
+      apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
+      chart:
+        ref: eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0
+      exportsFromManifests:
+      - jsonPath: .Values.controller.ingressClass
+        key: ingressClass
+      kind: ProviderConfiguration
+      name: test
+      namespace: inttest2
+      updateStrategy: patch
+    name: deploy
+    target:
+      name: qw74tlwijt5otemoh5alx55e2hnvcglt
+      namespace: inttest
+    type: landscaper.gardener.cloud/helm
+status:
+  conditions:
+  - lastTransitionTime: "2021-03-11T14:09:46Z"
+    lastUpdateTime: "2021-03-11T14:09:46Z"
+    message: All DeployItems are successfully reconciled
+    reason: DeployItemsReconciled
+    status: "True"
+    type: ReconcileDeployItems
+  deployItemRefs:
+  - name: deploy
+    ref:
+      name: ingress-hhsjf-deploy-kptjl
+      namespace: inttest
+      observedGeneration: 1
+  exportRef:
+    name: 6mb7cdcxkbat6ldhufsxrkvk7uv5t5cz
+    namespace: inttest
+  observedGeneration: 1
+  phase: Succeeded

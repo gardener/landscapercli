@@ -1,0 +1,55 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: DeployItem
+metadata:
+  annotations:
+    execution.landscaper.gardener.cloud/dependsOn: ""
+  creationTimestamp: "2021-03-11T14:09:45Z"
+  finalizers:
+  - finalizer.landscaper.gardener.cloud
+  generateName: ingress-hhsjf-deploy-
+  generation: 1
+  labels:
+    execution.landscaper.gardener.cloud/managed-by: ingress-hhsjf
+    execution.landscaper.gardener.cloud/name: deploy
+  name: ingress-hhsjf-deploy-kptjl
+  namespace: inttest
+  ownerReferences:
+  - apiVersion: landscaper.gardener.cloud/v1alpha1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Execution
+    name: ingress-hhsjf
+    uid: 23ef8d8d-8db0-44ab-96a5-c92831b7837e
+  resourceVersion: "11711256"
+  selfLink: /apis/landscaper.gardener.cloud/v1alpha1/namespaces/inttest/deployitems/ingress-hhsjf-deploy-kptjl
+  uid: a704a012-38a2-4049-b9e0-3220495f83be
+spec:
+  config:
+    apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
+    chart:
+      ref: eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0
+    exportsFromManifests:
+    - jsonPath: .Values.controller.ingressClass
+      key: ingressClass
+    kind: ProviderConfiguration
+    name: test
+    namespace: inttest2
+    updateStrategy: patch
+  target:
+    name: qw74tlwijt5otemoh5alx55e2hnvcglt
+    namespace: inttest
+  type: landscaper.gardener.cloud/helm
+status:
+  exportRef:
+    name: ingress-hhsjf-deploy-kptjl-export
+    namespace: inttest
+  observedGeneration: 1
+  phase: Succeeded
+  providerStatus:
+    apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
+    kind: ProviderStatus
+    managedResources:
+    - apiVersion: v1
+      kind: Service
+      name: test-ingress-nginx-controller
+      namespace: inttest2

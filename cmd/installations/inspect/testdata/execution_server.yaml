@@ -1,0 +1,102 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Execution
+metadata:
+  creationTimestamp: "2021-03-11T14:09:51Z"
+  finalizers:
+  - finalizer.landscaper.gardener.cloud
+  generation: 1
+  name: server-gw64l
+  namespace: inttest
+  ownerReferences:
+  - apiVersion: landscaper.gardener.cloud/v1alpha1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Installation
+    name: server-gw64l
+    uid: 2c18cc26-67b6-4eeb-9479-14302c9edf75
+  resourceVersion: "12748282"
+  selfLink: /apis/landscaper.gardener.cloud/v1alpha1/namespaces/inttest/executions/server-gw64l
+  uid: 61313fa4-56e4-418e-a2a9-aacbb97abfdf
+spec:
+  deployItems:
+  - config:
+      apiVersion: manifest.deployer.landscaper.gardener.cloud/v1alpha1
+      kind: ProviderConfiguration
+      manifests:
+      - apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: echo-server
+          namespace: inttest2
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: echo-server
+          template:
+            metadata:
+              labels:
+                app: echo-server
+            spec:
+              containers:
+              - args:
+                - -text="hello world"
+                image: hashicorp/http-echo:0.2.3
+                imagePullPolicy: IfNotPresent
+                name: echo-server
+                ports:
+                - containerPort: 5678
+      - apiVersion: v1
+        kind: Service
+        metadata:
+          name: echo-server
+          namespace: inttest2
+        spec:
+          ports:
+          - port: 80
+            protocol: TCP
+            targetPort: 5678
+          selector:
+            app: echo-server
+      - apiVersion: networking.k8s.io/v1beta1
+        kind: Ingress
+        metadata:
+          annotations:
+            kubernetes.io/ingress.class: nginx
+            nginx.ingress.kubernetes.io/rewrite-target: /
+          name: echo-server
+          namespace: inttest2
+        spec:
+          rules:
+          - http:
+              paths:
+              - backend:
+                  serviceName: echo-server
+                  servicePort: 80
+                path: /
+                pathType: Prefix
+      updateStrategy: patch
+    name: deploy
+    target:
+      name: qw74tlwijt5otemoh5alx55e2hnvcglt
+      namespace: inttest
+    type: landscaper.gardener.cloud/kubernetes-manifest
+status:
+  conditions:
+  - lastTransitionTime: "2021-03-12T10:00:09Z"
+    lastUpdateTime: "2021-03-12T10:00:09Z"
+    message: All DeployItems are successfully reconciled
+    reason: DeployItemsReconciled
+    status: "True"
+    type: ReconcileDeployItems
+  deployItemRefs:
+  - name: deploy
+    ref:
+      name: server-gw64l-deploy-7mhc2
+      namespace: inttest
+      observedGeneration: 1
+  exportRef:
+    name: stu42hjaq54gixxmffnjfl5fbypphfxm
+    namespace: inttest
+  observedGeneration: 1
+  phase: Succeeded
