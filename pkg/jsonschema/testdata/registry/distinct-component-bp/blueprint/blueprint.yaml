@@ -1,0 +1,12 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Blueprint
+
+annotations:
+  local/name: distinct-component-bp
+  local/version: v0.1.0
+
+imports:
+- name: imp1
+  schema:
+    "$ref": "cd://componentReferences/schema-component/resources/my-type" # read file from resources of the referenced component
+

@@ -1,0 +1,21 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "definitions": {
+        "author": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "co-author": {
+                    "$ref": "#/definitions/author"
+                }
+            }
+        }
+    },
+    "type": "object",
+    "properties": {
+        "author": {
+            "$ref": "#/definitions/author"
+        }
+    }
+}

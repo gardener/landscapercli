@@ -3,18 +3,22 @@ package installations
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/gardener/component-cli/ociclient"
 	ociopts "github.com/gardener/component-cli/ociclient/options"
 	"github.com/gardener/component-cli/pkg/commands/constants"
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	"github.com/gardener/component-spec/bindings-go/ctf"
 	cdoci "github.com/gardener/component-spec/bindings-go/oci"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/pkg/kubernetes"
+	lsjsonschema "github.com/gardener/landscaper/pkg/landscaper/jsonschema"
+	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
+	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
 	"github.com/gardener/landscaper/pkg/utils"
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
@@ -27,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/yaml"
 
+	"github.com/gardener/landscapercli/pkg/jsonschema"
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
 )
@@ -99,58 +104,18 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		return fmt.Errorf("unable to to fetch component descriptor %s: %w", ociRef, err)
 	}
 
-	blueprintResources := map[string]cdv2.Resource{}
-	for _, resource := range cd.ComponentSpec.Resources {
-		if resource.IdentityObjectMeta.Type == lsv1alpha1.BlueprintResourceType || resource.IdentityObjectMeta.Type == lsv1alpha1.OldBlueprintType {
-			blueprintResources[resource.Name] = resource
-		}
+	blueprintRes, err := util.GetBlueprintResource(cd, o.blueprintResourceName)
+	if err != nil {
+		return err
 	}
 
-	var blueprintRes cdv2.Resource
-	numberOfBlueprints := len(blueprintResources)
-	if numberOfBlueprints == 0 {
-		return fmt.Errorf("no blueprint resources defined in the component descriptor")
-	} else if numberOfBlueprints == 1 && o.blueprintResourceName == "" {
-		// access the only blueprint in the map. the flag blueprint-resource-name is ignored in this case.
-		for _, entry := range blueprintResources {
-			blueprintRes = entry
-		}
-	} else {
-		if o.blueprintResourceName == "" {
-			return fmt.Errorf("the blueprint resource name must be defined since multiple blueprint resources exist in the component descriptor")
-		}
-		ok := false
-		blueprintRes, ok = blueprintResources[o.blueprintResourceName]
-		if !ok {
-			return fmt.Errorf("blueprint %s is not defined as a resource in the component descriptor", o.blueprintResourceName)
-		}
-	}
-
-	var data bytes.Buffer
-	if blueprintRes.Access.GetType() == cdv2.OCIRegistryType {
-		ref, ok := blueprintRes.Access.Object["imageReference"].(string)
-		if !ok {
-			return fmt.Errorf("cannot parse imageReference to string")
-		}
-
-		manifest, err := ociClient.GetManifest(ctx, ref)
-		if err != nil {
-			return fmt.Errorf("cannot get manifest: %w", err)
-		}
-
-		err = ociClient.Fetch(ctx, ref, manifest.Layers[0], &data)
-		if err != nil {
-			return fmt.Errorf("cannot get manifest layer: %w", err)
-		}
-	} else {
-		_, err = blobResolver.Resolve(ctx, blueprintRes, &data)
-		if err != nil {
-			return fmt.Errorf("unable to to resolve blob of blueprint resource: %w", err)
-		}
+	data, err := resolveBlueprint(ctx, *blueprintRes, ociClient, blobResolver)
+	if err != nil {
+		return fmt.Errorf("cannot resolve blueprint: %w", err)
 	}
 
 	memFS := memoryfs.New()
-	if err := utils.ExtractTarGzip(&data, memFS, "/"); err != nil {
+	if err := utils.ExtractTarGzip(data, memFS, "/"); err != nil {
 		return fmt.Errorf("cannot extract blueprint blob: %w", err)
 	}
 
@@ -164,11 +129,25 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		return fmt.Errorf("cannot decode blueprint: %w", err)
 	}
 
-	installation := buildInstallation(o.name, cd, blueprintRes, blueprint)
+	installation := buildInstallation(o.name, cd, *blueprintRes, blueprint)
 
 	var marshaledYaml []byte
 	if o.renderSchemaInfo {
-		commentedYaml, err := annotateInstallationWithSchemaComments(installation, blueprint)
+		ociRegistry, err := componentsregistry.NewOCIRegistryWithOCIClient(ociClient)
+		if err != nil {
+			return fmt.Errorf("cannot build oci registry: %w", err)
+		}
+
+		loaderConfig := lsjsonschema.LoaderConfig{
+			LocalTypes:                 blueprint.LocalTypes,
+			BlueprintFs:                memFS,
+			ComponentDescriptor:        cd,
+			ComponentResolver:          ociRegistry,
+			ComponentReferenceResolver: cdutils.ComponentReferenceResolverFromResolver(ociRegistry, repoCtx),
+		}
+		jsonschemaResolver := jsonschema.NewJSONSchemaResolver(&loaderConfig, 10)
+
+		commentedYaml, err := annotateInstallationWithSchemaComments(installation, blueprint, jsonschemaResolver)
 		if err != nil {
 			return fmt.Errorf("cannot add JSON schema comment: %w", err)
 		}
@@ -227,7 +206,7 @@ func (o *createOpts) Complete(args []string) error {
 	return nil
 }
 
-func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installation, blueprint *lsv1alpha1.Blueprint) (*yamlv3.Node, error) {
+func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installation, blueprint *lsv1alpha1.Blueprint, schemaResolver *jsonschema.JSONSchemaResolver) (*yamlv3.Node, error) {
 	out, err := yaml.Marshal(installation)
 	if err != nil {
 		return nil, fmt.Errorf("cannot marshal installation yaml: %w", err)
@@ -239,12 +218,12 @@ func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installatio
 		return nil, fmt.Errorf("cannot unmarshal installation yaml: %w", err)
 	}
 
-	err = addImportSchemaComments(commentedInstallationYaml, blueprint)
+	err = addImportSchemaComments(commentedInstallationYaml, blueprint, schemaResolver)
 	if err != nil {
 		return nil, fmt.Errorf("cannot add schema comments for imports: %w", err)
 	}
 
-	err = addExportSchemaComments(commentedInstallationYaml, blueprint)
+	err = addExportSchemaComments(commentedInstallationYaml, blueprint, schemaResolver)
 	if err != nil {
 		return nil, fmt.Errorf("cannot add schema comments for exports: %w", err)
 	}
@@ -252,7 +231,34 @@ func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installatio
 	return commentedInstallationYaml, nil
 }
 
-func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint) error {
+func resolveBlueprint(ctx context.Context, blueprintRes cdv2.Resource, ociClient ociclient.Client, blobResolver ctf.BlobResolver) (*bytes.Buffer, error) {
+	var data bytes.Buffer
+	if blueprintRes.Access.GetType() == cdv2.OCIRegistryType {
+		ref, ok := blueprintRes.Access.Object["imageReference"].(string)
+		if !ok {
+			return nil, fmt.Errorf("cannot parse imageReference to string")
+		}
+
+		manifest, err := ociClient.GetManifest(ctx, ref)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get manifest: %w", err)
+		}
+
+		err = ociClient.Fetch(ctx, ref, manifest.Layers[0], &data)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get manifest layer: %w", err)
+		}
+	} else {
+		_, err := blobResolver.Resolve(ctx, blueprintRes, &data)
+		if err != nil {
+			return nil, fmt.Errorf("unable to to resolve blob of blueprint resource: %w", err)
+		}
+	}
+
+	return &data, nil
+}
+
+func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaResolver *jsonschema.JSONSchemaResolver) error {
 	_, exportsDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.exports.data")
 	if exportsDataValueNode != nil {
 
@@ -267,11 +273,17 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 					break
 				}
 			}
-			prettySchema, err := json.MarshalIndent(expdef.Schema, "", "  ")
+
+			schemas, err := schemaResolver.Resolve(expdef.Schema)
 			if err != nil {
-				return fmt.Errorf("cannot marshal JSON schema: %w", err)
+				return fmt.Errorf("cannot resolve jsonschema for export definition %s: %w", expdef.Name, err)
 			}
-			n1.HeadComment = "JSON schema\n" + string(prettySchema)
+
+			schemasStr, err := schemas.ToString()
+			if err != nil {
+				return err
+			}
+			n1.HeadComment = schemasStr
 		}
 	}
 
@@ -295,7 +307,7 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 	return nil
 }
 
-func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint) error {
+func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaResolver *jsonschema.JSONSchemaResolver) error {
 	_, importDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.imports.data")
 	if importDataValueNode != nil {
 		for _, dataImportNode := range importDataValueNode.Content {
@@ -309,11 +321,17 @@ func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 					break
 				}
 			}
-			prettySchema, err := json.MarshalIndent(impdef.Schema, "", "  ")
+
+			schemas, err := schemaResolver.Resolve(impdef.Schema)
 			if err != nil {
-				return fmt.Errorf("cannot marshal JSON schema: %w", err)
+				return fmt.Errorf("cannot resolve jsonschema for import definition %s: %w", impdef.Name, err)
 			}
-			n1.HeadComment = "JSON schema\n" + string(prettySchema)
+
+			schemasStr, err := schemas.ToString()
+			if err != nil {
+				return err
+			}
+			n1.HeadComment = schemasStr
 		}
 	}
 

@@ -19,13 +19,27 @@ type ParseImageOptions struct {
 	// ComponentReferencePrefixes are prefixes that are used to identify images from other components.
 	// These images are then not added as direct resources but the source repository is used as the component reference.
 	ComponentReferencePrefixes []string
-
 	// ExcludeComponentReference defines a list of image names that should be added as component reference
 	ExcludeComponentReference []string
-
 	// GenericDependencies define images that should be untouched and not added as real dependency to the component descriptors.
 	// These dependencies are added a specific label to the component descriptor.
 	GenericDependencies []string
+	// IgnoreDeprecatedFlags ignores the deprecated parse options.
+	IgnoreDeprecatedFlags bool
+}
+
+// describes all available actions expressed through labels
+var (
+	ComponentReferenceAction = Label("component-reference")
+	GenericDependencyAction  = Label("generic")
+	IgnoreFlagsAction        = Label("ignore-flags")
+)
+
+// ComponentReferenceLabelValue is the value configuration for the component reference
+type ComponentReferenceLabelValue struct {
+	Name          string `json:"name,omitempty"`
+	ComponentName string `json:"componentName,omitempty"`
+	Version       string `json:"version,omitempty"`
 }
 
 // ParseImageVector parses a image vector and generates the corresponding component descriptor resources.
@@ -37,80 +51,25 @@ func ParseImageVector(cd *cdv2.ComponentDescriptor, reader io.Reader, opts *Pars
 		return fmt.Errorf("unable to decode image vector: %w", err)
 	}
 
-	genericImageVector := &ImageVector{}
+	if _, ok := cdutils.GetLabel(imageVector.Labels, IgnoreFlagsAction); ok {
+		opts.IgnoreDeprecatedFlags = true
+	}
+
+	ip := imageParser{
+		opts:               opts,
+		genericImageVector: &ImageVector{},
+		cd:                 cd,
+	}
+
 	for _, image := range imageVector.Images {
-		if entryMatchesPrefix(opts.GenericDependencies, image.Name) {
-			genericImageVector.Images = append(genericImageVector.Images, image)
-			continue
-		}
-		if image.Tag == nil {
-			// check if the image does already exist in the component descriptor
-			if err := addLabelsToInlineResource(cd.Resources, image); err != nil {
-				return err
-			}
-			continue
-		}
-
-		if entryMatchesPrefix(opts.ComponentReferencePrefixes, image.Repository) && !isOneOf(opts.ExcludeComponentReference, image.Name) {
-			// add image as component reference
-			ref := cdv2.ComponentReference{
-				Name:          image.Name,
-				ComponentName: image.SourceRepository,
-				Version:       *image.Tag,
-				ExtraIdentity: map[string]string{
-					TagExtraIdentity: *image.Tag,
-				},
-				Labels: make([]cdv2.Label, 0),
-			}
-			// add complete image as label
-			var err error
-			cd.ComponentReferences, err = addComponentReference(cd.ComponentReferences, ref, image)
-			if err != nil {
-				return fmt.Errorf("unable to add component reference for %q: %w", image.Name, err)
-			}
-			continue
-		}
-
-		res := cdv2.Resource{
-			IdentityObjectMeta: cdv2.IdentityObjectMeta{
-				Labels: make([]cdv2.Label, 0),
-			},
-		}
-		res.Name = image.Name
-		res.Type = cdv2.OCIImageType
-		res.Relation = cdv2.ExternalRelation
-
-		if err := addLabelsToResource(&res, image); err != nil {
+		if err := ip.Parse(image); err != nil {
 			return err
-		}
-
-		var ociImageAccess cdv2.TypedObjectAccessor
-		if ociclient.TagIsDigest(*image.Tag) {
-			res.Version = cd.GetVersion() // default to component descriptor version
-			ociImageAccess = cdv2.NewOCIRegistryAccess(image.Repository + "@" + *image.Tag)
-		} else {
-			res.Version = *image.Tag
-			ociImageAccess = cdv2.NewOCIRegistryAccess(image.Repository + ":" + *image.Tag)
-		}
-
-		uObj, err := cdutils.ToUnstructuredTypedObject(cdv2.DefaultJSONTypedObjectCodec, ociImageAccess)
-		if err != nil {
-			return fmt.Errorf("unable to create oci registry access for %q: %w", image.Name, err)
-		}
-		res.Access = uObj
-
-		// add resource
-		id := cd.GetResourceIndex(res)
-		if id != -1 {
-			cd.Resources[id] = cdutils.MergeResources(cd.Resources[id], res)
-		} else {
-			cd.Resources = append(cd.Resources, res)
 		}
 	}
 
 	// parse label
-	if len(genericImageVector.Images) != 0 {
-		genericImageVectorBytes, err := json.Marshal(genericImageVector)
+	if len(ip.genericImageVector.Images) != 0 {
+		genericImageVectorBytes, err := json.Marshal(ip.genericImageVector)
 		if err != nil {
 			return fmt.Errorf("unable to parse generic image vector: %w", err)
 		}
@@ -118,6 +77,135 @@ func ParseImageVector(cd *cdv2.ComponentDescriptor, reader io.Reader, opts *Pars
 			ImagesLabel, genericImageVectorBytes)
 	}
 
+	return nil
+}
+
+type imageParser struct {
+	opts               *ParseImageOptions
+	genericImageVector *ImageVector
+	cd                 *cdv2.ComponentDescriptor
+}
+
+func (ip *imageParser) Parse(image ImageEntry) error {
+	if ImageEntryIsGenericDependency(image, ip.opts) {
+		ip.genericImageVector.Images = append(ip.genericImageVector.Images, image)
+		return nil
+	}
+	if image.Tag == nil {
+		// check if the image does already exist in the component descriptor
+		if err := addLabelsToInlineResource(ip.cd.Resources, image); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ImageEntryIsComponentReference(image, ip.opts) {
+		return ip.AddAsComponentReference(image)
+	}
+
+	res := cdv2.Resource{
+		IdentityObjectMeta: cdv2.IdentityObjectMeta{
+			Labels: make([]cdv2.Label, 0),
+		},
+	}
+	res.Name = image.Name
+	res.Type = cdv2.OCIImageType
+	res.Relation = cdv2.ExternalRelation
+
+	if err := addLabelsToResource(&res, image); err != nil {
+		return err
+	}
+
+	var ociImageAccess cdv2.TypedObjectAccessor
+	if ociclient.TagIsDigest(*image.Tag) {
+		res.Version = ip.cd.GetVersion() // default to component descriptor version
+		ociImageAccess = cdv2.NewOCIRegistryAccess(image.Repository + "@" + *image.Tag)
+	} else {
+		res.Version = *image.Tag
+		ociImageAccess = cdv2.NewOCIRegistryAccess(image.Repository + ":" + *image.Tag)
+	}
+
+	uObj, err := cdutils.ToUnstructuredTypedObject(cdv2.DefaultJSONTypedObjectCodec, ociImageAccess)
+	if err != nil {
+		return fmt.Errorf("unable to create oci registry access for %q: %w", image.Name, err)
+	}
+	res.Access = uObj
+
+	// add resource
+	id := ip.cd.GetResourceIndex(res)
+	if id != -1 {
+		ip.cd.Resources[id] = cdutils.MergeResources(ip.cd.Resources[id], res)
+	} else {
+		ip.cd.Resources = append(ip.cd.Resources, res)
+	}
+	return nil
+}
+
+// ImageEntryIsGenericDependency checks if the image entry should be parsed as generic dependency
+func ImageEntryIsGenericDependency(image ImageEntry, opts *ParseImageOptions) bool {
+	// favor labels over deprecated cli flags
+	if entryHasAction(image, GenericDependencyAction) {
+		return true
+	}
+	if opts.IgnoreDeprecatedFlags || entryHasAction(image, IgnoreFlagsAction) {
+		return false
+	}
+	return entryMatchesPrefix(opts.GenericDependencies, image.Name)
+}
+
+// ImageEntryIsComponentReference checks if the image entry should be parsed as component reference
+func ImageEntryIsComponentReference(image ImageEntry, opts *ParseImageOptions) bool {
+	// favor labels over deprecated cli flags
+	if entryHasAction(image, ComponentReferenceAction) {
+		return true
+	}
+	if opts.IgnoreDeprecatedFlags || entryHasAction(image, IgnoreFlagsAction) {
+		return false
+	}
+	if isOneOf(opts.ExcludeComponentReference, image.Name) {
+		return false
+	}
+	return entryMatchesPrefix(opts.ComponentReferencePrefixes, image.Repository)
+}
+
+func (ip *imageParser) AddAsComponentReference(image ImageEntry) error {
+	// add image as component reference
+	ref := cdv2.ComponentReference{
+		Name:          image.Name,
+		ComponentName: image.SourceRepository,
+		Version:       *image.Tag,
+		ExtraIdentity: map[string]string{
+			TagExtraIdentity: *image.Tag,
+		},
+		Labels: make([]cdv2.Label, 0),
+	}
+
+	if label, ok := cdutils.GetLabel(image.Labels, ComponentReferenceAction); ok {
+		// overwrite default values from the image that are given by the labels
+		values := ComponentReferenceLabelValue{}
+		if err := json.Unmarshal(label.Value, &values); err != nil {
+			return fmt.Errorf("unable to parse component reference value: %w", err)
+		}
+		if len(values.Name) != 0 {
+			ref.Name = values.Name
+		}
+		if len(values.ComponentName) != 0 {
+			ref.ComponentName = values.ComponentName
+		}
+		if len(values.Version) != 0 {
+			ref.Version = values.Version
+			ref.ExtraIdentity = map[string]string{
+				TagExtraIdentity: values.Version,
+			}
+		}
+	}
+
+	// add complete image as label
+	var err error
+	ip.cd.ComponentReferences, err = addComponentReference(ip.cd.ComponentReferences, ref, image)
+	if err != nil {
+		return fmt.Errorf("unable to add component reference for %q: %w", image.Name, err)
+	}
 	return nil
 }
 
@@ -276,6 +364,11 @@ func getLabel(labels cdv2.Labels, name string, into interface{}) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func entryHasAction(entry ImageEntry, action string) bool {
+	_, ok := cdutils.GetLabel(entry.Labels, action)
+	return ok
 }
 
 func entryMatchesPrefix(prefixes []string, val string) bool {

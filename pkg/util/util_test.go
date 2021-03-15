@@ -1,152 +1,145 @@
 package util
 
 import (
+	"errors"
 	"testing"
 
+	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/stretchr/testify/assert"
-	yamlv3 "gopkg.in/yaml.v3"
 )
 
-func TestFindNodeByPath(t *testing.T) {
+func TestGetBlueprintResource(t *testing.T) {
 	tests := []struct {
-		name              string
-		yaml              string
-		keyPath           string
-		expectedKeyNode   *yamlv3.Node
-		expectedValueNode *yamlv3.Node
+		name             string
+		cd               *cdv2.ComponentDescriptor
+		resourceName     string
+		expectedResource *cdv2.Resource
+		expectedErr      error
 	}{
 		{
-			name: "positive test 1",
-			yaml: `
-            key1: val1
-            key2:
-              key3: val3
-            `,
-			keyPath: "key2.key3",
-			expectedKeyNode: &yamlv3.Node{
-				Kind:  yamlv3.ScalarNode,
-				Tag:   "!!str",
-				Value: "key3",
+			name: "resource name not specified with only one blueprint in the cd",
+			cd: &cdv2.ComponentDescriptor{
+				ComponentSpec: cdv2.ComponentSpec{
+					Resources: []cdv2.Resource{
+						{
+							IdentityObjectMeta: cdv2.IdentityObjectMeta{
+								Name:    "my-blueprint",
+								Version: "v0.1.0",
+								Type:    lsv1alpha1.BlueprintResourceType,
+							},
+						},
+					},
+				},
 			},
-			expectedValueNode: &yamlv3.Node{
-				Kind:  yamlv3.ScalarNode,
-				Tag:   "!!str",
-				Value: "val3",
-			},
-		},
-		{
-			name: "positive test 2",
-			yaml: `
-            key1: val1
-            key2:
-            - key4: val4
-            - key3: val3
-            `,
-			keyPath: "key2.key3",
-			expectedKeyNode: &yamlv3.Node{
-				Kind:  yamlv3.ScalarNode,
-				Tag:   "!!str",
-				Value: "key3",
-			},
-			expectedValueNode: &yamlv3.Node{
-				Kind:  yamlv3.ScalarNode,
-				Tag:   "!!str",
-				Value: "val3",
+			resourceName: "",
+			expectedResource: &cdv2.Resource{
+				IdentityObjectMeta: cdv2.IdentityObjectMeta{
+					Name:    "my-blueprint",
+					Version: "v0.1.0",
+					Type:    lsv1alpha1.BlueprintResourceType,
+				},
 			},
 		},
 		{
-			name: "positive test 3",
-			yaml: `
-            key1: val1
-            key2:
-            - key3:
-                key4: val4
-            `,
-			keyPath: "key2.key3.key4",
-			expectedKeyNode: &yamlv3.Node{
-				Kind:  yamlv3.ScalarNode,
-				Tag:   "!!str",
-				Value: "key4",
+			name: "resource name explicitly specified",
+			cd: &cdv2.ComponentDescriptor{
+				ComponentSpec: cdv2.ComponentSpec{
+					Resources: []cdv2.Resource{
+						{
+							IdentityObjectMeta: cdv2.IdentityObjectMeta{
+								Name:    "my-blueprint",
+								Version: "v0.1.0",
+								Type:    lsv1alpha1.BlueprintResourceType,
+							},
+						},
+						{
+							IdentityObjectMeta: cdv2.IdentityObjectMeta{
+								Name:    "my-blueprint-2",
+								Version: "v0.1.0",
+								Type:    lsv1alpha1.BlueprintResourceType,
+							},
+						},
+					},
+				},
 			},
-			expectedValueNode: &yamlv3.Node{
-				Kind:  yamlv3.ScalarNode,
-				Tag:   "!!str",
-				Value: "val4",
+			resourceName: "my-blueprint",
+			expectedResource: &cdv2.Resource{
+				IdentityObjectMeta: cdv2.IdentityObjectMeta{
+					Name:    "my-blueprint",
+					Version: "v0.1.0",
+					Type:    lsv1alpha1.BlueprintResourceType,
+				},
 			},
 		},
 		{
-			name: "invalid path 1",
-			yaml: `
-            key1: val1
-            key2:
-              key3: val3
-            `,
-			keyPath: "key2.key4",
-		},
-		{
-			name: "invalid path 2",
-			yaml: `
-            key1: val1
-            key2:
-              key3: val3
-            `,
-			keyPath: "key4",
-		},
-		{
-			name: "empty path",
-			yaml: `
-            key1: val1
-            key2:
-              key3: val3
-            `,
-		},
-		{
-			name:    "empty node",
-			keyPath: "key1",
-		},
-		{
-			name: "key defined, but value not",
-			yaml: `
-            key1: val1
-            key2:
-              key3:
-            `,
-			keyPath: "key2.key3",
-			expectedKeyNode: &yamlv3.Node{
-				Kind:  yamlv3.ScalarNode,
-				Tag:   "!!str",
-				Value: "key3",
+			name: "invalid resource name",
+			cd: &cdv2.ComponentDescriptor{
+				ComponentSpec: cdv2.ComponentSpec{
+					Resources: []cdv2.Resource{
+						{
+							IdentityObjectMeta: cdv2.IdentityObjectMeta{
+								Name:    "my-blueprint",
+								Version: "v0.1.0",
+								Type:    lsv1alpha1.BlueprintResourceType,
+							},
+						},
+						{
+							IdentityObjectMeta: cdv2.IdentityObjectMeta{
+								Name:    "my-blueprint-2",
+								Version: "v0.1.0",
+								Type:    lsv1alpha1.BlueprintResourceType,
+							},
+						},
+					},
+				},
 			},
-			expectedValueNode: &yamlv3.Node{
-				Kind: yamlv3.ScalarNode,
-				Tag:  "!!null",
+			resourceName: "my-blueprint-3",
+			expectedErr:  errors.New("blueprint my-blueprint-3 is not defined as a resource in the component descriptor"),
+		},
+		{
+			name: "resource name not specified with multiple blueprints in the cd",
+			cd: &cdv2.ComponentDescriptor{
+				ComponentSpec: cdv2.ComponentSpec{
+					Resources: []cdv2.Resource{
+						{
+							IdentityObjectMeta: cdv2.IdentityObjectMeta{
+								Name:    "my-blueprint",
+								Version: "v0.1.0",
+								Type:    lsv1alpha1.BlueprintResourceType,
+							},
+						},
+						{
+							IdentityObjectMeta: cdv2.IdentityObjectMeta{
+								Name:    "my-blueprint-2",
+								Version: "v0.1.0",
+								Type:    lsv1alpha1.BlueprintResourceType,
+							},
+						},
+					},
+				},
 			},
+			resourceName: "",
+			expectedErr:  errors.New("the blueprint resource name must be defined since multiple blueprint resources exist in the component descriptor"),
+		},
+		{
+			name: "no blueprint resources defined in the cd",
+			cd: &cdv2.ComponentDescriptor{
+				ComponentSpec: cdv2.ComponentSpec{
+					Resources: []cdv2.Resource{},
+				},
+			},
+			resourceName: "",
+			expectedErr:  errors.New("no blueprint resources defined in the component descriptor"),
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			rootNode := &yamlv3.Node{}
-			err := yamlv3.Unmarshal([]byte(tt.yaml), rootNode)
-			assert.NoError(t, err)
-
-			keyNode, valueNode := FindNodeByPath(rootNode, tt.keyPath)
-
-			assertNodeEquality(t, tt.expectedKeyNode, keyNode)
-			assertNodeEquality(t, tt.expectedValueNode, valueNode)
+			res, err := GetBlueprintResource(tt.cd, tt.resourceName)
+			assert.Equal(t, tt.expectedErr, err)
+			assert.Equal(t, tt.expectedResource, res)
 		})
-	}
-}
-
-func assertNodeEquality(t *testing.T, expectedNode, actualNode *yamlv3.Node) {
-	if expectedNode != nil {
-		assert.NotNil(t, actualNode)
-		assert.Equal(t, expectedNode.Kind, actualNode.Kind)
-		assert.Equal(t, expectedNode.Tag, actualNode.Tag)
-		assert.Equal(t, expectedNode.Value, actualNode.Value)
-		assert.Equal(t, expectedNode.Content, actualNode.Content)
-	} else {
-		assert.Nil(t, actualNode)
 	}
 }

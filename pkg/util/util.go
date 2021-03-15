@@ -1,18 +1,15 @@
 package util
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"os/exec"
 	"strings"
 	"time"
 
+	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
-	yamlv3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,83 +40,6 @@ func GetValueFromNestedMap(data map[string]interface{}, valuePath string) (inter
 	}
 
 	return val, nil
-}
-
-// ExecCommandBlocking executes a command and wait for its completion.  Returns a Cmd that can be used to stop the command
-func ExecCommandBlocking(command string) error {
-	fmt.Printf("Executing: %s\n", command)
-
-	arr := strings.Split(command, " ")
-
-	if arr[0] == "helm" {
-		helmPath := os.Getenv("HELM_EXECUTABLE")
-		if helmPath != "" {
-			arr[0] = helmPath
-			fmt.Printf("Using helm binary: %s\n", arr[0])
-		}
-	}
-
-	cmd := exec.Command(arr[0], arr[1:]...)
-	cmd.Env = []string{"HELM_EXPERIMENTAL_OCI=1", "HOME=" + os.Getenv("HOME"), "PATH=" + os.Getenv("PATH")}
-	out, err := cmd.CombinedOutput()
-	outStr := string(out)
-
-	if err != nil {
-		return fmt.Errorf("failed with error: %s:\n%s\n", err, outStr)
-	}
-	fmt.Println("Executed sucessfully!")
-
-	return nil
-}
-
-type CmdResult struct {
-	Error  error
-	Stdout string
-	StdErr string
-}
-
-// ExecCommandNonBlocking executes a command without without blocking. Returns a Cmd that can be used to stop the command.
-// When the command has stopped or failed, the result is written into the channel resultCh.
-func ExecCommandNonBlocking(command string, resultCh chan<- CmdResult) (*exec.Cmd, error) {
-	fmt.Printf("Executing: %s\n", command)
-
-	arr := strings.Split(command, " ")
-
-	if arr[0] == "helm" {
-		helmPath := os.Getenv("HELM_EXECUTABLE")
-		if helmPath != "" {
-			arr[0] = helmPath
-			fmt.Printf("Using helm binary: %s\n", arr[0])
-		}
-	}
-
-	outbuf := bytes.Buffer{}
-	errbuf := bytes.Buffer{}
-
-	cmd := exec.Command(arr[0], arr[1:]...)
-	cmd.Env = []string{"HELM_EXPERIMENTAL_OCI=1", "HOME=" + os.Getenv("HOME"), "PATH=" + os.Getenv("PATH")}
-	cmd.Stderr = &outbuf
-	cmd.Stdout = &errbuf
-
-	err := cmd.Start()
-	if err != nil {
-		fmt.Printf("Failed with error: %s:\n", err)
-		return nil, err
-	}
-	fmt.Println("Started sucessfully!")
-
-	go func() {
-		exitErr := cmd.Wait()
-		res := CmdResult{
-			Error:  exitErr,
-			Stdout: outbuf.String(),
-			StdErr: outbuf.String(),
-		}
-		resultCh <- res
-		close(resultCh)
-	}()
-
-	return cmd, nil
 }
 
 // CheckConditionPeriodically checks the success of a function peridically. Returns timeout(bool) to indicate the success of the function
@@ -386,66 +306,8 @@ func removeFinalizers(ctx context.Context, k8sClient client.Client, object metav
 	return k8sClient.Update(ctx, object.(client.Object))
 }
 
-func MarshalYaml(node *yamlv3.Node) ([]byte, error) {
-	buf := bytes.Buffer{}
-	enc := yamlv3.NewEncoder(&buf)
-	enc.SetIndent(2)
-	err := enc.Encode(node)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func FindNodeByPath(node *yamlv3.Node, path string) (*yamlv3.Node, *yamlv3.Node) {
-	if node == nil || path == "" {
-		return nil, nil
-	}
-
-	var keyNode, valueNode *yamlv3.Node
-	if node.Kind == yamlv3.DocumentNode {
-		valueNode = node.Content[0]
-	} else {
-		valueNode = node
-	}
-	splittedPath := strings.Split(path, ".")
-
-	for _, p := range splittedPath {
-		keyNode, valueNode = findNode(valueNode.Content, p)
-		if keyNode == nil && valueNode == nil {
-			break
-		}
-	}
-
-	return keyNode, valueNode
-}
-
-func findNode(nodes []*yamlv3.Node, name string) (*yamlv3.Node, *yamlv3.Node) {
-	if nodes == nil {
-		return nil, nil
-	}
-
-	var keyNode, valueNode *yamlv3.Node
-	for i, node := range nodes {
-		if node.Value == name {
-			keyNode = node
-			if i < len(nodes)-1 {
-				valueNode = nodes[i+1]
-			}
-		} else if node.Kind == yamlv3.SequenceNode || node.Kind == yamlv3.MappingNode {
-			keyNode, valueNode = findNode(node.Content, name)
-		}
-
-		if keyNode != nil && valueNode != nil {
-			break
-		}
-	}
-
-	return keyNode, valueNode
-}
-
-func BuildKubernetesClusterTarget(name, namespace, kubeconfig string) (*lsv1alpha1.Target, error) {
-	kubeconfigContent, err := ioutil.ReadFile(kubeconfig)
+func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath string) (*lsv1alpha1.Target, error) {
+	kubeconfigContent, err := ioutil.ReadFile(kubeconfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read kubeconfig: %w", err)
 	}
@@ -477,4 +339,35 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfig string) (*lsv1alph
 	}
 
 	return target, nil
+}
+
+func GetBlueprintResource(cd *cdv2.ComponentDescriptor, blueprintResourceName string) (*cdv2.Resource, error) {
+	blueprintResources := map[string]cdv2.Resource{}
+	for _, resource := range cd.ComponentSpec.Resources {
+		if resource.IdentityObjectMeta.Type == lsv1alpha1.BlueprintResourceType || resource.IdentityObjectMeta.Type == lsv1alpha1.OldBlueprintType {
+			blueprintResources[resource.Name] = resource
+		}
+	}
+
+	var blueprintRes cdv2.Resource
+	numberOfBlueprints := len(blueprintResources)
+	if numberOfBlueprints == 0 {
+		return nil, fmt.Errorf("no blueprint resources defined in the component descriptor")
+	} else if numberOfBlueprints == 1 && blueprintResourceName == "" {
+		// access the only blueprint in the map. the flag blueprint-resource-name is ignored in this case.
+		for _, entry := range blueprintResources {
+			blueprintRes = entry
+		}
+	} else {
+		if blueprintResourceName == "" {
+			return nil, fmt.Errorf("the blueprint resource name must be defined since multiple blueprint resources exist in the component descriptor")
+		}
+		ok := false
+		blueprintRes, ok = blueprintResources[blueprintResourceName]
+		if !ok {
+			return nil, fmt.Errorf("blueprint %s is not defined as a resource in the component descriptor", blueprintResourceName)
+		}
+	}
+
+	return &blueprintRes, nil
 }
