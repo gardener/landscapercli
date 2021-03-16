@@ -1,6 +1,6 @@
 ## landscaper-cli quickstart uninstall
 
-command to uninstall the landscaper and OCI registry (from the install command) in a target cluster
+command to uninstall Landscaper and OCI registry (from the install command) in a target cluster
 
 ```
 landscaper-cli quickstart uninstall --kubeconfig [kubconfig.yaml] [flags]
@@ -33,5 +33,5 @@ landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace la
 
 ### SEE ALSO
 
-* [landscaper-cli quickstart](landscaper-cli_quickstart.md)	 - useful commands for getting quickly up and running with the landscaper
+* [landscaper-cli quickstart](landscaper-cli_quickstart.md)	 - useful commands for getting quickly up and running with Landscaper
 

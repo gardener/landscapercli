@@ -20,7 +20,7 @@ landscaper cli
 * [landscaper-cli components](landscaper-cli_components.md)	 - command to interact with components based on blueprints
 * [landscaper-cli components-cli](landscaper-cli_components-cli.md)	 - commands of the components cli
 * [landscaper-cli installations](landscaper-cli_installations.md)	 - commands to interact with installations
-* [landscaper-cli quickstart](landscaper-cli_quickstart.md)	 - useful commands for getting quickly up and running with the landscaper
+* [landscaper-cli quickstart](landscaper-cli_quickstart.md)	 - useful commands for getting quickly up and running with Landscaper
 * [landscaper-cli targets](landscaper-cli_targets.md)	 - commands for interacting with targets
 * [landscaper-cli version](landscaper-cli_version.md)	 - displays the version
 
