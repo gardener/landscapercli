@@ -10,6 +10,7 @@ landscaper-cli components-cli ctf add [ctf-path] [-f component-archive]... [flag
 
 ```
   -f, --component-archive stringArray   path to the component archives to be added. Note that the component archives have to be tar archives.
+      --format CAOutputFormat           archive format of the component archive. Can be "tar" or "tgz" (default tar)
   -h, --help                            help for add
 ```
 

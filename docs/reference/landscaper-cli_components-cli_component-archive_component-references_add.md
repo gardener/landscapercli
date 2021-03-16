@@ -26,8 +26,29 @@ version: 'v0.0.2'
 </pre>
 
 
+Templating:
+All yaml/json defined resources can be templated using simple envsubst syntax.
+Variables are specified after a "--" and follow the syntax "<name>=<value>".
+
+Note: Variable names are case-sensitive.
+
+Example:
+<pre>
+<command> [args] [--flags] -- MY_VAL=test
+</pre>
+
+<pre>
+
+key:
+  subkey: "abc ${MY_VAL}"
+
+</pre>
+
+
+
+
 ```
-landscaper-cli components-cli component-archive component-references add [component descriptor path] [flags]
+landscaper-cli components-cli component-archive component-references add [component descriptor path] [component-reference path]... [flags]
 ```
 
 ### Options
@@ -37,7 +58,7 @@ landscaper-cli components-cli component-archive component-references add [compon
       --component-name string      name of the component
       --component-version string   version of the component
   -h, --help                       help for add
-      --repo-ctx string            repository context url for component to upload. The repository url will be automatically added to the repository contexts.
+      --repo-ctx string            [OPTIONAL] repository context url for component to upload. The repository url will be automatically added to the repository contexts.
   -r, --resource string            The path to the resources defined as yaml or json
 ```
 

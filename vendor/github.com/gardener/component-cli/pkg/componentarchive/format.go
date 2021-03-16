@@ -13,34 +13,30 @@ import (
 	"github.com/spf13/pflag"
 )
 
-type OutputFormat string
-
-const (
-	OutputFormatFilesystem OutputFormat = "fs"
-	OutputFormatTar        OutputFormat = "tar"
-	OutputFormatTarGzip    OutputFormat = "tgz"
-)
-
 // DefaultOutputFormatUsage defines the default usage string for output format flag.
-var DefaultOutputFormatUsage = fmt.Sprintf("output format of the component archive. Can be %q', %q' or %q'", OutputFormatFilesystem, OutputFormatTar, OutputFormatTarGzip)
+var DefaultOutputFormatUsage = fmt.Sprintf("output format of the component archive. Can be %q, %q or %q",
+	ctf.ArchiveFormatFilesystem, ctf.ArchiveFormatTar, ctf.ArchiveFormatTarGzip)
+
+var ArchiveOutputFormatUsage = fmt.Sprintf("archive format of the component archive. Can be %q or %q",
+	ctf.ArchiveFormatTar, ctf.ArchiveFormatTarGzip)
 
 // ValidateOutputFormat validates the outpu format
-func ValidateOutputFormat(value OutputFormat, ignoreEmpty bool) error {
+func ValidateOutputFormat(value ctf.ArchiveFormat, ignoreEmpty bool) error {
 	if ignoreEmpty && value == "" {
 		return nil
 	}
 	switch value {
-	case OutputFormatFilesystem, OutputFormatTar, OutputFormatTarGzip:
+	case ctf.ArchiveFormatFilesystem, ctf.ArchiveFormatTar, ctf.ArchiveFormatTarGzip:
 	default:
 		return fmt.Errorf("unsupported output format %q, use %q, %q, %q or leave it empty to be defaulted",
-			value, OutputFormatFilesystem, OutputFormatTar, OutputFormatTarGzip)
+			value, ctf.ArchiveFormatFilesystem, ctf.ArchiveFormatTar, ctf.ArchiveFormatTarGzip)
 	}
 	return nil
 }
 
-type OutputFormatValue OutputFormat
+type OutputFormatValue ctf.ArchiveFormat
 
-func NewOutputFormatValue(p *OutputFormat, def OutputFormat) pflag.Value {
+func NewOutputFormatValue(p *ctf.ArchiveFormat, def ctf.ArchiveFormat) pflag.Value {
 	*p = def
 	return (*OutputFormatValue)(p)
 }
@@ -58,11 +54,11 @@ func (f *OutputFormatValue) Type() string {
 	return "CAOutputFormat"
 }
 
-func OutputFormatVar(fs *pflag.FlagSet, p *OutputFormat, name string, value OutputFormat, usage string) {
+func OutputFormatVar(fs *pflag.FlagSet, p *ctf.ArchiveFormat, name string, value ctf.ArchiveFormat, usage string) {
 	OutputFormatVarP(fs, p, name, "", value, usage)
 }
 
-func OutputFormatVarP(fs *pflag.FlagSet, p *OutputFormat, name, shorthand string, value OutputFormat, usage string) {
+func OutputFormatVarP(fs *pflag.FlagSet, p *ctf.ArchiveFormat, name, shorthand string, value ctf.ArchiveFormat, usage string) {
 	if len(usage) == 0 {
 		usage = DefaultOutputFormatUsage
 	}
@@ -70,12 +66,12 @@ func OutputFormatVarP(fs *pflag.FlagSet, p *OutputFormat, name, shorthand string
 }
 
 // Write writes the given component archive to the filesystem with the format.
-func Write(fs vfs.FileSystem, path string, ca *ctf.ComponentArchive, format OutputFormat) error {
+func Write(fs vfs.FileSystem, path string, ca *ctf.ComponentArchive, format ctf.ArchiveFormat) error {
 	if err := ValidateOutputFormat(format, false); err != nil {
 		return err
 	}
 
-	if format == OutputFormatFilesystem {
+	if format == ctf.ArchiveFormatFilesystem {
 		if err := ca.WriteToFilesystem(fs, path); err != nil {
 			return fmt.Errorf("unable to write componant archive to %q: %s", path, err.Error())
 		}
@@ -87,7 +83,7 @@ func Write(fs vfs.FileSystem, path string, ca *ctf.ComponentArchive, format Outp
 	if err != nil {
 		return fmt.Errorf("unable to open exported file %s: %s", path, err.Error())
 	}
-	if format == OutputFormatTarGzip {
+	if format == ctf.ArchiveFormatTarGzip {
 		if err := ca.WriteTarGzip(out); err != nil {
 			return fmt.Errorf("unable to export file to %s: %s", path, err.Error())
 		}

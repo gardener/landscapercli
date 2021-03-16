@@ -23,6 +23,7 @@
 
 * [landscaper-cli components-cli](landscaper-cli_components-cli.md)	 - commands of the components cli
 * [landscaper-cli components-cli component-archive component-references](landscaper-cli_components-cli_component-archive_component-references.md)	 - command to modify component references of a component descriptor
+* [landscaper-cli components-cli component-archive create](landscaper-cli_components-cli_component-archive_create.md)	 - Creates a component archive with a component descriptor
 * [landscaper-cli components-cli component-archive export](landscaper-cli_components-cli_component-archive_export.md)	 - Exports a component archive as defined by CTF
 * [landscaper-cli components-cli component-archive remote](landscaper-cli_components-cli_component-archive_remote.md)	 - command to interact with component descriptors stored in an oci registry
 * [landscaper-cli components-cli component-archive resources](landscaper-cli_components-cli_component-archive_resources.md)	 - command to modify resources of a component descriptor
