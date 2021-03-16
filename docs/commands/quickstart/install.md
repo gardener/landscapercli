@@ -32,9 +32,9 @@ If you don't want to use an external OCI registry, it is also possible to setup 
 #### Alternative 1: Expose registry via ingress (recommended)
 
 **Prerequisites**
-- Target cluster must be a Gardener Shoot (creating the TLS certificate for the OCI ingress is done by the Gardener cert manager).
-- Target cluster must have a running nginx ingress controller inside.
-- The command *htpasswd* must be installed on your local machine.
+- The target cluster must be a Gardener Shoot (TLS is provided via the Gardener cert manager).
+- A nginx ingress controller must be deployed in the target cluster
+- The command "htpasswd" must be installed on your local machine.
 
 You can setup a Landscaper instance together with the OCI registry that is exposed via an ingress by executing the following command:
 

@@ -20,11 +20,11 @@ type ociRegistry struct {
 }
 
 type ociRegistryOpts struct {
-	namespace       string
-	installIngress  bool
-	ingressHost     string
-	username        string
-	password        string
+	namespace      string
+	installIngress bool
+	ingressHost    string
+	username       string
+	password       string
 
 	// set during execution
 	ingressAuthData []byte

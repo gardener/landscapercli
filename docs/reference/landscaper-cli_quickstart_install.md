@@ -1,15 +1,15 @@
 ## landscaper-cli quickstart install
 
-command to install Landscaper (and optionally an OCI registry) in a target cluster
+command to install Landscaper and optionally an OCI registry in a target cluster
 
 ```
-landscaper-cli quickstart install --kubeconfig [kubconfig.yaml] [--install-oci-registry] [flags]
+landscaper-cli quickstart install --kubeconfig [kubconfig.yaml] --landscaper-values [landscaper-values.yaml] --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw [flags]
 ```
 
 ### Examples
 
 ```
-landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --install-oci-registry --landscaper-values ./landscaper-values.yaml --namespace landscaper
+landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw
 ```
 
 ### Options
@@ -17,13 +17,13 @@ landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --install-oci-re
 ```
   -h, --help                              help for install
       --install-oci-registry              install an OCI registry in the target cluster
-      --install-registry-ingress          install an ingress for accessing the OCI registry without port-forwarding. 
+      --install-registry-ingress          install an ingress for accessing the OCI registry. 
                                           the credentials must be provided via the flags "--registry-username" and "--registry-password".
                                           the Landscaper instance will then be automatically configured with these credentials.
                                           prerequisites (!):
-                                           - the target cluster must be a Gardener Shoot as TLS is provided via the Gardener cert manager
+                                           - the target cluster must be a Gardener Shoot (TLS is provided via the Gardener cert manager)
                                            - a nginx ingress controller must be deployed in the target cluster
-                                           - "htpasswd" must be installed on your local machine
+                                           - the command "htpasswd" must be installed on your local machine
       --kubeconfig string                 path to the kubeconfig of the target cluster
       --landscaper-chart-version string   use a custom Landscaper chart version (corresponds to Landscaper Github release with the same version number) (default "v0.7.0-dev-022a523e6c631b5893f1eed6d585f9ec0e962986")
       --landscaper-values string          path to values.yaml for the Landscaper Helm installation

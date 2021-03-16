@@ -72,10 +72,10 @@ type defaults struct {
 func NewInstallCommand(ctx context.Context) *cobra.Command {
 	opts := &installOptions{}
 	cmd := &cobra.Command{
-		Use:     "install --kubeconfig [kubconfig.yaml] [--install-oci-registry]",
+		Use:     "install --kubeconfig [kubconfig.yaml] --landscaper-values [landscaper-values.yaml] --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw",
 		Aliases: []string{"i"},
-		Short:   "command to install Landscaper (and optionally an OCI registry) in a target cluster",
-		Example: "landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --install-oci-registry --landscaper-values ./landscaper-values.yaml --namespace landscaper",
+		Short:   "command to install Landscaper and optionally an OCI registry in a target cluster",
+		Example: "landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
@@ -105,7 +105,7 @@ the Landscaper instance will then be automatically configured with these credent
 prerequisites (!):
  - the target cluster must be a Gardener Shoot (TLS is provided via the Gardener cert manager)
  - a nginx ingress controller must be deployed in the target cluster
- - "htpasswd" must be installed on your local machine`)
+ - the command "htpasswd" must be installed on your local machine`)
 	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", version.LandscaperChartVersion,
 		"use a custom Landscaper chart version (corresponds to Landscaper Github release with the same version number)")
 	fs.StringVar(&o.registryUsername, "registry-username", "", "username for authenticating at the OCI registry")
