@@ -2,28 +2,10 @@ package util
 
 import (
 	"bytes"
-	"fmt"
-	"io/ioutil"
-	"os"
 	"strings"
 
 	yamlv3 "gopkg.in/yaml.v3"
-	"sigs.k8s.io/yaml"
 )
-
-func WriteYaml(filename string, content interface{}) error {
-	marshaledContent, err := yaml.Marshal(content)
-	if err != nil {
-		return fmt.Errorf("cannot marshal file content: %w", err)
-	}
-
-	err = ioutil.WriteFile(filename, marshaledContent, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("cannot write file: %w", err)
-	}
-
-	return nil
-}
 
 func MarshalYaml(node *yamlv3.Node) ([]byte, error) {
 	buf := bytes.Buffer{}

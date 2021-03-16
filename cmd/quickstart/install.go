@@ -3,6 +3,7 @@ package quickstart
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -293,6 +294,20 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 			"auth": encodedCredentials,
 		}
 
+		marshaledRegistryAuths, err := json.Marshal(registryAuths)
+		if err != nil {
+			return fmt.Errorf("cannot marshal registry auths: %w", err)
+		}
+
+		landscaperValuesOverride := fmt.Sprintf(`
+landscaper:
+  registryConfig:
+    secrets: 
+      default: {
+        "auths": %s        
+      }
+`, string(marshaledRegistryAuths))
+
 		tmpFile, err := ioutil.TempFile(".", "landscaper-values-override-")
 		if err != nil {
 			return fmt.Errorf("cannot create temporary file: %w", err)
@@ -304,9 +319,9 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 			}
 		}()
 
-		err = util.WriteYaml(tmpFile.Name(), o.landscaperValues)
+		err = ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValuesOverride), os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("cannot write values override file: %w", err)
+			return fmt.Errorf("cannot write to file: %w", err)
 		}
 
 		installCommand = fmt.Sprintf("%s -f %s", installCommand, tmpFile.Name())
