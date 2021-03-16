@@ -6,21 +6,18 @@ import (
 	"fmt"
 	"os"
 
-	tree "github.com/gardener/landscapercli/cmd/installations/inspect"
+	inspect "github.com/gardener/landscapercli/cmd/installations/inspect"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
+	"k8s.io/client-go/tools/clientcmd"
+
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
-
-	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 type statusOptions struct {
@@ -34,15 +31,6 @@ type statusOptions struct {
 
 	oyaml bool
 	ojson bool
-}
-
-var (
-	scheme = runtime.NewScheme()
-)
-
-func init() {
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = lsv1alpha1.AddToScheme(scheme)
 }
 
 func NewInspectCommand(ctx context.Context) *cobra.Command {
@@ -87,10 +75,10 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 		return fmt.Errorf("namespace was not defined. Use --namespace to specify a namespace")
 	}
 
-	coll := tree.Collector{
+	collector := inspect.Collector{
 		K8sClient: k8sClient,
 	}
-	installationTrees, err := coll.CollectInstallationsInCluster(o.installationName, o.namespace)
+	installationTrees, err := collector.CollectInstallationsInCluster(o.installationName, o.namespace)
 	if err != nil {
 		return fmt.Errorf("cannot collect installation: %w", err)
 	}
@@ -113,17 +101,17 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 		return nil
 	}
 
-	transformer := tree.Transformer{
+	transformer := inspect.Transformer{
 		DetailedMode:   o.detailMode,
 		ShowExecutions: o.showExecutions,
-		OnlyFailed:     o.showOnlyFailed,
+		ShowOnlyFailed: o.showOnlyFailed,
 	}
 
-	transformedTree, err := transformer.TransformToPrintableTree(installationTrees)
+	transformedTrees, err := transformer.TransformToPrintableTrees(installationTrees)
 	if err != nil {
 		return fmt.Errorf("error transforming CR to printable tree: %w", err)
 	}
-	output := tree.PrintTrees(transformedTree)
+	output := inspect.PrintTrees(transformedTrees)
 
 	cmd.Print(output.String())
 

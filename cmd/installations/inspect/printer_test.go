@@ -7,35 +7,35 @@ import (
 )
 
 func TestPrinter(t *testing.T) {
-	treesToPrint := []TreeElement{
+	treesToPrint := []PrintableTreeNode{
 		{
 			Headline:    "Headline1",
 			Description: "Description1",
-			Childs: []*TreeElement{
+			Childs: []*PrintableTreeNode{
 				{
 					Headline:    "Headline1-1",
 					Description: "Description1-1",
-					Childs: []*TreeElement{
+					Childs: []*PrintableTreeNode{
 						{
 							Headline:    "Headline1-1-1",
 							Description: "Description1-1-1",
-							Childs:      []*TreeElement{},
+							Childs:      []*PrintableTreeNode{},
 						},
 						{
 							Headline:    "Headline1-1-2",
 							Description: "Description1-1-2",
-							Childs:      []*TreeElement{},
+							Childs:      []*PrintableTreeNode{},
 						},
 					},
 				},
 				{
 					Headline:    "Headline1-2",
 					Description: "Description1-2",
-					Childs: []*TreeElement{
+					Childs: []*PrintableTreeNode{
 						{
 							Headline:    "Headline1-2-1",
 							Description: "Description1-2-1",
-							Childs:      []*TreeElement{},
+							Childs:      []*PrintableTreeNode{},
 						},
 					},
 				},
@@ -44,41 +44,41 @@ func TestPrinter(t *testing.T) {
 		{
 			Headline:    "Headline2",
 			Description: "Description2",
-			Childs: []*TreeElement{
+			Childs: []*PrintableTreeNode{
 				{
 					Headline:    "Headline2-1",
 					Description: "Description2-1",
-					Childs: []*TreeElement{
+					Childs: []*PrintableTreeNode{
 						{
 							Headline:    "Headline2-1-1",
 							Description: "Description2-1-1",
-							Childs:      []*TreeElement{},
+							Childs:      []*PrintableTreeNode{},
 						},
 						{
 							Headline:    "Headline2-1-2",
 							Description: "Description2-1-2",
-							Childs:      []*TreeElement{},
+							Childs:      []*PrintableTreeNode{},
 						},
 						{
 							Headline:    "Headline2-1-3",
 							Description: "Description2-1-3",
-							Childs:      []*TreeElement{},
+							Childs:      []*PrintableTreeNode{},
 						},
 					},
 				},
 				{
 					Headline:    "Headline2-2",
 					Description: "Description2-2",
-					Childs: []*TreeElement{
+					Childs: []*PrintableTreeNode{
 						{
 							Headline:    "Headline2-2-1",
 							Description: "Description1-2-1",
-							Childs:      []*TreeElement{},
+							Childs:      []*PrintableTreeNode{},
 						},
 						{
 							Headline:    "Headline2-2-2",
 							Description: "",
-							Childs:      []*TreeElement{},
+							Childs:      []*PrintableTreeNode{},
 						},
 					},
 				},

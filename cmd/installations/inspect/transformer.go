@@ -7,22 +7,22 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-//Transformer can transform from []*InstallationTree to a printable []TreeElement with different transformation options.
+//Transformer can transform from []*InstallationTree to printable []PrintableTreeNodes with different transformation options.
 type Transformer struct {
 	DetailedMode   bool
 	ShowExecutions bool
-	OnlyFailed     bool
+	ShowOnlyFailed bool
 }
 
-//TransformToPrintableTree transform a []*InstallationTree to a []TreeElement for the Printer.
-func (t Transformer) TransformToPrintableTree(installationTrees []*InstallationTree) ([]TreeElement, error) {
-	var printableTrees []TreeElement
-
-	if t.OnlyFailed {
-		installationTrees = FilterForFailedItemsInTree(installationTrees)
-	}
+//TransformToPrintableTrees transform a []*InstallationTree to []PrintableTreeNodes for the Printer.
+func (t Transformer) TransformToPrintableTrees(installationTrees []*InstallationTree) ([]PrintableTreeNode, error) {
+	var printableTrees []PrintableTreeNode
 
 	for _, installationTree := range installationTrees {
+		if t.ShowOnlyFailed {
+			installationTree = installationTree.filterForFailedInstallation()
+		}
+
 		transformedInstalaltion, err := t.transformInstallation(installationTree)
 		if err != nil {
 			return nil, fmt.Errorf("error in installation %s: %w", installationTree.Installation.Name, err)
@@ -33,8 +33,8 @@ func (t Transformer) TransformToPrintableTree(installationTrees []*InstallationT
 	return printableTrees, nil
 }
 
-func (t Transformer) transformInstallation(installationTree *InstallationTree) (*TreeElement, error) {
-	printableNode := TreeElement{}
+func (t Transformer) transformInstallation(installationTree *InstallationTree) (*PrintableTreeNode, error) {
+	printableNode := PrintableTreeNode{}
 	if installationTree == nil {
 		return &printableNode, nil
 	}
@@ -77,8 +77,8 @@ func (t Transformer) transformInstallation(installationTree *InstallationTree) (
 	return &printableNode, nil
 }
 
-func (t Transformer) transformExecution(executionTree *ExecutionTree) (*TreeElement, error) {
-	printableNode := TreeElement{}
+func (t Transformer) transformExecution(executionTree *ExecutionTree) (*PrintableTreeNode, error) {
+	printableNode := PrintableTreeNode{}
 	if executionTree == nil {
 		return &printableNode, nil
 	}
@@ -111,25 +111,25 @@ func (t Transformer) transformExecution(executionTree *ExecutionTree) (*TreeElem
 	return &printableNode, nil
 }
 
-func (t Transformer) transformDeployItem(deployItemTree *DeployItemLeaf) (*TreeElement, error) {
-	printableNode := TreeElement{}
-	if deployItemTree == nil {
+func (t Transformer) transformDeployItem(deployItem *DeployItemLeaf) (*PrintableTreeNode, error) {
+	printableNode := PrintableTreeNode{}
+	if deployItem == nil {
 		return &printableNode, nil
 	}
 
-	deployItemTree.DeployItem.SetManagedFields(nil)
+	deployItem.DeployItem.SetManagedFields(nil)
 
 	printableNode.Headline = fmt.Sprintf("[%s] DeployItem %s",
-		formatStatus(string(deployItemTree.DeployItem.Status.Phase)), deployItemTree.DeployItem.Name)
+		formatStatus(string(deployItem.DeployItem.Status.Phase)), deployItem.DeployItem.Name)
 
 	if t.DetailedMode {
-		marshaledExecution, err := yaml.Marshal(deployItemTree.DeployItem)
+		marshaledExecution, err := yaml.Marshal(deployItem.DeployItem)
 		if err != nil {
-			return nil, fmt.Errorf("failed marshaling DeployItem %s: %w", deployItemTree.DeployItem.Name, err)
+			return nil, fmt.Errorf("failed marshaling DeployItem %s: %w", deployItem.DeployItem.Name, err)
 		}
 		printableNode.Description = string(marshaledExecution)
-	} else if deployItemTree.DeployItem.Status.LastError != nil {
-		printableNode.Description = fmt.Sprintf("Last error: %s", deployItemTree.DeployItem.Status.LastError.Message)
+	} else if deployItem.DeployItem.Status.LastError != nil {
+		printableNode.Description = fmt.Sprintf("Last error: %s", deployItem.DeployItem.Status.LastError.Message)
 	}
 
 	return &printableNode, nil

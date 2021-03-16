@@ -14,24 +14,14 @@ const (
 
 const terminalWidth = 120
 
-//TreeElement contains the structure for a printable tree.
-type TreeElement struct {
+//PrintableTreeNode contains the structure for a printable tree.
+type PrintableTreeNode struct {
 	Headline    string
 	Description string
-	Childs      []*TreeElement
+	Childs      []*PrintableTreeNode
 }
 
-//PrintTrees turns the given TreeElements into a formated tree as strings.Builder.
-func PrintTrees(nodes []TreeElement) strings.Builder {
-	output := strings.Builder{}
-	for _, node := range nodes {
-		printNode(&node, "", &output, true, true)
-		output.WriteString("\n")
-	}
-	return output
-}
-
-func printNode(node *TreeElement, preFix string, output *strings.Builder, isLast bool, rootLevel bool) {
+func (node *PrintableTreeNode) print(output *strings.Builder, preFix string, isLast bool, rootLevel bool) {
 	itemFormatHeading := middleItem
 	if isLast {
 		itemFormatHeading = lastItem
@@ -52,9 +42,19 @@ func printNode(node *TreeElement, preFix string, output *strings.Builder, isLast
 		preFix = addEmptySpaceOrContinueItem(preFix, isLast)
 	}
 
-	for i, subNodes := range node.Childs {
-		printNode(subNodes, preFix, output, i == len(node.Childs)-1, false)
+	for i, subNode := range node.Childs {
+		subNode.print(output, preFix, i == len(node.Childs)-1, false)
 	}
+}
+
+//PrintTrees turns the given PrintableTreeNodes into a formated tree as strings.Builder.
+func PrintTrees(nodes []PrintableTreeNode) strings.Builder {
+	output := strings.Builder{}
+	for _, node := range nodes {
+		node.print(&output, "", true, true)
+		output.WriteString("\n")
+	}
+	return output
 }
 
 func formatDescription(preFix string, itemFormatDescription string, nodeDescription string, isLast bool) string {
