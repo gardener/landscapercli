@@ -123,6 +123,11 @@ func (o *installOptions) ReadLandscaperValues() error {
 	if err != nil {
 		return fmt.Errorf("cannot unmarshall file content: %w", err)
 	}
+
+	if unmarshaledContent.Landscaper.RegistryConfig.Secrets.Defaults.Auths == nil {
+		unmarshaledContent.Landscaper.RegistryConfig.Secrets.Defaults.Auths = map[string]interface{}{}
+	}
+
 	o.landscaperValues = unmarshaledContent
 
 	return nil
