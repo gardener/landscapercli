@@ -20,12 +20,14 @@ type ociRegistry struct {
 }
 
 type ociRegistryOpts struct {
-	namespace              string
-	installIngress bool
-	ingressHost    string
-	username       string
-	password       string
-	ingressAuthData        []byte
+	namespace       string
+	installIngress  bool
+	ingressHost     string
+	username        string
+	password        string
+
+	// set during execution
+	ingressAuthData []byte
 }
 
 func NewOCIRegistry(opts *ociRegistryOpts, k8sClient client.Client) *ociRegistry {

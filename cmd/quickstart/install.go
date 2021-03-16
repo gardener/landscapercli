@@ -11,8 +11,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/gardener/landscapercli/pkg/version"
 	"sigs.k8s.io/yaml"
+
+	"github.com/gardener/landscapercli/pkg/version"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -48,16 +49,24 @@ type installOptions struct {
 }
 
 type landscaperValues struct {
-	Landscaper struct {
-		RegistryConfig struct {
-			AllowPlainHttpRegistries bool `json:"allowPlainHttpRegistries"`
-			Secrets                  struct {
-				Defaults struct {
-					Auths map[string]interface{} `json:"auths"`
-				} `json:"default"`
-			} `json:"secrets"`
-		} `json:"registryConfig"`
-	} `json:"landscaper"`
+	Landscaper landscaper `json:"landscaper"`
+}
+
+type landscaper struct {
+	RegistryConfig registryConfig `json:"registryConfig"`
+}
+
+type registryConfig struct {
+	AllowPlainHttpRegistries bool    `json:"allowPlainHttpRegistries"`
+	Secrets                  secrets `json:"secrets"`
+}
+
+type secrets struct {
+	Defaults defaults `json:"default"`
+}
+
+type defaults struct {
+	Auths map[string]interface{} `json:"auths"`
 }
 
 func NewInstallCommand(ctx context.Context) *cobra.Command {
@@ -90,11 +99,11 @@ func (o *installOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where Landscaper and the OCI registry will get installed")
 	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the Landscaper Helm installation")
 	fs.BoolVar(&o.instOCIRegistry, "install-oci-registry", false, "install an OCI registry in the target cluster")
-	fs.BoolVar(&o.instRegistryIngress, "install-registry-ingress", false, `install an ingress for accessing the OCI registry without port-forwarding. 
+	fs.BoolVar(&o.instRegistryIngress, "install-registry-ingress", false, `install an ingress for accessing the OCI registry. 
 the credentials must be provided via the flags "--registry-username" and "--registry-password".
 the Landscaper instance will then be automatically configured with these credentials.
 prerequisites (!):
- - the target cluster must be a Gardener Shoot as TLS is provided via the Gardener cert manager
+ - the target cluster must be a Gardener Shoot (TLS is provided via the Gardener cert manager)
  - a nginx ingress controller must be deployed in the target cluster
  - "htpasswd" must be installed on your local machine`)
 	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", version.LandscaperChartVersion,
@@ -135,7 +144,7 @@ func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 	if o.instOCIRegistry && o.instRegistryIngress {
 		registryIngressHost := strings.Replace(cfg.Host, "https://api", "o.ingress", 1)
 		if len(registryIngressHost) > 64 {
-			return fmt.Errorf("no certificate could be created because domain exceeds 64 characters: " + registryIngressHost)
+			return fmt.Errorf("no TLS certificate could be created because domain exceeds 64 characters: " + registryIngressHost)
 		}
 		o.registryIngressHost = registryIngressHost
 	}
@@ -202,22 +211,24 @@ func (o *installOptions) createNamespace(ctx context.Context, k8sClient client.C
 }
 
 func (o *installOptions) checkConfiguration() error {
+	// check that the credentials for the OCI registry we will create are not set in the values from the user
 	if o.instOCIRegistry && o.instRegistryIngress {
 		registryAuths := o.landscaperValues.Landscaper.RegistryConfig.Secrets.Defaults.Auths
 		_, ok := registryAuths[o.registryIngressHost]
 		if ok {
-			// if the credentials for the ingress host we will create are already set in the values from the user, throw an error
-			return fmt.Errorf("registry credentials for %s are already set in the provided Landscaper values. please remove them from your configuration as they will get configured automatically.", o.registryIngressHost)
+			return fmt.Errorf("registry credentials for %s are already set in the provided Landscaper values. please remove them from your configuration as they will get configured automatically", o.registryIngressHost)
 		}
 	}
 
 	allowHttpRegistries := o.landscaperValues.Landscaper.RegistryConfig.AllowPlainHttpRegistries
 	allowHttpRegistriesPath := "landscaper.registryConfig.allowPlainHttpRegistries"
 
+	// if OCI registry is exposed via ingress, allowHttpRegistries must be false
 	if o.instOCIRegistry && o.instRegistryIngress && allowHttpRegistries {
 		return fmt.Errorf("%s must be set to false when installing Landscaper together with the OCI registry with ingress access", allowHttpRegistriesPath)
 	}
 
+	// if OCI registry is cluster-internal, allowHttpRegistries must be true
 	if o.instOCIRegistry && !o.instRegistryIngress && !allowHttpRegistries {
 		return fmt.Errorf("%s must be set to true when installing Landscaper together with the OCI registry without ingress access", allowHttpRegistriesPath)
 	}
