@@ -12,8 +12,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	ociclientopts "github.com/gardener/component-cli/ociclient/options"
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/component-spec/bindings-go/codec"
+	"github.com/gardener/component-spec/bindings-go/ctf"
+	"github.com/gardener/landscaper/pkg/landscaper/jsonschema"
+	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/osfs"
 	"github.com/mandelsoft/vfs/pkg/projectionfs"
@@ -21,8 +25,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscaper/apis/core"
@@ -71,16 +77,19 @@ type RenderOptions struct {
 	// OutDir is the directory where the rendered should be written to.
 	OutDir string
 
+	OCIOptions ociclientopts.Options
+
 	outputResources         sets.String
 	blueprint               *lsv1alpha1.Blueprint
 	blueprintFs             vfs.FileSystem
 	componentDescriptor     *cdv2.ComponentDescriptor
 	componentDescriptorList *cdv2.ComponentDescriptorList
-	values                  *Values
+	componentResolver       ctf.ComponentResolver
+	values                  Values
 }
 
 // NewRenderCommand creates a new local command to render a blueprint instance locally
-func NewRenderCommand(ctx context.Context) *cobra.Command {
+func NewRenderCommand(_ context.Context) *cobra.Command {
 	opts := &RenderOptions{}
 	cmd := &cobra.Command{
 		Use:     "render",
@@ -103,7 +112,7 @@ Available resources are
 			strings.Join(OutputResourceDeployItemsTerms.List(), "|"),
 			strings.Join(OutputResourceSubinstallationsTerms.List(), "|")),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := opts.Complete(args, osfs.New()); err != nil {
+			if err := opts.Complete(logger.Log, args, osfs.New()); err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
@@ -116,7 +125,6 @@ Available resources are
 	}
 
 	opts.AddFlags(cmd.Flags())
-
 	return cmd
 }
 
@@ -126,6 +134,7 @@ func (o *RenderOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringArrayVarP(&o.ValueFiles, "file", "f", []string{}, "List of filepaths to value yaml files that define the imports")
 	fs.StringVarP(&o.OutputFormat, "output", "o", YAMLOut, "The format of the output. Can be json or yaml.")
 	fs.StringVarP(&o.OutDir, "write", "w", "", "The output directory where the rendered files should be written to")
+	o.OCIOptions.AddFlags(fs)
 }
 
 func (o *RenderOptions) Run(log logr.Logger, fs vfs.FileSystem) error {
@@ -133,6 +142,10 @@ func (o *RenderOptions) Run(log logr.Logger, fs vfs.FileSystem) error {
 
 	blueprint, err := blueprints.New(o.blueprint, o.blueprintFs)
 	if err != nil {
+		return err
+	}
+
+	if err := o.validateImports(blueprint); err != nil {
 		return err
 	}
 
@@ -174,10 +187,10 @@ func (o *RenderOptions) Run(log logr.Logger, fs vfs.FileSystem) error {
 
 		// print out state
 		stateOut := map[string]map[string]json.RawMessage{
-			"state": map[string]json.RawMessage{},
+			"state": {},
 		}
 		for key, state := range templateStateHandler {
-			stateOut["state"][key] = json.RawMessage(state)
+			stateOut["state"][key] = state
 		}
 		if err := o.out(fs, stateOut, "state"); err != nil {
 			return err
@@ -234,7 +247,65 @@ func (o *RenderOptions) Run(log logr.Logger, fs vfs.FileSystem) error {
 	return nil
 }
 
-func (o *RenderOptions) Complete(args []string, fs vfs.FileSystem) error {
+// validateImports validates the type of all imports.
+// todo(schrodit): use central landscaper validation function as soon as the new landscaper version is released
+func (o *RenderOptions) validateImports(bp *blueprints.Blueprint) error {
+	jsonschemaValidator := &jsonschema.Validator{
+		Config: &jsonschema.LoaderConfig{
+			LocalTypes:                 bp.Info.LocalTypes,
+			BlueprintFs:                bp.Fs,
+			ComponentDescriptor:        o.componentDescriptor,
+			ComponentResolver:          o.componentResolver,
+			ComponentReferenceResolver: cdutils.ComponentReferenceResolverFromList(o.componentDescriptorList),
+		},
+	}
+
+	var allErr field.ErrorList
+	for _, importDef := range bp.Info.Imports {
+		fldPath := field.NewPath(importDef.Name)
+		value, ok := o.values.Imports[importDef.Name]
+		if !ok {
+			if *importDef.Required {
+				allErr = append(allErr, field.Required(fldPath, "Import is required"))
+			}
+			continue
+		}
+		if importDef.Schema != nil {
+			if err := jsonschemaValidator.ValidateGoStruct(importDef.Schema.RawMessage, value); err != nil {
+				allErr = append(allErr, field.Invalid(
+					fldPath,
+					value,
+					fmt.Sprintf("invalid imported value: %s", err.Error())))
+			}
+		} else {
+			// import is a target import
+			targetObj, ok := value.(map[string]interface{})
+			if !ok {
+				allErr = append(allErr, field.Invalid(fldPath, value, "a target is expected to be an object"))
+				continue
+			}
+			targetType, _, err := unstructured.NestedString(targetObj, "spec", "type")
+			if err != nil {
+				allErr = append(allErr, field.Invalid(
+					fldPath,
+					value,
+					fmt.Sprintf("unable to get type of target: %s", err.Error())))
+				continue
+			}
+			if targetType != importDef.TargetType {
+				allErr = append(allErr, field.Invalid(
+					fldPath,
+					targetType,
+					fmt.Sprintf("expected target type to be %q but got %q", importDef.TargetType, targetType)))
+				continue
+			}
+		}
+	}
+
+	return allErr.ToAggregate()
+}
+
+func (o *RenderOptions) Complete(log logr.Logger, args []string, fs vfs.FileSystem) error {
 	o.BlueprintPath = args[0]
 	data, err := vfs.ReadFile(fs, filepath.Join(o.BlueprintPath, lsv1alpha1.BlueprintFileName))
 	if err != nil {
@@ -274,7 +345,7 @@ func (o *RenderOptions) Complete(args []string, fs vfs.FileSystem) error {
 		o.componentDescriptorList.Components = append(o.componentDescriptorList.Components, cd)
 	}
 
-	o.values = &Values{}
+	o.values = Values{}
 	for _, filePath := range o.ValueFiles {
 		data, err := vfs.ReadFile(fs, filePath)
 		if err != nil {
@@ -285,10 +356,21 @@ func (o *RenderOptions) Complete(args []string, fs vfs.FileSystem) error {
 			return fmt.Errorf("unable to parse values file '%s': %w", filePath, err)
 		}
 
-		MergeValues(o.values, values)
+		MergeValues(&o.values, values)
 	}
 
 	if err := o.parseOutputResources(args); err != nil {
+		return err
+	}
+
+	// build component resolver with oci client
+	ociClient, _, err := o.OCIOptions.Build(log, fs)
+	if err != nil {
+		return err
+	}
+
+	o.componentResolver, err = componentsregistry.NewOCIRegistryWithOCIClient(ociClient)
+	if err != nil {
 		return err
 	}
 
