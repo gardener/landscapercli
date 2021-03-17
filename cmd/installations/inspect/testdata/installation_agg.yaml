@@ -1,0 +1,81 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Installation
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"landscaper.gardener.cloud/v1alpha1","kind":"Installation","metadata":{"annotations":{},"name":"my-aggregation","namespace":"inttest"},"spec":{"blueprint":{"ref":{"resourceName":"simple-aggregated"}},"componentDescriptor":{"ref":{"componentName":"github.com/gardener/landscaper/simple-aggregated","repositoryContext":{"baseUrl":"eu.gcr.io/gardener-project/landscaper/tutorials/components","type":"ociRegistry"},"version":"v0.2.0"}},"exports":{"data":[{"dataRef":"myAggIngressClass","name":"aggIngressClass"}]},"imports":{"data":[{"configMapRef":{"key":"namespace","name":"my-imports"},"name":"aggNamespace"}],"targets":[{"name":"aggCluster","target":"#my-cluster"}]}}}
+  creationTimestamp: "2021-03-11T14:09:38Z"
+  finalizers:
+  - finalizer.landscaper.gardener.cloud
+  generation: 4
+  name: my-aggregation
+  namespace: inttest
+  resourceVersion: "12788438"
+  selfLink: /apis/landscaper.gardener.cloud/v1alpha1/namespaces/inttest/installations/my-aggregation
+  uid: 288f89a7-aee5-48b8-a92d-3bfc0b060c02
+spec:
+  blueprint:
+    ref:
+      resourceName: simple-aggregated
+  componentDescriptor:
+    ref:
+      componentName: github.com/gardener/landscaper/simple-aggregated
+      repositoryContext:
+        baseUrl: eu.gcr.io/gardener-project/landscaper/tutorials/components
+        type: ociRegistry
+      version: v0.2.0
+  exports:
+    data:
+    - dataRef: myAggIngressClass
+      name: aggIngressClass
+  imports:
+    data:
+    - configMapRef:
+        key: namespace
+        name: my-imports
+        namespace: inttest
+      name: aggNamespace
+    targets:
+    - name: aggCluster
+      target: '#my-cluster'
+status:
+  conditions:
+  - lastTransitionTime: "2021-03-15T09:56:05Z"
+    lastUpdateTime: "2021-03-15T09:56:05Z"
+    message: All imports are up-to-date
+    reason: OutdatedImports
+    status: "False"
+    type: ValidateImports
+  - lastTransitionTime: "2021-03-11T14:09:41Z"
+    lastUpdateTime: "2021-03-11T14:09:41Z"
+    message: All Installations are successfully installed
+    reason: InstallationsInstalled
+    status: "True"
+    type: EnsureSubInstallations
+  - lastTransitionTime: "2021-03-12T10:00:11Z"
+    lastUpdateTime: "2021-03-12T10:00:11Z"
+    message: DataObjects successfully created
+    reason: DataObjectsCreated
+    status: "True"
+    type: CreateExports
+  configGeneration: f598c08133481596a74cdddc3089e69ce4b5cf46
+  imports:
+  - configGeneration: "0"
+    configMapRef: inttest/my-imports#namespace
+    name: aggNamespace
+    type: dataobject
+  - configGeneration: "1"
+    name: aggCluster
+    target: '#my-cluster'
+    type: target
+  installationRefs:
+  - name: ingress
+    ref:
+      name: ingress-hhsjf
+      namespace: inttest
+  - name: server
+    ref:
+      name: server-gw64l
+      namespace: inttest
+  observedGeneration: 4
+  phase: Succeeded

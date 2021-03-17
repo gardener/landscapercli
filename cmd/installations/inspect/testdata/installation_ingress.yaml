@@ -1,0 +1,91 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Installation
+metadata:
+  creationTimestamp: "2021-03-11T14:09:41Z"
+  finalizers:
+  - finalizer.landscaper.gardener.cloud
+  generateName: ingress-
+  generation: 1
+  labels:
+    landscaper.gardener.cloud/encompassed-by: my-aggregation
+  name: ingress-hhsjf
+  namespace: inttest
+  ownerReferences:
+  - apiVersion: landscaper.gardener.cloud/v1alpha1
+    blockOwnerDeletion: true
+    controller: true
+    kind: Installation
+    name: my-aggregation
+    uid: 288f89a7-aee5-48b8-a92d-3bfc0b060c02
+  resourceVersion: "12748263"
+  selfLink: /apis/landscaper.gardener.cloud/v1alpha1/namespaces/inttest/installations/ingress-hhsjf
+  uid: c701444d-7cae-4531-84b7-697f6483c861
+spec:
+  blueprint:
+    ref:
+      resourceName: ingress-nginx-blueprint
+  componentDescriptor:
+    ref:
+      componentName: github.com/gardener/landscaper/ingress-nginx
+      repositoryContext:
+        baseUrl: eu.gcr.io/gardener-project/landscaper/tutorials/components
+        type: ociRegistry
+      version: v0.3.0
+  exports:
+    data:
+    - dataRef: myIngressClass
+      name: ingressClass
+  imports:
+    data:
+    - dataRef: aggNamespace
+      name: namespace
+    targets:
+    - name: cluster
+      target: aggCluster
+status:
+  conditions:
+  - lastTransitionTime: "2021-03-15T08:08:57Z"
+    lastUpdateTime: "2021-03-15T08:08:57Z"
+    message: All imports are up-to-date
+    reason: OutdatedImports
+    status: "False"
+    type: ValidateImports
+  - lastTransitionTime: "2021-03-11T14:09:45Z"
+    lastUpdateTime: "2021-03-11T14:09:45Z"
+    message: All Installations are successfully installed
+    reason: InstallationsInstalled
+    status: "True"
+    type: EnsureSubInstallations
+  - lastTransitionTime: "2021-03-11T14:09:45Z"
+    lastUpdateTime: "2021-03-11T14:09:45Z"
+    message: Deployed execution item
+    reason: ExecutionDeployed
+    status: "True"
+    type: ReconcileExecution
+  - lastTransitionTime: "2021-03-11T14:09:50Z"
+    lastUpdateTime: "2021-03-11T14:09:50Z"
+    message: DataObjects successfully created
+    reason: DataObjectsCreated
+    status: "True"
+    type: CreateExports
+  configGeneration: 0155579c3db1fad22f479a8ed3faacf99c1eb4eb
+  executionRef:
+    name: ingress-hhsjf
+    namespace: inttest
+  imports:
+  - configGeneration: f44907d0bd8fd850730ed7d372fbf3ad1b15d176
+    dataRef: aggNamespace
+    name: namespace
+    sourceRef:
+      name: my-aggregation
+      namespace: inttest
+    type: dataobject
+  - configGeneration: f44907d0bd8fd850730ed7d372fbf3ad1b15d176
+    name: cluster
+    sourceRef:
+      name: my-aggregation
+      namespace: inttest
+    target: aggCluster
+    type: target
+  observedGeneration: 1
+  phase: Succeeded
