@@ -278,7 +278,7 @@ to the component descriptor with the following command:
 ```shell script
 landscaper-cli components-cli component-archive resources add \
    $LS_COMPONENT_DIR/demo-component \
-   -r $LS_COMPONENT_DIR/demo-component/resources.yaml
+   $LS_COMPONENT_DIR/demo-component/resources.yaml
 ```
 
 Applying the command on the component folder in
