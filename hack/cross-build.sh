@@ -32,7 +32,7 @@ for i in "${build_matrix[@]}"; do
             -X github.com/gardener/landscapercli/pkg/version.ComponentCliVersion=$COMPONENT_CLI_VERSION \
             -X github.com/gardener/landscapercli/pkg/version.gitTreeState=$([ -z git status --porcelain 2>/dev/null ] && echo clean || echo dirty) \
             -X github.com/gardener/landscapercli/pkg/version.gitCommit=$(git rev-parse --verify HEAD)" \
-  ${PROJECT_ROOT}/cmd/landscaper-cli
+  ${PROJECT_ROOT}/landscaper-cli
 
   # create zipped file
   gzip -f -k "$bin_path"
