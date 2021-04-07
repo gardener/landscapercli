@@ -7,6 +7,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/extensions/v1beta1"
 	networking "k8s.io/api/networking/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -48,7 +49,7 @@ func (r *ociRegistry) install(ctx context.Context) error {
 		r.opts.ingressAuthData = ingressAuthData
 	}
 
-	deployment, pvc, service, authSecret, ingress := r.createK8sObjects()
+	deployment, pvc, service, authSecret, ingress, _ := r.createK8sObjects()
 
 	fmt.Printf("Creating deployment %s in namespace %s\n", deployment.Name, r.opts.namespace)
 	err := r.k8sClient.Create(ctx, deployment, &client.CreateOptions{})
@@ -106,7 +107,7 @@ func (r *ociRegistry) install(ctx context.Context) error {
 }
 
 func (r *ociRegistry) uninstall(ctx context.Context) error {
-	deployment, pvc, service, authSecret, ingress := r.createK8sObjects()
+	deployment, pvc, service, authSecret, ingress, oldIngress := r.createK8sObjects()
 
 	fmt.Printf("Deleting deployment %s in namespace %s\n", deployment.Name, r.opts.namespace)
 	err := r.k8sClient.Delete(ctx, deployment, &client.DeleteOptions{})
@@ -144,7 +145,13 @@ func (r *ociRegistry) uninstall(ctx context.Context) error {
 		if k8sErrors.IsNotFound(err) {
 			fmt.Println("Ingress not found...Skipping")
 		} else {
-			return err
+			fmt.Printf("Deleting old ingress %s in namespace %s\n", ingress.Name, r.opts.namespace)
+			err2 := r.k8sClient.Delete(ctx, oldIngress, &client.DeleteOptions{})
+			if k8sErrors.IsNotFound(err2) {
+				fmt.Println("Old ingress not found...Skipping")
+			} else {
+				return err
+			}
 		}
 	}
 
@@ -178,7 +185,7 @@ func (r *ociRegistry) uninstall(ctx context.Context) error {
 	return nil
 }
 
-func (r *ociRegistry) createK8sObjects() (*appsv1.Deployment, *corev1.PersistentVolumeClaim, *corev1.Service, *corev1.Secret, *networking.Ingress) {
+func (r *ociRegistry) createK8sObjects() (*appsv1.Deployment, *corev1.PersistentVolumeClaim, *corev1.Service, *corev1.Secret, *networking.Ingress, *v1beta1.Ingress) {
 	const (
 		appName        = "oci-registry"
 		pvcName        = appName + "-data"
@@ -339,5 +346,12 @@ func (r *ociRegistry) createK8sObjects() (*appsv1.Deployment, *corev1.Persistent
 		},
 	}
 
-	return deployment, pvc, service, authSecret, ingress
+	oldIngress := &v1beta1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      appName,
+			Namespace: r.opts.namespace,
+		},
+	}
+
+	return deployment, pvc, service, authSecret, ingress, oldIngress
 }
