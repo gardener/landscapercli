@@ -23,6 +23,11 @@ landscaper-cli:
     steps:
       verify:
         image: 'golang:1.16.0'
+      build:
+        image: 'golang:1.16.0'
+        execute: 'build'
+        output_dir: 'out'
+        timeout: '5m'
 
   jobs:
     head-update:
@@ -61,6 +66,12 @@ landscaper-cli:
           - "dev_integration_test.py"
           - "--target-clustername int-test"
           output_dir: 'integration_test'
+        update-release:
+          execute: 'update_release.py'
+          depends:
+          - 'release'
+          inputs:
+            OUT_PATH: 'out_path'
       traits:
         scheduling:
           suppress_parallel_execution: true

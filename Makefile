@@ -44,3 +44,7 @@ verify: check
 .PHONY: install-cli
 install-cli:
 	@EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) ./hack/install-cli.sh
+
+.PHONY: cross-build
+cross-build:
+	@EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) ./hack/cross-build.sh
