@@ -48,7 +48,7 @@ type pushOptions struct {
 func NewPushCommand(ctx context.Context) *cobra.Command {
 	opts := &pushOptions{}
 	cmd := &cobra.Command{
-		Use:     "push [ref to OCI artifact] [path to Blueprint directory]",
+		Use:     "push OCI_ARTIFACT_REF BLUEPRINT_DIR",
 		Args:    cobra.ExactArgs(2),
 		Example: "landscaper-cli blueprints push my-registry/my-repository:v1.0.0 path/to/blueprint/directory",
 		Short:   "command to upload a blueprint into an oci registry",

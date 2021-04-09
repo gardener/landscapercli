@@ -7,7 +7,7 @@ command to download a blueprint from an oci registry
 The get command downloads a Blueprint from an OCI registry. The reference to the OCI artifact consists of the base URL of the OCI registry, the repository (namespace), and the tag.
 
 ```
-landscaper-cli blueprints get [ref to OCI artifact] [flags]
+landscaper-cli blueprints get OCI_ARTIFACT_REF [flags]
 ```
 
 ### Examples

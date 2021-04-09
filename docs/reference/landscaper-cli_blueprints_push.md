@@ -7,7 +7,7 @@ command to upload a blueprint into an oci registry
 The push command uploads a Blueprint from a local directory into an OCI registry. The blueprint directory must contain a file with name blueprint.yaml. The reference to the OCI artifact consists of the base URL of the OCI registry, the repository (namespace), and the tag.
 
 ```
-landscaper-cli blueprints push [ref to OCI artifact] [path to Blueprint directory] [flags]
+landscaper-cli blueprints push OCI_ARTIFACT_REF BLUEPRINT_DIR [flags]
 ```
 
 ### Examples
