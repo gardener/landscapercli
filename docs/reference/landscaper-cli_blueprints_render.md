@@ -24,7 +24,7 @@ landscaper-cli blueprints render [flags]
 ### Examples
 
 ```
-landscaper-cli blueprints render [path to Blueprint directory] [all,deployitems,subinstallations]
+landscaper-cli blueprints render BLUEPRINT_DIR [all,deployitems,subinstallations]
 ```
 
 ### Options

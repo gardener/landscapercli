@@ -31,7 +31,7 @@ type validationOptions struct {
 func NewValidationCommand(_ context.Context) *cobra.Command {
 	opts := &validationOptions{}
 	cmd := &cobra.Command{
-		Use:     "validate [path to Blueprint directory]",
+		Use:     "validate BLUEPRINT_DIR",
 		Args:    cobra.ExactArgs(1),
 		Example: "landscaper-cli blueprints validate path/to/blueprint/directory",
 		Short:   "validates a local blueprint filesystem",
