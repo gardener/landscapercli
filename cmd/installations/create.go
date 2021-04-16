@@ -407,7 +407,7 @@ func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes c
 		Spec: lsv1alpha1.InstallationSpec{
 			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
 				Reference: &lsv1alpha1.ComponentDescriptorReference{
-					RepositoryContext: &cd.RepositoryContexts[0],
+					RepositoryContext: &cd.RepositoryContexts[len(cd.RepositoryContexts)-1],
 					ComponentName:     cd.ObjectMeta.Name,
 					Version:           cd.ObjectMeta.Version,
 				},
