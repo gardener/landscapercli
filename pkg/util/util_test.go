@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
-	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	lscore "github.com/gardener/landscaper/apis/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +26,7 @@ func TestGetBlueprintResource(t *testing.T) {
 							IdentityObjectMeta: cdv2.IdentityObjectMeta{
 								Name:    "my-blueprint",
 								Version: "v0.1.0",
-								Type:    lsv1alpha1.BlueprintResourceType,
+								Type:    lscore.BlueprintType,
 							},
 						},
 					},
@@ -37,7 +37,31 @@ func TestGetBlueprintResource(t *testing.T) {
 				IdentityObjectMeta: cdv2.IdentityObjectMeta{
 					Name:    "my-blueprint",
 					Version: "v0.1.0",
-					Type:    lsv1alpha1.BlueprintResourceType,
+					Type:    lscore.BlueprintType,
+				},
+			},
+		},
+		{
+			name: "old blueprint type",
+			cd: &cdv2.ComponentDescriptor{
+				ComponentSpec: cdv2.ComponentSpec{
+					Resources: []cdv2.Resource{
+						{
+							IdentityObjectMeta: cdv2.IdentityObjectMeta{
+								Name:    "my-blueprint",
+								Version: "v0.1.0",
+								Type:    lscore.OldBlueprintType,
+							},
+						},
+					},
+				},
+			},
+			resourceName: "",
+			expectedResource: &cdv2.Resource{
+				IdentityObjectMeta: cdv2.IdentityObjectMeta{
+					Name:    "my-blueprint",
+					Version: "v0.1.0",
+					Type:    lscore.OldBlueprintType,
 				},
 			},
 		},
@@ -50,14 +74,14 @@ func TestGetBlueprintResource(t *testing.T) {
 							IdentityObjectMeta: cdv2.IdentityObjectMeta{
 								Name:    "my-blueprint",
 								Version: "v0.1.0",
-								Type:    lsv1alpha1.BlueprintResourceType,
+								Type:    lscore.BlueprintType,
 							},
 						},
 						{
 							IdentityObjectMeta: cdv2.IdentityObjectMeta{
 								Name:    "my-blueprint-2",
 								Version: "v0.1.0",
-								Type:    lsv1alpha1.BlueprintResourceType,
+								Type:    lscore.BlueprintType,
 							},
 						},
 					},
@@ -68,7 +92,7 @@ func TestGetBlueprintResource(t *testing.T) {
 				IdentityObjectMeta: cdv2.IdentityObjectMeta{
 					Name:    "my-blueprint",
 					Version: "v0.1.0",
-					Type:    lsv1alpha1.BlueprintResourceType,
+					Type:    lscore.BlueprintType,
 				},
 			},
 		},
@@ -81,14 +105,14 @@ func TestGetBlueprintResource(t *testing.T) {
 							IdentityObjectMeta: cdv2.IdentityObjectMeta{
 								Name:    "my-blueprint",
 								Version: "v0.1.0",
-								Type:    lsv1alpha1.BlueprintResourceType,
+								Type:    lscore.BlueprintType,
 							},
 						},
 						{
 							IdentityObjectMeta: cdv2.IdentityObjectMeta{
 								Name:    "my-blueprint-2",
 								Version: "v0.1.0",
-								Type:    lsv1alpha1.BlueprintResourceType,
+								Type:    lscore.BlueprintType,
 							},
 						},
 					},
@@ -106,14 +130,14 @@ func TestGetBlueprintResource(t *testing.T) {
 							IdentityObjectMeta: cdv2.IdentityObjectMeta{
 								Name:    "my-blueprint",
 								Version: "v0.1.0",
-								Type:    lsv1alpha1.BlueprintResourceType,
+								Type:    lscore.BlueprintType,
 							},
 						},
 						{
 							IdentityObjectMeta: cdv2.IdentityObjectMeta{
 								Name:    "my-blueprint-2",
 								Version: "v0.1.0",
-								Type:    lsv1alpha1.BlueprintResourceType,
+								Type:    lscore.BlueprintType,
 							},
 						},
 					},
