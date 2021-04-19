@@ -8,6 +8,7 @@ import (
 	"time"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	lscore "github.com/gardener/landscaper/apis/core"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -318,7 +319,7 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath string) (*lsv1
 func GetBlueprintResource(cd *cdv2.ComponentDescriptor, blueprintResourceName string) (*cdv2.Resource, error) {
 	blueprintResources := map[string]cdv2.Resource{}
 	for _, resource := range cd.ComponentSpec.Resources {
-		if resource.IdentityObjectMeta.Type == lsv1alpha1.BlueprintResourceType || resource.IdentityObjectMeta.Type == lsv1alpha1.OldBlueprintType {
+		if resource.IdentityObjectMeta.Type == lscore.BlueprintType || resource.IdentityObjectMeta.Type == lscore.OldBlueprintType {
 			blueprintResources[resource.Name] = resource
 		}
 	}
