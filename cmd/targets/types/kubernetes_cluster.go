@@ -57,15 +57,11 @@ func NewKubernetesClusterCommand(ctx context.Context) *cobra.Command {
 
 func (o *kubernetesClusterOpts) Complete(args []string) error {
 	if o.name == "" {
-		return errors.New("a target name must be defined")
-	}
-
-	if o.namespace == "" {
-		return errors.New("a target namespace must be defined")
+		return errors.New("--name must be defined")
 	}
 
 	if o.targetKubeconfigPath == "" {
-		return errors.New("a target kubeconfig must be defined")
+		return errors.New("--target-kubeconfig must be defined")
 	}
 
 	return nil
@@ -100,7 +96,7 @@ func (o *kubernetesClusterOpts) run(ctx context.Context, cmd *cobra.Command, log
 
 func (o *kubernetesClusterOpts) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.name, "name", "", "name of the target")
-	fs.StringVar(&o.namespace, "namespace", "", "namespace of the target")
+	fs.StringVar(&o.namespace, "namespace", "", "namespace of the target (optional)")
 	fs.StringVar(&o.targetKubeconfigPath, "target-kubeconfig", "", "path to the kubeconfig where the created target object will point to")
 	fs.StringVarP(&o.outputPath, "output-file", "o", "", "file path for the resulting target yaml")
 }
