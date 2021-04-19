@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	componentcli "github.com/gardener/component-cli/pkg/commands/componentarchive/remote"
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
@@ -128,7 +129,14 @@ func (t *installationsCreateTest) writeInstallationToFile(cmdOutput *bytes.Buffe
 
 	t.installationDir = installationDir
 
-	err = ioutil.WriteFile(path.Join(t.installationDir, "installation-generated.yaml"), cmdOutput.Bytes(), os.ModePerm)
+	// The uploaded cd of the component will have 2 repository contexts
+	//   - [0]: oci-registry.landscaper.svc.cluster.local:5000 (initially defined)
+	//   - [1]: localhost:5000 (appended by component cli during upload)
+	// "installations create" cmd will use the last context from that list
+	// However, we must set the URL to the first one for the installation to work
+	installationStr := strings.Replace(cmdOutput.String(), "localhost:5000", t.config.RegistryBaseURL, -1)
+
+	err = ioutil.WriteFile(path.Join(t.installationDir, "installation-generated.yaml"), []byte(installationStr), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("cannot write to file: %w", err)
 	}
@@ -265,8 +273,12 @@ func (t *installationsCreateTest) checkInstallation(outBuf *bytes.Buffer) error 
 					Version:       t.componentVersion,
 					ComponentName: t.componentName,
 					RepositoryContext: &cdv2.RepositoryContext{
-						Type:    cdv2.OCIRegistryType,
-						BaseURL: t.config.RegistryBaseURL,
+						Type: cdv2.OCIRegistryType,
+						// The uploaded cd of the component will have 2 repository contexts
+						//   - [0]: oci-registry.landscaper.svc.cluster.local:5000 (initially defined)
+						//   - [1]: localhost:5000 (appended by component cli during upload)
+						// "installations create" cmd will use the last context from that list
+						BaseURL: "localhost:5000",
 					},
 				},
 			},
