@@ -287,8 +287,11 @@ landscaper:
 `
 
 	tmpFile, err := ioutil.TempFile(".", "landscaper-values-")
+	if err != nil {
+		return fmt.Errorf("cannot create temporary file: %w", err)
+	}
 	defer func() {
-		err = os.Remove(tmpFile.Name())
+		err := os.Remove(tmpFile.Name())
 		if err != nil {
 			fmt.Printf("Cannot remove temporary file %s: %s", tmpFile.Name(), err.Error())
 		}

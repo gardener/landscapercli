@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// ExecCommandBlocking executes a command and wait for its completion.  Returns a Cmd that can be used to stop the command
+// ExecCommandBlocking executes a command and wait for its completion.
 func ExecCommandBlocking(command string) error {
 	fmt.Printf("Executing: %s\n", command)
 
