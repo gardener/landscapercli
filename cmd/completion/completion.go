@@ -19,13 +19,13 @@ var CompletionCmd = &cobra.Command{
 
 Bash:
 
-  $ source <(yourprogram completion bash)
+  $ source <(landscaper-cli completion bash)
 
   # To load completions for each session, execute once:
   # Linux:
-  $ yourprogram completion bash > /etc/bash_completion.d/yourprogram
+  $ landscaper-cli completion bash > /etc/bash_completion.d/landscaper-cli
   # macOS:
-  $ yourprogram completion bash > /usr/local/etc/bash_completion.d/yourprogram
+  $ landscaper-cli completion bash > /usr/local/etc/bash_completion.d/landscaper-cli
 
 Zsh:
 
@@ -35,23 +35,23 @@ Zsh:
   $ echo "autoload -U compinit; compinit" >> ~/.zshrc
 
   # To load completions for each session, execute once:
-  $ yourprogram completion zsh > "${fpath[1]}/_yourprogram"
+  $ landscaper-cli completion zsh > "${fpath[1]}/_landscaper-cli"
 
   # You will need to start a new shell for this setup to take effect.
 
 fish:
 
-  $ yourprogram completion fish | source
+  $ landscaper-cli completion fish | source
 
   # To load completions for each session, execute once:
-  $ yourprogram completion fish > ~/.config/fish/completions/yourprogram.fish
+  $ landscaper-cli completion fish > ~/.config/fish/completions/landscaper-cli.fish
 
 PowerShell:
 
-  PS> yourprogram completion powershell | Out-String | Invoke-Expression
+  PS> landscaper-cli completion powershell | Out-String | Invoke-Expression
 
   # To load completions for every new session, run:
-  PS> yourprogram completion powershell > yourprogram.ps1
+  PS> landscaper-cli completion powershell > landscaper-cli.ps1
   # and source this file from your PowerShell profile.
 `,
 	DisableFlagsInUseLine: true,
