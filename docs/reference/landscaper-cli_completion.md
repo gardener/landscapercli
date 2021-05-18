@@ -1,19 +1,10 @@
-// SPDX-FileCopyrightText: 2020 SAP SE or an SAP affiliate company and Gardener contributors.
-//
-// SPDX-License-Identifier: Apache-2.0
+## landscaper-cli completion
 
-package completion
+Generate completion script
 
-import (
-	"os"
+### Synopsis
 
-	"github.com/spf13/cobra"
-)
-
-var CompletionCmd = &cobra.Command{
-	Use:   "completion [bash|zsh|fish|powershell]",
-	Short: "Generate completion script",
-	Long: `To load completions:
+To load completions:
 
 Bash:
 
@@ -51,32 +42,30 @@ PowerShell:
   # To load completions for every new session, run:
   PS> landscaper-cli completion powershell > landscaper-cli.ps1
   # and source this file from your PowerShell profile.
-`,
-	DisableFlagsInUseLine: true,
-	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
-	Args:                  cobra.ExactValidArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		switch args[0] {
-		case "bash":
-			if err := cmd.Root().GenBashCompletion(os.Stdout); err != nil {
-				cmd.PrintErr(err.Error())
-				os.Exit(1)
-			}
-		case "zsh":
-			if err := cmd.Root().GenZshCompletion(os.Stdout); err != nil {
-				cmd.PrintErr(err.Error())
-				os.Exit(1)
-			}
-		case "fish":
-			if err := cmd.Root().GenFishCompletion(os.Stdout, true); err != nil {
-				cmd.PrintErr(err.Error())
-				os.Exit(1)
-			}
-		case "powershell":
-			if err := cmd.Root().GenPowerShellCompletion(os.Stdout); err != nil {
-				cmd.PrintErr(err.Error())
-				os.Exit(1)
-			}
-		}
-	},
-}
+
+
+```
+landscaper-cli completion [bash|zsh|fish|powershell]
+```
+
+### Options
+
+```
+  -h, --help   help for completion
+```
+
+### Options inherited from parent commands
+
+```
+      --cli                  logger runs as cli logger. enables cli logging
+      --dev                  enable development logging which result in console encoding, enabled stacktrace and enabled caller
+      --disable-caller       disable the caller of logs (default true)
+      --disable-stacktrace   disable the stacktrace of error logs (default true)
+      --disable-timestamp    disable timestamp output (default true)
+  -v, --verbosity int        number for the log level verbosity (default 1)
+```
+
+### SEE ALSO
+
+* [landscaper-cli](landscaper-cli.md)	 - landscaper cli
+
