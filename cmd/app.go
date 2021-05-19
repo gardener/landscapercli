@@ -47,7 +47,7 @@ func NewLandscaperCliCommand(ctx context.Context) *cobra.Command {
 	cmd.AddCommand(quickstart.NewQuickstartCommand(ctx))
 	cmd.AddCommand(installations.NewInstallationsCommand(ctx))
 	cmd.AddCommand(targets.NewTargetsCommand(ctx))
-	cmd.AddCommand(completion.CompletionCmd)
+	cmd.AddCommand(completion.NewCompletionCommand())
 
 	// Integrate commands of the component cli
 	componentsCliCommand := componentcli.NewComponentsCliCommand(ctx)

@@ -10,10 +10,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var CompletionCmd = &cobra.Command{
-	Use:   "completion [bash|zsh|fish|powershell]",
-	Short: "Generate completion script",
-	Long: `To load completions:
+func NewCompletionCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "completion [bash|zsh|fish|powershell]",
+		Short: "Generate completion script",
+		Long: `To load completions:
 
 Bash:
 
@@ -52,31 +53,34 @@ PowerShell:
   PS> landscaper-cli completion powershell > landscaper-cli.ps1
   # and source this file from your PowerShell profile.
 `,
-	DisableFlagsInUseLine: true,
-	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
-	Args:                  cobra.ExactValidArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		switch args[0] {
-		case "bash":
-			if err := cmd.Root().GenBashCompletion(os.Stdout); err != nil {
-				cmd.PrintErr(err.Error())
-				os.Exit(1)
+		DisableFlagsInUseLine: true,
+		ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
+		Args:                  cobra.ExactValidArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			switch args[0] {
+			case "bash":
+				if err := cmd.Root().GenBashCompletion(os.Stdout); err != nil {
+					cmd.PrintErr(err.Error())
+					os.Exit(1)
+				}
+			case "zsh":
+				if err := cmd.Root().GenZshCompletion(os.Stdout); err != nil {
+					cmd.PrintErr(err.Error())
+					os.Exit(1)
+				}
+			case "fish":
+				if err := cmd.Root().GenFishCompletion(os.Stdout, true); err != nil {
+					cmd.PrintErr(err.Error())
+					os.Exit(1)
+				}
+			case "powershell":
+				if err := cmd.Root().GenPowerShellCompletion(os.Stdout); err != nil {
+					cmd.PrintErr(err.Error())
+					os.Exit(1)
+				}
 			}
-		case "zsh":
-			if err := cmd.Root().GenZshCompletion(os.Stdout); err != nil {
-				cmd.PrintErr(err.Error())
-				os.Exit(1)
-			}
-		case "fish":
-			if err := cmd.Root().GenFishCompletion(os.Stdout, true); err != nil {
-				cmd.PrintErr(err.Error())
-				os.Exit(1)
-			}
-		case "powershell":
-			if err := cmd.Root().GenPowerShellCompletion(os.Stdout); err != nil {
-				cmd.PrintErr(err.Error())
-				os.Exit(1)
-			}
-		}
-	},
+
+		},
+	}
+	return cmd
 }
