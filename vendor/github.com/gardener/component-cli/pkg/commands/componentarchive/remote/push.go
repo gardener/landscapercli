@@ -37,9 +37,9 @@ type PushOptions struct {
 	Version string
 	// ComponentPath is the path to the directory containing the definition.
 	ComponentPath string
+	// AdditionalTags defines additional tags that the oci artifact should be tagged with.
+	AdditionalTags []string
 
-	// ref is the oci artifact uri reference to the uploaded component descriptor
-	ref string
 	// cd is the effective component descriptor
 	cd *cdv2.ComponentDescriptor
 
@@ -51,7 +51,7 @@ type PushOptions struct {
 func NewPushCommand(ctx context.Context) *cobra.Command {
 	opts := &PushOptions{}
 	cmd := &cobra.Command{
-		Use:   "push [path to component descriptor]",
+		Use:   "push COMPONENT_DESCRIPTOR_PATH",
 		Args:  cobra.RangeArgs(1, 4),
 		Short: "pushes a component archive to an oci repository",
 		Long: `
@@ -75,8 +75,6 @@ push [baseurl] [componentname] [Version] [path to component descriptor]
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
-
-			fmt.Printf("Successfully uploaded %s\n", opts.ref)
 		},
 	}
 
@@ -103,7 +101,27 @@ func (o *PushOptions) run(ctx context.Context, log logr.Logger, fs vfs.FileSyste
 		return fmt.Errorf("unable to build oci artifact for component acrchive: %w", err)
 	}
 
-	return ociClient.PushManifest(ctx, o.ref, manifest)
+	repoCtx := o.cd.GetEffectiveRepositoryContext()
+	ref, err := cdoci.OCIRef(repoCtx, o.cd.Name, o.cd.Version)
+	if err != nil {
+		return fmt.Errorf("invalid component reference: %w", err)
+	}
+	if err := ociClient.PushManifest(ctx, ref, manifest); err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("Successfully uploaded component descriptor at %q", ref))
+
+	for _, tag := range o.AdditionalTags {
+		ref, err := cdoci.OCIRef(repoCtx, o.cd.Name, tag)
+		if err != nil {
+			return fmt.Errorf("invalid component reference: %w", err)
+		}
+		if err := ociClient.PushManifest(ctx, ref, manifest); err != nil {
+			return err
+		}
+		log.Info(fmt.Sprintf("Successfully tagged component descriptor %q", ref))
+	}
+	return nil
 }
 
 func (o *PushOptions) Complete(args []string) error {
@@ -162,11 +180,6 @@ It is expected that the given path points to a diectory that contains the compon
 		})
 	}
 
-	repoCtx := o.cd.GetEffectiveRepositoryContext()
-	o.ref, err = cdoci.OCIRef(repoCtx, o.cd.Name, o.cd.Version)
-	if err != nil {
-		return fmt.Errorf("invalid component reference: %w", err)
-	}
 	return nil
 }
 
@@ -182,5 +195,6 @@ func (o *PushOptions) Validate() error {
 
 func (o *PushOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.BaseUrl, "repo-ctx", "", "repository context url for component to upload. The repository url will be automatically added to the repository contexts.")
+	fs.StringArrayVarP(&o.AdditionalTags, "tag", "t", []string{}, "set additional tags on the oci artifact")
 	o.OciOptions.AddFlags(fs)
 }

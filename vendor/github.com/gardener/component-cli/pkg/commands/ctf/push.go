@@ -29,6 +29,8 @@ type pushOptions struct {
 	CTFPath string
 	// BaseUrl is the repository context base url for all included component descriptors.
 	BaseUrl string
+	// AdditionalTags defines additional tags that the oci artifact should be tagged with.
+	AdditionalTags []string
 
 	// OciOptions contains all exposed options to configure the oci client.
 	OciOptions ociopts.Options
@@ -38,7 +40,7 @@ type pushOptions struct {
 func NewPushCommand(ctx context.Context) *cobra.Command {
 	opts := &pushOptions{}
 	cmd := &cobra.Command{
-		Use:   "push ctf-path",
+		Use:   "push CTF_PATH",
 		Args:  cobra.ExactArgs(1),
 		Short: "Pushes all archives of a ctf to a remote repository",
 		Long: `
@@ -105,6 +107,18 @@ It is expected that the given path points to a CTF Archive`, o.CTFPath)
 			return fmt.Errorf("unable to upload component archive to %q: %s", ref, err.Error())
 		}
 		log.Info(fmt.Sprintf("Successfully uploaded component archive to %q", ref))
+
+		for _, tag := range o.AdditionalTags {
+			ref, err := cdoci.OCIRef(ca.ComponentDescriptor.GetEffectiveRepositoryContext(), ca.ComponentDescriptor.GetName(), tag)
+			if err != nil {
+				return fmt.Errorf("unable to calculate oci ref for %q: %s", ca.ComponentDescriptor.GetName(), err.Error())
+			}
+			if err := ociClient.PushManifest(ctx, ref, manifest); err != nil {
+				return fmt.Errorf("unable to upload component archive to %q: %s", ref, err.Error())
+			}
+			log.Info(fmt.Sprintf("Successfully tagged component archive with %q", ref))
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -140,6 +154,7 @@ func (o *pushOptions) Validate() error {
 
 func (o *pushOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.BaseUrl, "repo-ctx", "", "repository context url for component to upload. The repository url will be automatically added to the repository contexts.")
+	fs.StringArrayVarP(&o.AdditionalTags, "tag", "t", []string{}, "set additional tags on the oci artifact")
 
 	o.OciOptions.AddFlags(fs)
 }

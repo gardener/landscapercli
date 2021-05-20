@@ -48,7 +48,7 @@ type Options struct {
 func NewAddCommand(ctx context.Context) *cobra.Command {
 	opts := &Options{}
 	cmd := &cobra.Command{
-		Use:   "add [component descriptor path] [component-reference path]...",
+		Use:   "add COMPONENT_ARCHIVE_PATH [COMPONENT_REFERENCE_PATH...]",
 		Args:  cobra.MinimumNArgs(1),
 		Short: "Adds a component reference to a component descriptor",
 		Long: fmt.Sprintf(`

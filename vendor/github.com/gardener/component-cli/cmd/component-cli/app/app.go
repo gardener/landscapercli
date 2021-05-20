@@ -14,6 +14,7 @@ import (
 	"github.com/gardener/component-cli/pkg/commands/componentarchive"
 	"github.com/gardener/component-cli/pkg/commands/ctf"
 	"github.com/gardener/component-cli/pkg/commands/imagevector"
+	"github.com/gardener/component-cli/pkg/commands/oci"
 	"github.com/gardener/component-cli/pkg/logger"
 	"github.com/gardener/component-cli/pkg/version"
 
@@ -41,6 +42,7 @@ func NewComponentsCliCommand(ctx context.Context) *cobra.Command {
 	cmd.AddCommand(ctf.NewCTFCommand(ctx))
 	cmd.AddCommand(componentarchive.NewComponentArchiveCommand(ctx))
 	cmd.AddCommand(imagevector.NewImageVectorCommand(ctx))
+	cmd.AddCommand(oci.NewOCICommand(ctx))
 
 	return cmd
 }
