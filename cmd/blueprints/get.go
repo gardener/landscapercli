@@ -78,7 +78,7 @@ func (o *showOptions) run(ctx context.Context, log logr.Logger) error {
 		return err
 	}
 
-	ociClient, err := ociclient.NewClient(log, ociclient.WithCache{Cache: cache}, ociclient.AllowPlainHttp(o.allowPlainHttp))
+	ociClient, err := ociclient.NewClient(log, ociclient.WithCache(cache), ociclient.AllowPlainHttp(o.allowPlainHttp))
 	if err != nil {
 		return err
 	}

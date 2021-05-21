@@ -40,7 +40,7 @@ type pushOptions struct {
 func NewPushCommand(ctx context.Context) *cobra.Command {
 	opts := &pushOptions{}
 	cmd := &cobra.Command{
-		Use:   "push ctf-path",
+		Use:   "push CTF_PATH",
 		Args:  cobra.ExactArgs(1),
 		Short: "Pushes all archives of a ctf to a remote repository",
 		Long: `

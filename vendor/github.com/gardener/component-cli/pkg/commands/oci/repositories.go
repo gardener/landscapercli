@@ -30,7 +30,7 @@ type RepositoriesOptions struct {
 func NewRepositoriesCommand(ctx context.Context) *cobra.Command {
 	opts := &RepositoriesOptions{}
 	cmd := &cobra.Command{
-		Use:     "repositories [registry host]",
+		Use:     "repositories REPOSITORY_PREFIX",
 		Aliases: []string{"repos", "repo"},
 		Args:    cobra.RangeArgs(1, 2),
 		Short:   "Lists all repositories of the registry",

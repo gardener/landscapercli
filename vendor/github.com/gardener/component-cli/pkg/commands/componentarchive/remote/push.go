@@ -51,7 +51,7 @@ type PushOptions struct {
 func NewPushCommand(ctx context.Context) *cobra.Command {
 	opts := &PushOptions{}
 	cmd := &cobra.Command{
-		Use:   "push [path to component descriptor]",
+		Use:   "push COMPONENT_DESCRIPTOR_PATH",
 		Args:  cobra.RangeArgs(1, 4),
 		Short: "pushes a component archive to an oci repository",
 		Long: `
