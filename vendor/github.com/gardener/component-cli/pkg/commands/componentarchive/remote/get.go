@@ -41,7 +41,7 @@ type showOptions struct {
 func NewGetCommand(ctx context.Context) *cobra.Command {
 	opts := &showOptions{}
 	cmd := &cobra.Command{
-		Use:   "get BASE_URL COMPONENT_NAME VERSION",
+		Use:   "get [baseurl] [componentname] [Version]",
 		Args:  cobra.ExactArgs(3),
 		Short: "fetch the component descriptor from a oci registry",
 		Long: `

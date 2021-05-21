@@ -5,7 +5,11 @@
 package v1alpha1
 
 import (
+	"time"
+
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/gardener/landscaper/apis/core/v1alpha1"
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
@@ -21,6 +25,18 @@ func SetDefaults_LandscaperConfiguration(obj *LandscaperConfiguration) {
 		obj.Registry.OCI.Cache = &OCICacheConfiguration{
 			UseInMemoryOverlay: false,
 		}
+	}
+	if obj.DeployItemTimeouts == nil {
+		obj.DeployItemTimeouts = &DeployItemTimeouts{}
+	}
+	if obj.DeployItemTimeouts.Pickup == nil {
+		obj.DeployItemTimeouts.Pickup = &v1alpha1.Duration{Duration: 5 * time.Minute}
+	}
+	if obj.DeployItemTimeouts.Abort == nil {
+		obj.DeployItemTimeouts.Abort = &v1alpha1.Duration{Duration: 5 * time.Minute}
+	}
+	if obj.DeployItemTimeouts.ProgressingDefault == nil {
+		obj.DeployItemTimeouts.ProgressingDefault = &v1alpha1.Duration{Duration: 10 * time.Minute}
 	}
 
 }

@@ -63,7 +63,7 @@ type InternalSourceOptions struct {
 func NewAddCommand(ctx context.Context) *cobra.Command {
 	opts := &Options{}
 	cmd := &cobra.Command{
-		Use:   "add COMPONENT_ARCHIVE_PATH [source file]...",
+		Use:   "add [component descriptor path] [source file]...",
 		Args:  cobra.MinimumNArgs(1),
 		Short: "Adds a source to a component descriptor",
 		Long: fmt.Sprintf(`
@@ -96,7 +96,6 @@ input:
   path: /my/path
   compress: true # defaults to false
   exclude: "*.txt"
-  preserveDir: true # optional, defaulted to false; if true, the top level folder "my/path" is included
 ...
 
 </pre>

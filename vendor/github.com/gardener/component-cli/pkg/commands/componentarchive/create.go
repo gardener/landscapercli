@@ -28,7 +28,7 @@ type CreateOptions struct {
 func NewCreateCommand(ctx context.Context) *cobra.Command {
 	opts := &CreateOptions{}
 	cmd := &cobra.Command{
-		Use:   "create COMPONENT_ARCHIVE_PATH",
+		Use:   "create [component-archive-path]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Creates a component archive with a component descriptor",
 		Long: `

@@ -48,7 +48,7 @@ func GetFileType(fs vfs.FileSystem, path string) (string, error) {
 	return http.DetectContentType(buf), nil
 }
 
-// CacheDir returns the cache dir for the current cli command
+// CacheDir returns the cache dir for the current clie command
 func CacheDir() (string, error) {
 	defaultCacheDir := os.Getenv(cache.CacheDirEnvName)
 	if len(defaultCacheDir) != 0 {

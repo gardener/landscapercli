@@ -36,7 +36,7 @@ type AddOptions struct {
 func NewAddCommand(ctx context.Context) *cobra.Command {
 	opts := &AddOptions{}
 	cmd := &cobra.Command{
-		Use:   "add CTF_PATH [-f component-archive]...",
+		Use:   "add [ctf-path] [-f component-archive]...",
 		Args:  cobra.RangeArgs(1, 4),
 		Short: "Adds component archives to a ctf",
 		Run: func(cmd *cobra.Command, args []string) {

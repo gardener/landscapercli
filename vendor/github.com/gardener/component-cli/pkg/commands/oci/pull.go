@@ -45,7 +45,7 @@ type PullOptions struct {
 func NewPullCommand(ctx context.Context) *cobra.Command {
 	opts := &PullOptions{}
 	cmd := &cobra.Command{
-		Use:   "pull ARTIFACT_REFERENCE [config | blob digest]",
+		Use:   "pull [artifact reference] [config | blob digest]",
 		Args:  cobra.RangeArgs(1, 2),
 		Short: "Pulls a oci artifact from a registry",
 		Long: `

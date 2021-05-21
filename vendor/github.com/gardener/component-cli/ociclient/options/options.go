@@ -18,7 +18,7 @@ import (
 	"github.com/gardener/component-cli/ociclient/credentials/secretserver"
 )
 
-// Options defines a set of options to create a oci client
+// OCIOptions defines a set of options to create a oci client
 type Options struct {
 	// AllowPlainHttp allows the fallback to http if the oci registry does not support https
 	AllowPlainHttp bool
@@ -40,7 +40,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.ConcourseConfigPath, "cc-config", "", "path to the local concourse config file")
 }
 
-// Build builds a new oci client based on the given options
+// Builds a new oci client based on the given options
 func (o *Options) Build(log logr.Logger, fs vfs.FileSystem) (ociclient.ExtendedClient, cache.Cache, error) {
 	cache, err := cache.NewCache(log, cache.WithBasePath(o.CacheDir))
 	if err != nil {
@@ -48,7 +48,7 @@ func (o *Options) Build(log logr.Logger, fs vfs.FileSystem) (ociclient.ExtendedC
 	}
 
 	ociOpts := []ociclient.Option{
-		ociclient.WithCache(cache),
+		ociclient.WithCache{Cache: cache},
 		ociclient.WithKnownMediaType(cdoci.ComponentDescriptorConfigMimeType),
 		ociclient.WithKnownMediaType(cdoci.ComponentDescriptorTarMimeType),
 		ociclient.WithKnownMediaType(cdoci.ComponentDescriptorJSONMimeType),

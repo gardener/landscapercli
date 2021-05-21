@@ -30,7 +30,7 @@ type TagsOptions struct {
 func NewTagsCommand(ctx context.Context) *cobra.Command {
 	opts := &TagsOptions{}
 	cmd := &cobra.Command{
-		Use:   "tags ARTIFACT_REFERENCE",
+		Use:   "tags [artifact reference]",
 		Args:  cobra.RangeArgs(1, 2),
 		Short: "Lists all tags of artifact reference",
 		Long: `

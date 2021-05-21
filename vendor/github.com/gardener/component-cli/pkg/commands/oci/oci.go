@@ -16,7 +16,6 @@ func NewOCICommand(ctx context.Context) *cobra.Command {
 		Use: "oci",
 	}
 	cmd.AddCommand(NewPullCommand(ctx))
-	cmd.AddCommand(NewCopyCommand(ctx))
 	cmd.AddCommand(NewTagsCommand(ctx))
 	cmd.AddCommand(NewRepositoriesCommand(ctx))
 	return cmd

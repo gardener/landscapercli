@@ -3,7 +3,7 @@ module github.com/gardener/landscapercli
 go 1.16
 
 replace (
-	github.com/gardener/landscaper/apis => github.com/gardener/landscaper/apis v0.7.1-0.20210324110200-6d0050cc7e17
+	github.com/gardener/landscaper/apis => github.com/gardener/landscaper/apis v0.8.2
 	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
 	github.com/mandelsoft/spiff => github.com/mandelsoft/spiff v1.3.0-beta-7.0.20200909122641-3393af1d3804
 	github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.8.0
@@ -13,8 +13,8 @@ replace (
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
-	github.com/gardener/component-cli v0.19.0
-	github.com/gardener/component-spec/bindings-go v0.0.36
+	github.com/gardener/component-cli v0.17.0
+	github.com/gardener/component-spec/bindings-go v0.0.39
 	github.com/gardener/landscaper v0.8.2
 	github.com/gardener/landscaper/apis v0.8.2
 	github.com/go-logr/logr v0.3.0

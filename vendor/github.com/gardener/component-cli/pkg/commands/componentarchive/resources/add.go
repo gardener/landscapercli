@@ -64,7 +64,7 @@ type InternalResourceOptions struct {
 func NewAddCommand(ctx context.Context) *cobra.Command {
 	opts := &Options{}
 	cmd := &cobra.Command{
-		Use:   "add COMPONENT_ARCHIVE_PATH [RESOURCE_PATH...]",
+		Use:   "add [component archive path] [resource-path]...",
 		Args:  cobra.MinimumNArgs(1),
 		Short: "Adds a resource to an component archive",
 		Long: fmt.Sprintf(`
@@ -108,7 +108,6 @@ input:
   compress: true # defaults to false
   exclude: "*.txt"
   mediaType: "application/gzip" # optional, defaulted to "application/x-tar" or "application/gzip" if compress=true 
-  preserveDir: true # optional, defaulted to false; if true, the top level folder "my/path" is included 
 ...
 
 </pre>

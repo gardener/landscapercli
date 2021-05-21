@@ -35,7 +35,7 @@ type ExportOptions struct {
 func NewExportCommand(ctx context.Context) *cobra.Command {
 	opts := &ExportOptions{}
 	cmd := &cobra.Command{
-		Use:   "export COMPONENT_ARCHIVE_PATH [-o output-dir/file] [-f {fs|tar|tgz}]",
+		Use:   "export [component-archive-path] [-o output-dir/file] [-f {fs|tar|tgz}]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Exports a component archive as defined by CTF",
 		Long: `
