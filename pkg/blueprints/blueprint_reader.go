@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
-	"github.com/gardener/landscaper/pkg/kubernetes"
+	"github.com/gardener/landscaper/pkg/api"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
@@ -28,7 +28,7 @@ func (r *BlueprintReader) Read() (*v1alpha1.Blueprint, error) {
 	}
 
 	blueprint := &v1alpha1.Blueprint{}
-	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(data, nil, blueprint); err != nil {
+	if _, _, err := serializer.NewCodecFactory(api.LandscaperScheme).UniversalDecoder().Decode(data, nil, blueprint); err != nil {
 		return nil, err
 	}
 

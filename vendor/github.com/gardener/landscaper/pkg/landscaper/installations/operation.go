@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/gardener/landscaper/pkg/kubernetes"
+	"github.com/gardener/landscaper/pkg/api"
 	"github.com/gardener/landscaper/pkg/landscaper/dataobjects"
 	"github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
@@ -47,18 +47,22 @@ type Operation struct {
 
 	// CurrentOperation is the name of the current operation that is used for the error erporting
 	CurrentOperation string
+
+	// default repo context
+	DefaultRepoContext *cdv2.RepositoryContext
 }
 
 // NewInstallationOperation creates a new installation operation
 func NewInstallationOperation(ctx context.Context, log logr.Logger, c client.Client, scheme *runtime.Scheme, cRegistry ctf.ComponentResolver, inst *Installation) (*Operation, error) {
-	return NewInstallationOperationFromOperation(ctx, lsoperation.NewOperation(log, c, scheme, cRegistry), inst)
+	return NewInstallationOperationFromOperation(ctx, lsoperation.NewOperation(log, c, scheme, cRegistry), inst, nil)
 }
 
 // NewInstallationOperationFromOperation creates a new installation operation from an existing common operation
-func NewInstallationOperationFromOperation(ctx context.Context, op lsoperation.Interface, inst *Installation) (*Operation, error) {
+func NewInstallationOperationFromOperation(ctx context.Context, op lsoperation.Interface, inst *Installation, defaultRepoContext *cdv2.RepositoryContext) (*Operation, error) {
 	instOp := &Operation{
-		Interface: op,
-		Inst:      inst,
+		Interface:          op,
+		Inst:               inst,
+		DefaultRepoContext: defaultRepoContext,
 	}
 
 	if err := instOp.ResolveComponentDescriptors(ctx); err != nil {
@@ -159,7 +163,7 @@ func (o *Operation) GetImportedDataObjects(ctx context.Context) (map[string]*dat
 	dataObjects := map[string]*dataobjects.DataObject{}
 	for _, def := range o.Inst.Info.Spec.Imports.Data {
 
-		do, _, err := GetDataImport(ctx, o.Client(), o.Context().Name, o.Inst, def)
+		do, _, err := GetDataImport(ctx, o.Client(), o.Context().Name, &o.Inst.InstallationBase, def)
 		if err != nil {
 			return nil, err
 		}
@@ -296,6 +300,12 @@ func (o *Operation) GetRootInstallations(ctx context.Context, filter func(lsv1al
 			continue
 		}
 		inst := obj
+
+		if inst.Spec.ComponentDescriptor != nil && inst.Spec.ComponentDescriptor.Reference != nil &&
+			inst.Spec.ComponentDescriptor.Reference.RepositoryContext == nil {
+			inst.Spec.ComponentDescriptor.Reference.RepositoryContext = o.DefaultRepoContext
+		}
+
 		installations = append(installations, &inst)
 	}
 	return installations, nil
@@ -399,7 +409,7 @@ func (o *Operation) CreateOrUpdateExports(ctx context.Context, dataExports []*da
 
 		// we do not need to set controller ownership as we anyway need a separate garbage collection.
 		if _, err := controllerutil.CreateOrUpdate(ctx, o.Client(), raw, func() error {
-			if err := controllerutil.SetOwnerReference(o.Inst.Info, raw, kubernetes.LandscaperScheme); err != nil {
+			if err := controllerutil.SetOwnerReference(o.Inst.Info, raw, api.LandscaperScheme); err != nil {
 				return err
 			}
 			return do.Apply(raw)
@@ -424,7 +434,7 @@ func (o *Operation) CreateOrUpdateExports(ctx context.Context, dataExports []*da
 
 		// we do not need to set controller ownership as we anyway need a separate garbage collection.
 		if _, err := controllerutil.CreateOrUpdate(ctx, o.Client(), raw, func() error {
-			if err := controllerutil.SetOwnerReference(o.Inst.Info, raw, kubernetes.LandscaperScheme); err != nil {
+			if err := controllerutil.SetOwnerReference(o.Inst.Info, raw, api.LandscaperScheme); err != nil {
 				return err
 			}
 			return target.Apply(raw)
@@ -489,7 +499,7 @@ func (o *Operation) createOrUpdateDataImport(ctx context.Context, src string, im
 
 	// we do not need to set controller ownership as we anyway need a separate garbage collection.
 	if _, err := controllerutil.CreateOrUpdate(ctx, o.Client(), raw, func() error {
-		if err := controllerutil.SetOwnerReference(o.Inst.Info, raw, kubernetes.LandscaperScheme); err != nil {
+		if err := controllerutil.SetOwnerReference(o.Inst.Info, raw, api.LandscaperScheme); err != nil {
 			return err
 		}
 		return do.Apply(raw)
@@ -513,7 +523,7 @@ func (o *Operation) createOrUpdateTargetImport(ctx context.Context, src string, 
 		return err
 	}
 	target := &lsv1alpha1.Target{}
-	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(data, nil, target); err != nil {
+	if _, _, err := serializer.NewCodecFactory(api.LandscaperScheme).UniversalDecoder().Decode(data, nil, target); err != nil {
 		return err
 	}
 	intTarget, err := dataobjects.NewFromTarget(target)
@@ -539,7 +549,7 @@ func (o *Operation) createOrUpdateTargetImport(ctx context.Context, src string, 
 
 	// we do not need to set controller ownership as we anyway need a separate garbage collection.
 	if _, err := controllerutil.CreateOrUpdate(ctx, o.Client(), target, func() error {
-		if err := controllerutil.SetOwnerReference(o.Inst.Info, target, kubernetes.LandscaperScheme); err != nil {
+		if err := controllerutil.SetOwnerReference(o.Inst.Info, target, api.LandscaperScheme); err != nil {
 			return err
 		}
 		return intTarget.Apply(target)
@@ -567,7 +577,7 @@ func (o *Operation) GetExportForKey(ctx context.Context, key string) (*dataobjec
 	return dataobjects.NewFromDataObject(rawDO)
 }
 
-func importsAnyExport(exporter, importer *Installation) bool {
+func importsAnyExport(exporter *Installation, importer *InstallationBase) bool {
 	for _, export := range exporter.Info.Spec.Exports.Data {
 		for _, def := range importer.Info.Spec.Imports.Data {
 			if def.DataRef == export.DataRef {

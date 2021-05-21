@@ -26,7 +26,7 @@ import (
 	"github.com/gardener/component-cli/ociclient/cache"
 
 	lsinstall "github.com/gardener/landscaper/apis/core/v1alpha1"
-	"github.com/gardener/landscaper/pkg/kubernetes"
+	"github.com/gardener/landscaper/pkg/api"
 	"github.com/gardener/landscaper/pkg/utils"
 
 	"github.com/gardener/landscapercli/pkg/logger"
@@ -104,7 +104,7 @@ func (o *showOptions) run(ctx context.Context, log logr.Logger) error {
 	}
 
 	def := &lsv1alpha1.Blueprint{}
-	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(defData, nil, def); err != nil {
+	if _, _, err := serializer.NewCodecFactory(api.LandscaperScheme).UniversalDecoder().Decode(defData, nil, def); err != nil {
 		return err
 	}
 

@@ -14,7 +14,7 @@ import (
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
-	"github.com/gardener/landscaper/pkg/kubernetes"
+	"github.com/gardener/landscaper/pkg/api"
 	"github.com/stretchr/testify/assert"
 	yamlv3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
@@ -229,7 +229,7 @@ func (t *installationsCreateTest) applyToCluster() error {
 		return fmt.Errorf("cannot read temp installation file: %w", err)
 	}
 	t.installationToApply = lsv1alpha1.Installation{}
-	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(installationFileData, nil, &t.installationToApply); err != nil {
+	if _, _, err := serializer.NewCodecFactory(api.LandscaperScheme).UniversalDecoder().Decode(installationFileData, nil, &t.installationToApply); err != nil {
 		return fmt.Errorf("cannot decode temp installation: %w", err)
 	}
 
