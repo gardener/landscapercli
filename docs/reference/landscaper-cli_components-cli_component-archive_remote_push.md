@@ -17,7 +17,7 @@ push [baseurl] [componentname] [Version] [path to component descriptor]
 
 
 ```
-landscaper-cli components-cli component-archive remote push [path to component descriptor] [flags]
+landscaper-cli components-cli component-archive remote push COMPONENT_DESCRIPTOR_PATH [flags]
 ```
 
 ### Options

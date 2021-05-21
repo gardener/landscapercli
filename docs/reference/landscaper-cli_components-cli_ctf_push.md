@@ -13,7 +13,7 @@ Note: Currently only component archives are supoprted. Generic OCI Artifacts wil
 
 
 ```
-landscaper-cli components-cli ctf push ctf-path [flags]
+landscaper-cli components-cli ctf push CTF_PATH [flags]
 ```
 
 ### Options

@@ -22,6 +22,7 @@
 ### SEE ALSO
 
 * [landscaper-cli components-cli](landscaper-cli_components-cli.md)	 - commands of the components cli
+* [landscaper-cli components-cli oci copy](landscaper-cli_components-cli_oci_copy.md)	 - Copies a oci artifact from a registry to another
 * [landscaper-cli components-cli oci pull](landscaper-cli_components-cli_oci_pull.md)	 - Pulls a oci artifact from a registry
 * [landscaper-cli components-cli oci repositories](landscaper-cli_components-cli_oci_repositories.md)	 - Lists all repositories of the registry
 * [landscaper-cli components-cli oci tags](landscaper-cli_components-cli_oci_tags.md)	 - Lists all tags of artifact reference

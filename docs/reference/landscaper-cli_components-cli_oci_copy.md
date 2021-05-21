@@ -1,16 +1,16 @@
-## landscaper-cli components-cli oci repositories
+## landscaper-cli components-cli oci copy
 
-Lists all repositories of the registry
+Copies a oci artifact from a registry to another
 
 ### Synopsis
 
 
-repositories lists all known repositories of the registry.
-
+Copy copies a artifact from a source to a target registry.
+The artifact is copied without modification.
 
 
 ```
-landscaper-cli components-cli oci repositories REPOSITORY_PREFIX [flags]
+landscaper-cli components-cli oci copy SOURCE_ARTIFACT_REFERENCE TARGET_ARTIFACT_REFERENCE [flags]
 ```
 
 ### Options
@@ -18,7 +18,7 @@ landscaper-cli components-cli oci repositories REPOSITORY_PREFIX [flags]
 ```
       --allow-plain-http         allows the fallback to http if the oci registry does not support https
       --cc-config string         path to the local concourse config file
-  -h, --help                     help for repositories
+  -h, --help                     help for copy
       --registry-config string   path to the dockerconfig.json with the oci registry authentication information
 ```
 
