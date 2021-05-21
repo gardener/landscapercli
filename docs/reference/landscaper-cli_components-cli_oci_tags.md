@@ -1,19 +1,16 @@
-## landscaper-cli components-cli ctf push
+## landscaper-cli components-cli oci tags
 
-Pushes all archives of a ctf to a remote repository
+Lists all tags of artifact reference
 
 ### Synopsis
 
 
-Push pushes all component archives and oci artifacts to the defined oci repository.
+tags lists all tags for a specific artifact reference that is known by the registry.
 
-The oci repository is automatically determined based on the component/artifact descriptor (repositoryContext, component name and version).
-
-Note: Currently only component archives are supoprted. Generic OCI Artifacts will be supported in the future.
 
 
 ```
-landscaper-cli components-cli ctf push ctf-path [flags]
+landscaper-cli components-cli oci tags [artifact reference] [flags]
 ```
 
 ### Options
@@ -21,10 +18,8 @@ landscaper-cli components-cli ctf push ctf-path [flags]
 ```
       --allow-plain-http         allows the fallback to http if the oci registry does not support https
       --cc-config string         path to the local concourse config file
-  -h, --help                     help for push
+  -h, --help                     help for tags
       --registry-config string   path to the dockerconfig.json with the oci registry authentication information
-      --repo-ctx string          repository context url for component to upload. The repository url will be automatically added to the repository contexts.
-  -t, --tag stringArray          set additional tags on the oci artifact
 ```
 
 ### Options inherited from parent commands
@@ -40,5 +35,5 @@ landscaper-cli components-cli ctf push ctf-path [flags]
 
 ### SEE ALSO
 
-* [landscaper-cli components-cli ctf](landscaper-cli_components-cli_ctf.md)	 - 
+* [landscaper-cli components-cli oci](landscaper-cli_components-cli_oci.md)	 - 
 

@@ -28,6 +28,7 @@ landscaper-cli components-cli component-archive remote push [path to component d
   -h, --help                     help for push
       --registry-config string   path to the dockerconfig.json with the oci registry authentication information
       --repo-ctx string          repository context url for component to upload. The repository url will be automatically added to the repository contexts.
+  -t, --tag stringArray          set additional tags on the oci artifact
 ```
 
 ### Options inherited from parent commands

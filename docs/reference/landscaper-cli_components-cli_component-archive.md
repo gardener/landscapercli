@@ -2,10 +2,23 @@
 
 
 
+```
+landscaper-cli components-cli component-archive [component-archive-path] [ctf-path] [flags]
+```
+
 ### Options
 
 ```
-  -h, --help   help for component-archive
+  -a, --archive string              path to the component archive directory
+      --component-name string       name of the component
+  -c, --component-ref stringArray   path to component references definition
+      --component-version string    version of the component
+      --format CAOutputFormat       archive format of the component archive. Can be "tar" or "tgz" (default tar)
+  -h, --help                        help for component-archive
+      --repo-ctx string             [OPTIONAL] repository context url for component to upload. The repository url will be automatically added to the repository contexts.
+  -r, --resources stringArray       path to resources definition
+  -s, --sources stringArray         path to sources definition
+      --temp-dir string             temporary directory where the component archive is build. Defaults to a os-specific temp dir
 ```
 
 ### Options inherited from parent commands

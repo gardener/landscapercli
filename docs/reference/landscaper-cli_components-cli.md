@@ -25,5 +25,6 @@ commands of the components cli
 * [landscaper-cli components-cli component-archive](landscaper-cli_components-cli_component-archive.md)	 - 
 * [landscaper-cli components-cli ctf](landscaper-cli_components-cli_ctf.md)	 - 
 * [landscaper-cli components-cli image-vector](landscaper-cli_components-cli_image-vector.md)	 - command to add resource from a image vector and retrieve from a component descriptor
+* [landscaper-cli components-cli oci](landscaper-cli_components-cli_oci.md)	 - 
 * [landscaper-cli components-cli version](landscaper-cli_components-cli_version.md)	 - displays the version
 
