@@ -13,7 +13,7 @@ If the given path points to a file, the archive is read as tar or compressed tar
 
 
 ```
-landscaper-cli components-cli component-archive export [component-archive-path] [-o output-dir/file] [-f {fs|tar|tgz}] [flags]
+landscaper-cli components-cli component-archive export COMPONENT_ARCHIVE_PATH [-o output-dir/file] [-f {fs|tar|tgz}] [flags]
 ```
 
 ### Options

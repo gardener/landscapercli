@@ -48,7 +48,7 @@ key:
 
 
 ```
-landscaper-cli components-cli component-archive component-references add [component descriptor path] [component-reference path]... [flags]
+landscaper-cli components-cli component-archive component-references add COMPONENT_ARCHIVE_PATH [COMPONENT_REFERENCE_PATH...] [flags]
 ```
 
 ### Options

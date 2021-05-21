@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
-	"github.com/gardener/landscaper/pkg/kubernetes"
+	"github.com/gardener/landscaper/pkg/api"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/yaml"
 
@@ -159,7 +159,7 @@ func readInstallationFromFile(o *importParametersOptions, installation *lsv1alph
 	if err != nil {
 		return err
 	}
-	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(installationFileData, nil, installation); err != nil {
+	if _, _, err := serializer.NewCodecFactory(api.LandscaperScheme).UniversalDecoder().Decode(installationFileData, nil, installation); err != nil {
 		return err
 	}
 	return nil

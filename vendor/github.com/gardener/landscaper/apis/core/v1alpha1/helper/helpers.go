@@ -6,10 +6,18 @@ package helper
 
 import (
 	"reflect"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
+)
+
+type TimestampAnnotation string
+
+const (
+	ReconcileTimestamp = TimestampAnnotation(v1alpha1.ReconcileTimestampAnnotation)
+	AbortTimestamp     = TimestampAnnotation(v1alpha1.AbortTimestampAnnotation)
 )
 
 // HasOperation checks if the obj has the given operation annotation
@@ -29,6 +37,20 @@ func GetOperation(obj metav1.ObjectMeta) string {
 // SetOperation sets the given operation annotation on aa object.
 func SetOperation(obj *metav1.ObjectMeta, op v1alpha1.Operation) {
 	metav1.SetMetaDataAnnotation(obj, v1alpha1.OperationAnnotation, string(op))
+}
+
+func GetTimestampAnnotation(obj metav1.ObjectMeta, ta TimestampAnnotation) (time.Time, error) {
+	return time.Parse(time.RFC3339, obj.Annotations[string(ta)])
+}
+
+// SetTimestampAnnotationNow sets the timeout annotation with the current timestamp.
+func SetTimestampAnnotationNow(obj *metav1.ObjectMeta, ta TimestampAnnotation) {
+	metav1.SetMetaDataAnnotation(obj, string(ta), time.Now().Format(time.RFC3339))
+}
+
+func SetAbortOperationAndTimestamp(obj *metav1.ObjectMeta) {
+	SetOperation(obj, v1alpha1.AbortOperation)
+	SetTimestampAnnotationNow(obj, AbortTimestamp)
 }
 
 // InitCondition initializes a new Condition with an Unknown status.

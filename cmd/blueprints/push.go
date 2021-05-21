@@ -24,7 +24,7 @@ import (
 	"github.com/gardener/landscaper/apis/core"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/apis/core/validation"
-	"github.com/gardener/landscaper/pkg/kubernetes"
+	"github.com/gardener/landscaper/pkg/api"
 	"github.com/gardener/landscaper/pkg/landscaper/blueprints/bputils"
 
 	"github.com/gardener/landscapercli/pkg/logger"
@@ -87,7 +87,7 @@ func (o *pushOptions) run(ctx context.Context, log logr.Logger) error {
 	}
 
 	ociClient, err := ociclient.NewClient(log,
-		ociclient.WithCache{Cache: cache},
+		ociclient.WithCache(cache),
 		ociclient.WithKnownMediaType(lsv1alpha1.BlueprintArtifactsMediaType),
 		ociclient.AllowPlainHttp(o.allowPlainHttp))
 	if err != nil {
@@ -123,7 +123,7 @@ func (o *pushOptions) Validate() error {
 		return err
 	}
 	blueprint := &core.Blueprint{}
-	if _, _, err := serializer.NewCodecFactory(kubernetes.LandscaperScheme).UniversalDecoder().Decode(data, nil, blueprint); err != nil {
+	if _, _, err := serializer.NewCodecFactory(api.LandscaperScheme).UniversalDecoder().Decode(data, nil, blueprint); err != nil {
 		return err
 	}
 

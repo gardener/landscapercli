@@ -45,6 +45,7 @@ input:
   compress: true # defaults to false
   exclude: "*.txt"
   mediaType: "application/gzip" # optional, defaulted to "application/x-tar" or "application/gzip" if compress=true 
+  preserveDir: true # optional, defaulted to false; if true, the top level folder "my/path" is included 
 ...
 
 </pre>
@@ -72,7 +73,7 @@ key:
 
 
 ```
-landscaper-cli components-cli component-archive resources add [component archive path] [resource-path]... [flags]
+landscaper-cli components-cli component-archive resources add COMPONENT_ARCHIVE_PATH [RESOURCE_PATH...] [flags]
 ```
 
 ### Options

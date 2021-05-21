@@ -13,7 +13,7 @@ Note: Currently only component archives are supoprted. Generic OCI Artifacts wil
 
 
 ```
-landscaper-cli components-cli ctf push ctf-path [flags]
+landscaper-cli components-cli ctf push CTF_PATH [flags]
 ```
 
 ### Options
@@ -24,6 +24,7 @@ landscaper-cli components-cli ctf push ctf-path [flags]
   -h, --help                     help for push
       --registry-config string   path to the dockerconfig.json with the oci registry authentication information
       --repo-ctx string          repository context url for component to upload. The repository url will be automatically added to the repository contexts.
+  -t, --tag stringArray          set additional tags on the oci artifact
 ```
 
 ### Options inherited from parent commands

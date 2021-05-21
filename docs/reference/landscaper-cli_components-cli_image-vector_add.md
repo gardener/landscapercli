@@ -43,7 +43,7 @@ resources:
 2. The image is defined by another component so the image is added as label ("imagevector.gardener.cloud/images") to the "componentReference".
 
 Images that are defined by other components can be specified 
-1. [DEPRECATED] when the image's repository matches the given "--component-prefixes"
+1. when the image's repository matches the given "--component-prefixes"
 2. the image is labeled with "imagevector.gardener.cloud/component-reference"
 
 If the component reference is not yet defined it will be automatically added.
@@ -86,10 +86,10 @@ componentReferences:
 </pre>
 
 3. The image is a generic dependency where the actual images are defined by the overwrite.
-A generic dependency image is not part of a component descriptors resource but will be added as label ("imagevector.gardener.cloud/images") to the component descriptor. 
+A generic dependency image is not part of a component descriptor's resource but will be added as label ("imagevector.gardener.cloud/images") to the component descriptor. 
 
 Generic dependencies can be defined by
-1. [DEPRECATED] defined as "--generic-dependency=<image name>"
+1. defined as "--generic-dependency=<image name>"
 2. the label "imagevector.gardener.cloud/generic"
 
 <pre>
@@ -113,7 +113,6 @@ component:
 	  - name: hyperkube
 	    repository: k8s.gcr.io/hyperkube
 	    sourceRepository: github.com/kubernetes/kubernetes
-	    tag: v0.10.0
 	    targetVersion: '< 1.19'
 </pre>
 

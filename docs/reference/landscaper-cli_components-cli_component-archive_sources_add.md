@@ -34,6 +34,7 @@ input:
   path: /my/path
   compress: true # defaults to false
   exclude: "*.txt"
+  preserveDir: true # optional, defaulted to false; if true, the top level folder "my/path" is included
 ...
 
 </pre>
@@ -61,7 +62,7 @@ key:
 
 
 ```
-landscaper-cli components-cli component-archive sources add [component descriptor path] [source file]... [flags]
+landscaper-cli components-cli component-archive sources add COMPONENT_ARCHIVE_PATH [source file]... [flags]
 ```
 
 ### Options
