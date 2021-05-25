@@ -8,12 +8,12 @@ The general two steps for installing software components from an OCI registry vi
 > More background information can be found in the [Landscaper docs](https://github.com/gardener/landscaper/blob/master/docs/README.md).
 
 ## Creating targets
-The command `landscaper-cli targets create [target type]` creates a target object of the specified target type. Depending on the target type, different additional CLI parameters will be required. E.g. when creating a target of type `landscaper.gardener.cloud/kubernetes-cluster` which points to a K8s cluster, the kubeconfig for this cluster must be set via the CLI parameter `--kubeconfig`.
+The command `landscaper-cli targets create [target type]` creates a target object of the specified target type. Depending on the target type, different additional CLI parameters will be required. E.g. when creating a target of type `landscaper.gardener.cloud/kubernetes-cluster` which points to a K8s cluster, the kubeconfig for this cluster must be set via the CLI parameter `--target-kubeconfig`.
 
-The following command generates a Landscaper target of type `landscaper.gardener.cloud/kubernetes-cluster`, which points to the K8s cluster defined by the `--kubeconfig` parameter:
+The following command generates a Landscaper target of type `landscaper.gardener.cloud/kubernetes-cluster`, which points to the K8s cluster defined by the `--target-kubeconfig` parameter:
 
 ```
-landscaper-cli targets create kubernetes-cluster --name my-target --namespace my-namespace --kubeconfig [path to kubeconfig] > ./my-target.yaml
+landscaper-cli targets create kubernetes-cluster --name my-target --namespace my-namespace --target-kubeconfig [path to kubeconfig] > ./my-target.yaml
 ```
 
 The command output is written to `./my-target.yaml`:
