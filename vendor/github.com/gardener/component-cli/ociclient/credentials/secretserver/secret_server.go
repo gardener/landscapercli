@@ -220,7 +220,7 @@ func (ss *SecretServer) read() (io.ReadCloser, error) {
 		}
 		block, err := aes.NewCipher(ss.key)
 		if err != nil {
-			return nil, fmt.Errorf("unable to create ciphr for %q; %w", ss.cipherAlgorithm, err)
+			return nil, fmt.Errorf("unable to create cipher for %q; %w", ss.cipherAlgorithm, err)
 		}
 		dst := make([]byte, srcBuf.Len())
 		if err := ECBDecrypt(block, dst, srcBuf.Bytes()); err != nil {
@@ -285,7 +285,7 @@ func newKeyring(keyring *credentials.GeneralOciKeyring, config *SecretServerConf
 func ECBDecrypt(block cipher.Block, dst, src []byte) error {
 	blockSize := block.BlockSize()
 	if len(src)%blockSize != 0 {
-		return errors.New("crypto/cipher: input not full blocks")
+		return fmt.Errorf("crypto/cipher: input not full blocks (blocksize: %d; src: %d)", blockSize, len(src))
 	}
 	if len(dst) < len(src) {
 		return errors.New("crypto/cipher: output smaller than input")

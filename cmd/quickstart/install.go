@@ -297,7 +297,8 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 
 	chartPath := path.Join(tempDir, fileInfos[0].Name())
 
-	installCommand := fmt.Sprintf("helm upgrade --install --namespace %s landscaper %s --kubeconfig %s -f %s", o.namespace, chartPath, o.kubeconfigPath, o.landscaperValuesPath)
+	installCommand := fmt.Sprintf("helm upgrade --install --namespace %s landscaper %s --kubeconfig %s -f %s",
+		o.namespace, chartPath, o.kubeconfigPath, o.landscaperValuesPath)
 
 	if o.instRegistryIngress {
 		// when installing the ingress, we must add the registry credentials to the Landscaper values file
