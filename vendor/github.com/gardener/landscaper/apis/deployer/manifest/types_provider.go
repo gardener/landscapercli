@@ -9,6 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+
+	lscore "github.com/gardener/landscaper/apis/core"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -29,9 +31,9 @@ type ProviderConfiguration struct {
 	// DeleteTimeout is the time to wait before giving up on a resource to be deleted.
 	// Defaults to 180s.
 	// +optional
-	DeleteTimeout string `json:"deleteTimeout,omitempty"`
+	DeleteTimeout *lscore.Duration `json:"deleteTimeout,omitempty"`
 	// Manifests contains a list of manifests that should be applied in the target cluster
-	Manifests []Manifest `json:"manifests,omitempty"`
+	Manifests Manifests `json:"manifests,omitempty"`
 }
 
 // ManifestPolicy defines the strategy how a manifest should be managed
@@ -51,6 +53,9 @@ const (
 	// IgnorePolicy defines a policy where the resource is completely ignored by the deployer.
 	IgnorePolicy ManifestPolicy = "ignore"
 )
+
+// Manifests is a list of manifests.
+type Manifests []Manifest
 
 // Manifest defines a manifest that is managed by the deployer.
 type Manifest struct {
@@ -76,7 +81,7 @@ type HealthChecksConfiguration struct {
 	// Timeout is the time to wait before giving up on a resource to be healthy.
 	// Defaults to 180s.
 	// +optional
-	Timeout string `json:"timeout,omitempty"`
+	Timeout *lsv1alpha1.Duration `json:"timeout,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

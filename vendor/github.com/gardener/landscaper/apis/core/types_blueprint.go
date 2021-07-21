@@ -11,6 +11,24 @@ import (
 // BlueprintResourceType is the name of the blueprint resource defined in component descriptors.
 const BlueprintResourceType = "blueprint"
 
+// ImportType is a string alias
+type ImportType string
+
+// ExportType is a string alias
+type ExportType string
+
+// ImportTypeData is the import type for data imports
+const ImportTypeData = ImportType("data")
+
+// ImportTypeTarget is the import type for target imports
+const ImportTypeTarget = ImportType("target")
+
+// ExportTypeData is the export type for data exports
+const ExportTypeData = ExportType(ImportTypeData)
+
+// ExportTypeTarget is the export type for target exports
+const ExportTypeTarget = ExportType(ImportTypeTarget)
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -34,15 +52,21 @@ type Blueprint struct {
 
 	// Imports define the import values that are needed for the definition and its sub-definitions.
 	// +optional
-	Imports []ImportDefinition `json:"imports,omitempty"`
+	Imports ImportDefinitionList `json:"imports,omitempty"`
 
 	// Exports define the exported values of the definition and its sub-definitions
 	// +optional
-	Exports []ExportDefinition `json:"exports,omitempty"`
+	Exports ExportDefinitionList `json:"exports,omitempty"`
 
 	// Subinstallations defines an optional list of subinstallations (for aggregating blueprints).
 	// +optional
-	Subinstallations []SubinstallationTemplate `json:"subinstallations,omitempty"`
+	Subinstallations SubinstallationTemplateList `json:"subinstallations,omitempty"`
+
+	// SubinstallationExecutions defines the templating executors that are sequentially executed by the landscaper.
+	// The templates must return a list of installation templates.
+	// Both subinstallations and SubinstallationExecutions are valid options and will be merged.
+	// +optional
+	SubinstallationExecutions []TemplateExecutor `json:"subinstallationExecutions,omitempty"`
 
 	// DeployExecutions defines the templating executors that are sequentially executed by the landscaper.
 	// The templates must return a list of deploy item templates.
@@ -54,9 +78,17 @@ type Blueprint struct {
 	ExportExecutions []TemplateExecutor `json:"exportExecutions,omitempty"`
 }
 
+// ImportDefinitionList defines a list of import defiinitions.
+type ImportDefinitionList []ImportDefinition
+
 // ImportDefinition defines a imported value
 type ImportDefinition struct {
 	FieldValueDefinition `json:",inline"`
+
+	// Type specifies which kind of object is being imported.
+	// This field should be set and will likely be mandatory in future.
+	// +optional
+	Type ImportType `json:"type,omitempty"`
 
 	// Required specifies whether the import is required for the component to run.
 	// Defaults to true.
@@ -74,9 +106,17 @@ type ImportDefinition struct {
 	ConditionalImports []ImportDefinition `json:"imports,omitempty"`
 }
 
+// ExportDefinitionList defines a list of export definitions.
+type ExportDefinitionList []ExportDefinition
+
 // ExportDefinition defines a exported value
 type ExportDefinition struct {
 	FieldValueDefinition `json:",inline"`
+
+	// Type specifies which kind of object is being exported.
+	// This field should be set and will likely be mandatory in future.
+	// +optional
+	Type ExportType `json:"type,omitempty"`
 }
 
 // FieldValueDefinition defines a im- or exported field.
@@ -139,6 +179,9 @@ type TemplateExecutor struct {
 	// + optional
 	Template AnyJSON `json:"template,omitempty"`
 }
+
+// SubinstallationTemplateList is a list of installation templates
+type SubinstallationTemplateList []SubinstallationTemplate
 
 // SubinstallationTemplate defines a subinstallation template.
 type SubinstallationTemplate struct {

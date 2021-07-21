@@ -19,6 +19,7 @@ func NewRemoteCommand(ctx context.Context) *cobra.Command {
 
 	cmd.AddCommand(NewPushCommand(ctx))
 	cmd.AddCommand(NewGetCommand(ctx))
+	cmd.AddCommand(NewCopyCommand(ctx))
 
 	return cmd
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/gardener/component-cli/ociclient/cache"
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/osfs"
-	"github.com/mandelsoft/vfs/pkg/projectionfs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -81,14 +80,13 @@ func (o *pushOptions) run(ctx context.Context, log logr.Logger) error {
 		return err
 	}
 
-	defManifest, err := bputils.BuildNewDefinition(cache, osfs.New(), o.blueprintPath)
+	defManifest, err := bputils.BuildNewBlueprint(cache, osfs.New(), o.blueprintPath)
 	if err != nil {
 		return err
 	}
 
 	ociClient, err := ociclient.NewClient(log,
 		ociclient.WithCache(cache),
-		ociclient.WithKnownMediaType(lsv1alpha1.BlueprintArtifactsMediaType),
 		ociclient.AllowPlainHttp(o.allowPlainHttp))
 	if err != nil {
 		return err
@@ -127,11 +125,7 @@ func (o *pushOptions) Validate() error {
 		return err
 	}
 
-	blueprintFs, err := projectionfs.New(osfs.New(), o.blueprintPath)
-	if err != nil {
-		return fmt.Errorf("unable to construct blueprint filesystem: %w", err)
-	}
-	if errList := validation.ValidateBlueprint(blueprintFs, blueprint); len(errList) != 0 {
+	if errList := validation.ValidateBlueprint(blueprint); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
 

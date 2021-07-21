@@ -8,7 +8,7 @@ import (
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
-	logrtesting "github.com/go-logr/logr/testing"
+	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/osfs"
 	"github.com/mandelsoft/vfs/pkg/projectionfs"
 	"github.com/stretchr/testify/assert"
@@ -114,18 +114,15 @@ func TestResolve(t *testing.T) {
 		},
 	}
 
-	fakeCompRepo, err := componentsregistry.NewLocalClient(logrtesting.NullLogger{}, "./testdata/registry")
+	fakeCompRepo, err := componentsregistry.NewLocalClient(logr.Discard(), "./testdata/registry")
 	assert.NoError(t, err)
 
-	repoCtx := cdv2.RepositoryContext{
-		Type:    "local",
-		BaseURL: "./testdata/registry",
-	}
+	repoCtx, _ := cdv2.NewUnstructured(componentsregistry.NewLocalRepository("./testdata/registry"))
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			cd, _, err := fakeCompRepo.Resolve(context.TODO(), repoCtx, tt.componentName, "v0.1.0")
+			cd, err := fakeCompRepo.Resolve(context.TODO(), &repoCtx, tt.componentName, "v0.1.0")
 			assert.NoError(t, err)
 
 			bpDir := path.Join(tt.assetsPath, "blueprint")

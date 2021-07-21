@@ -5,11 +5,12 @@
 package blueprints_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
-	logrtesting "github.com/go-logr/logr/testing"
+	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/layerfs"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
 	"github.com/mandelsoft/vfs/pkg/osfs"
@@ -36,9 +37,9 @@ func TestRenderCommandWithComponentDescriptor(t *testing.T) {
 		OutputFormat:            blueprints.YAMLOut,
 	}
 
-	a.NoError(renderOpts.Complete(logrtesting.NullLogger{}, []string{"./blueprint"}, testdataFs))
+	a.NoError(renderOpts.Complete(logr.Discard(), []string{"./blueprint"}, testdataFs))
 	fail(a.Equal("./blueprint", renderOpts.BlueprintPath))
-	fail(a.NoError(renderOpts.Run(logrtesting.NullLogger{}, testdataFs)))
+	fail(a.NoError(renderOpts.Run(context.TODO(), logr.Discard(), testdataFs)))
 
 	renderedFiles, err := vfs.ReadDir(testdataFs, filepath.Join(renderOpts.OutDir, blueprints.DeployItemOutputDir))
 	fail(a.NoError(err))
@@ -72,9 +73,9 @@ func TestRenderCommandWithDefaults(t *testing.T) {
 		OutputFormat: blueprints.YAMLOut,
 	}
 
-	a.NoError(renderOpts.Complete(logrtesting.NullLogger{}, []string{"./blueprint"}, testdataFs))
+	a.NoError(renderOpts.Complete(logr.Discard(), []string{"./blueprint"}, testdataFs))
 	fail(a.Equal("./blueprint", renderOpts.BlueprintPath))
-	fail(a.NoError(renderOpts.Run(logrtesting.NullLogger{}, testdataFs)))
+	fail(a.NoError(renderOpts.Run(context.TODO(), logr.Discard(), testdataFs)))
 
 	renderedFiles, err := vfs.ReadDir(testdataFs, filepath.Join(renderOpts.OutDir, blueprints.DeployItemOutputDir))
 	fail(a.NoError(err))
@@ -123,9 +124,9 @@ imports:
 `
 		fail(a.NoError(vfs.WriteFile(testdataFs, renderOpts.ValueFiles[0], []byte(importData), os.ModePerm)))
 
-		a.NoError(renderOpts.Complete(logrtesting.NullLogger{}, []string{"./blueprint"}, testdataFs))
+		a.NoError(renderOpts.Complete(logr.Discard(), []string{"./blueprint"}, testdataFs))
 		fail(a.Equal("./blueprint", renderOpts.BlueprintPath))
-		fail(a.Error(renderOpts.Run(logrtesting.NullLogger{}, testdataFs)))
+		fail(a.Error(renderOpts.Run(context.TODO(), logr.Discard(), testdataFs)))
 	})
 
 	t.Run("should validate a import of an invalid target type", func(t *testing.T) {
@@ -154,9 +155,9 @@ imports:
 `
 		fail(a.NoError(vfs.WriteFile(testdataFs, renderOpts.ValueFiles[0], []byte(importData), os.ModePerm)))
 
-		a.NoError(renderOpts.Complete(logrtesting.NullLogger{}, []string{"./blueprint"}, testdataFs))
+		a.NoError(renderOpts.Complete(logr.Discard(), []string{"./blueprint"}, testdataFs))
 		fail(a.Equal("./blueprint", renderOpts.BlueprintPath))
-		fail(a.Error(renderOpts.Run(logrtesting.NullLogger{}, testdataFs)))
+		fail(a.Error(renderOpts.Run(context.TODO(), logr.Discard(), testdataFs)))
 	})
 
 	t.Run("should validate a required import", func(t *testing.T) {
@@ -184,9 +185,9 @@ imports:
 `
 		fail(a.NoError(vfs.WriteFile(testdataFs, renderOpts.ValueFiles[0], []byte(importData), os.ModePerm)))
 
-		a.NoError(renderOpts.Complete(logrtesting.NullLogger{}, []string{"./blueprint"}, testdataFs))
+		a.NoError(renderOpts.Complete(logr.Discard(), []string{"./blueprint"}, testdataFs))
 		fail(a.Equal("./blueprint", renderOpts.BlueprintPath))
-		fail(a.Error(renderOpts.Run(logrtesting.NullLogger{}, testdataFs)))
+		fail(a.Error(renderOpts.Run(context.TODO(), logr.Discard(), testdataFs)))
 	})
 
 }

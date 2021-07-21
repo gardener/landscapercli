@@ -83,6 +83,10 @@ type DeployItemStatus struct {
 	// +optional
 	LastReconcileTime *metav1.Time `json:"lastReconcileTime,omitempty"`
 
+	// Deployer describes the deployer that has reconciled the deploy item.
+	// +optional
+	Deployer DeployerInformation `json:"deployer,omitempty"`
+
 	// ProviderStatus contains the provider specific status
 	// +optional
 	ProviderStatus *runtime.RawExtension `json:"providerStatus,omitempty"`
@@ -92,10 +96,25 @@ type DeployItemStatus struct {
 	ExportReference *ObjectReference `json:"exportRef,omitempty"`
 }
 
+// DeployerInformation holds additional information about the deployer that
+// has reconciled or is reconciling the deploy item.
+type DeployerInformation struct {
+	// Identity describes the unique identity of the deployer.
+	Identity string `json:"identity"`
+	// Name is the name of the deployer.
+	Name string `json:"name"`
+	// Version is the version of the deployer.
+	Version string `json:"version"`
+}
+
 // TargetSelector describes a selector that matches specific targets.
 // +k8s:deepcopy-gen=true
 type TargetSelector struct {
-	// Annotations matches a target based on its annotations.
+	// Targets defines a list of specific targets (name and namespace)
+	// that should be reconciled.
+	// +optional
+	Targets []ObjectReference `json:"targets,omitempty"`
+	// Annotations matches a target based on annotations.
 	// +optional
 	Annotations []Requirement `json:"annotations,omitempty"`
 	// Labels matches a target based on its labels.

@@ -7,10 +7,12 @@ package utils
 import (
 	"encoding/json"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 
 	"github.com/mandelsoft/vfs/pkg/vfs"
+	"sigs.k8s.io/yaml"
 )
 
 // MergeMaps takes two maps <a>, <b> and merges them. If <b> defines a value with a key
@@ -72,6 +74,25 @@ func StringIsOneOf(in string, s ...string) bool {
 	return false
 }
 
+// GetSizeOfDirectory returns the size of all files in a root directory.
+func GetSizeOfDirectory(filesystem vfs.FileSystem, root string) (int64, error) {
+	var size int64
+	err := vfs.Walk(filesystem, root, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		size = size + info.Size()
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	return size, nil
+}
+
 // CopyFS copies all files and directories of a filesystem to another.
 func CopyFS(src, dst vfs.FileSystem, srcPath, dstPath string) error {
 	return vfs.Walk(src, srcPath, func(path string, info os.FileInfo, err error) error {
@@ -103,4 +124,14 @@ func CopyFS(src, dst vfs.FileSystem, srcPath, dstPath string) error {
 		}
 		return nil
 	})
+}
+
+// YAMLReadFromFile reads a file from a filesystem and decodes it into the given obj
+// using YAMl/JSON decoder.
+func YAMLReadFromFile(fs vfs.FileSystem, path string, obj interface{}) error {
+	data, err := vfs.ReadFile(fs, path)
+	if err != nil {
+		return err
+	}
+	return yaml.Unmarshal(data, obj)
 }

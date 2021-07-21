@@ -24,7 +24,7 @@ import (
 	"github.com/mandelsoft/vfs/pkg/vfs"
 	"github.com/opencontainers/go-digest"
 
-	"github.com/gardener/landscaper/pkg/utils"
+	"github.com/gardener/landscaper/pkg/utils/tar"
 )
 
 // LocalRepositoryType defines the local repository context type.
@@ -33,8 +33,24 @@ const LocalRepositoryType = "local"
 // FilesystemBlobType is the access type of a blob that is located in a filesystem.
 const FilesystemBlobType = "filesystemBlob"
 
+// LocalRepository describes a local repository
+type LocalRepository struct {
+	cdv2.ObjectType
+	BaseURL string `json:"baseUrl"`
+}
+
+// NewLocalRepository creates a new local repository
+func NewLocalRepository(baseUrl string) *LocalRepository {
+	return &LocalRepository{
+		ObjectType: cdv2.ObjectType{
+			Type: LocalRepositoryType,
+		},
+		BaseURL: baseUrl,
+	}
+}
+
 // NewFilesystemBlobAccess creates a new localFilesystemBlob accessor.
-func NewFilesystemBlobAccess(path string) cdv2.TypedObjectAccessor {
+func NewFilesystemBlobAccess(path string) *FilesystemBlobAccess {
 	return &FilesystemBlobAccess{
 		ObjectType: cdv2.ObjectType{
 			Type: FilesystemBlobType,
@@ -89,10 +105,23 @@ func (c *localClient) Type() string {
 	return LocalRepositoryType
 }
 
-// Get resolves a reference and returns the component descriptor.
-func (c *localClient) Resolve(_ context.Context, repoCtx cdv2.RepositoryContext, name, version string) (*cdv2.ComponentDescriptor, ctf.BlobResolver, error) {
-	if repoCtx.Type != LocalRepositoryType {
-		return nil, nil, fmt.Errorf("unsupported type %s expected %s", repoCtx.Type, LocalRepositoryType)
+// Resolve resolves a reference and returns the component descriptor.
+func (c *localClient) Resolve(_ context.Context, repoCtx cdv2.Repository, name, version string) (*cdv2.ComponentDescriptor, error) {
+	if repoCtx.GetType() != LocalRepositoryType {
+		return nil, fmt.Errorf("unsupported type %s expected %s", repoCtx.GetType(), LocalRepositoryType)
+	}
+
+	cd, _, err := c.searchInFs(name, version)
+	if err != nil {
+		return nil, err
+	}
+	return cd, nil
+}
+
+// ResolveWithBlobResolver resolves a reference and returns the component descriptor.
+func (c *localClient) ResolveWithBlobResolver(_ context.Context, repoCtx cdv2.Repository, name, version string) (*cdv2.ComponentDescriptor, ctf.BlobResolver, error) {
+	if repoCtx.GetType() != LocalRepositoryType {
+		return nil, nil, fmt.Errorf("unsupported type %s expected %s", repoCtx.GetType(), LocalRepositoryType)
 	}
 
 	cd, localFilesystemBlobResolver, err := c.searchInFs(name, version)
@@ -142,9 +171,7 @@ func (c *localClient) searchInFs(name, version string) (*cdv2.ComponentDescripto
 			if err != nil {
 				return err
 			}
-			resolver = &LocalFilesystemBlobResolver{
-				BaseFilesystemBlobResolver: BaseFilesystemBlobResolver{fs: fs},
-			}
+			resolver = NewLocalFilesystemBlobResolver(fs)
 			return foundErr
 		}
 		return nil
@@ -222,6 +249,13 @@ type LocalFilesystemBlobResolver struct {
 	BaseFilesystemBlobResolver
 }
 
+// NewLocalFilesystemBlobResolver creates a new local filesystem blob resolver.
+func NewLocalFilesystemBlobResolver(fs vfs.FileSystem) *LocalFilesystemBlobResolver {
+	return &LocalFilesystemBlobResolver{
+		BaseFilesystemBlobResolver: BaseFilesystemBlobResolver{fs: fs},
+	}
+}
+
 func (ca *LocalFilesystemBlobResolver) CanResolve(resource cdv2.Resource) bool {
 	return resource.Access != nil && resource.Access.GetType() == cdv2.LocalFilesystemBlobType
 }
@@ -269,6 +303,9 @@ func (ca *LocalFilesystemBlobResolver) resolve(res cdv2.Resource) (*ctf.BlobInfo
 		return nil, nil, err
 	}
 	info.MediaType = res.Type
+	if len(localFSAccess.MediaType) != 0 {
+		info.MediaType = localFSAccess.MediaType
+	}
 	return info, file, nil
 }
 
@@ -277,7 +314,7 @@ type BaseFilesystemBlobResolver struct {
 	fs vfs.FileSystem
 }
 
-// ResolveFromFs
+// ResolveFromFs resolves a blob from a given path.
 func (res *BaseFilesystemBlobResolver) ResolveFromFs(blobpath string) (*ctf.BlobInfo, io.ReadCloser, error) {
 	info, err := res.fs.Stat(blobpath)
 	if err != nil {
@@ -285,7 +322,7 @@ func (res *BaseFilesystemBlobResolver) ResolveFromFs(blobpath string) (*ctf.Blob
 	}
 	if info.IsDir() {
 		var data bytes.Buffer
-		if err := utils.BuildTarGzip(res.fs, blobpath, &data); err != nil {
+		if err := tar.BuildTarGzip(res.fs, blobpath, &data); err != nil {
 			return nil, nil, fmt.Errorf("unable to build tar gz: %w", err)
 		}
 		return &ctf.BlobInfo{

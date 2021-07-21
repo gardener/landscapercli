@@ -6,7 +6,6 @@ package components
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -279,12 +278,7 @@ func (o *addContainerDeployItemOptions) addResource() error {
 }
 
 func (o *addContainerDeployItemOptions) createResources() (*cdresources.ResourceOptions, error) {
-	ociRegistryRef := cd.OCIRegistryAccess{
-		ObjectType:     cd.ObjectType{Type: cd.OCIRegistryType},
-		ImageReference: o.image,
-	}
-
-	data, err := json.Marshal(&ociRegistryRef)
+	access, err := cd.NewUnstructured(cd.NewOCIRegistryAccess(o.image))
 	if err != nil {
 		return nil, err
 	}
@@ -298,10 +292,7 @@ func (o *addContainerDeployItemOptions) createResources() (*cdresources.Resource
 				Type:    ociImage,
 			},
 			Relation: cd.ExternalRelation,
-			Access: &cd.UnstructuredAccessType{
-				ObjectType: cd.ObjectType{Type: cd.OCIRegistryType},
-				Raw:        data,
-			},
+			Access:   &access,
 		},
 	}
 

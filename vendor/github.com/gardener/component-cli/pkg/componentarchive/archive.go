@@ -26,9 +26,10 @@ import (
 type BuilderOptions struct {
 	ComponentArchivePath string
 
-	Name    string
-	Version string
-	BaseUrl string
+	Name                 string
+	Version              string
+	BaseUrl              string
+	ComponentNameMapping string
 
 	Overwrite bool
 }
@@ -38,6 +39,7 @@ func (o *BuilderOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, "component-name", "", "name of the component")
 	fs.StringVar(&o.Version, "component-version", "", "version of the component")
 	fs.StringVar(&o.BaseUrl, "repo-ctx", "", "[OPTIONAL] repository context url for component to upload. The repository url will be automatically added to the repository contexts.")
+	fs.StringVar(&o.ComponentNameMapping, "component-name-mapping", string(cdv2.OCIRegistryURLPathMapping), "[OPTIONAL] repository context name mapping")
 }
 
 // Default applies defaults to the builder options
@@ -57,6 +59,12 @@ func (o *BuilderOptions) Validate() error {
 	if len(o.Name) != 0 {
 		if len(o.Version) == 0 {
 			return errors.New("a version has to be provided for a minimal component descriptor")
+		}
+	}
+	if len(o.ComponentNameMapping) != 0 {
+		if o.ComponentNameMapping != string(cdv2.OCIRegistryURLPathMapping) &&
+			o.ComponentNameMapping != string(cdv2.OCIRegistryDigestMapping) {
+			return fmt.Errorf("unknown component name mapping method %q", o.ComponentNameMapping)
 		}
 	}
 	return nil
@@ -104,14 +112,13 @@ func (o *BuilderOptions) Build(fs vfs.FileSystem) (*ctf.ComponentArchive, error)
 	cd.ComponentSpec.Name = o.Name
 	cd.ComponentSpec.Version = o.Version
 	cd.Provider = cdv2.InternalProvider
-	cd.RepositoryContexts = make([]cdv2.RepositoryContext, 0)
+	cd.RepositoryContexts = make([]*cdv2.UnstructuredTypedObject, 0)
 	if len(o.BaseUrl) != 0 {
-		cd.RepositoryContexts = []cdv2.RepositoryContext{
-			{
-				Type:    cdv2.OCIRegistryType,
-				BaseURL: o.BaseUrl,
-			},
+		repoCtx, err := cdv2.NewUnstructured(cdv2.NewOCIRegistryRepository(o.BaseUrl, cdv2.ComponentNameMapping(o.ComponentNameMapping)))
+		if err != nil {
+			return nil, fmt.Errorf("unable to create repository context: %w", err)
 		}
+		cd.RepositoryContexts = []*cdv2.UnstructuredTypedObject{&repoCtx}
 	}
 	if err := cdv2.DefaultComponent(cd); err != nil {
 		utils.PrintPrettyYaml(cd, true)

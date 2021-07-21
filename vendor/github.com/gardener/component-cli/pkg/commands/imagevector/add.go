@@ -15,6 +15,9 @@ import (
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	cdvalidation "github.com/gardener/component-spec/bindings-go/apis/v2/validation"
 	"github.com/gardener/component-spec/bindings-go/codec"
+	"github.com/gardener/component-spec/bindings-go/ctf"
+	cdoci "github.com/gardener/component-spec/bindings-go/oci"
+	iv "github.com/gardener/image-vector/pkg"
 	"github.com/ghodss/yaml"
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/osfs"
@@ -22,8 +25,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	ociopts "github.com/gardener/component-cli/ociclient/options"
+	"github.com/gardener/component-cli/pkg/components"
+
 	"github.com/gardener/component-cli/pkg/commands/constants"
-	"github.com/gardener/component-cli/pkg/imagevector"
 	"github.com/gardener/component-cli/pkg/logger"
 	"github.com/gardener/component-cli/pkg/utils"
 )
@@ -35,10 +40,13 @@ type AddOptions struct {
 	// ImageVectorPath defines the path to the image vector defined as yaml or json
 	ImageVectorPath string
 
-	imagevector.ParseImageOptions
+	iv.ParseImageOptions
 	// GenericDependencies is a comma separated list of generic dependency names.
 	// The list will be merged with the parse image options names.
 	GenericDependencies string
+
+	// OciOptions contains all exposed options to configure the oci client.
+	OciOptions ociopts.Options
 }
 
 // NewAddCommand creates a command to add additional resources to a component descriptor.
@@ -216,13 +224,23 @@ func (o *AddOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem
 		return fmt.Errorf("unable to read component descriptor from %q: %s", o.ComponentDescriptorPath, err.Error())
 	}
 
+	ociClient, _, err := o.OciOptions.Build(log, fs)
+	if err != nil {
+		return err
+	}
+	compResolver := cdoci.NewResolver(ociClient).
+		WithLog(log)
+	if len(os.Getenv(constants.ComponentRepositoryCacheDirEnvVar)) != 0 {
+		compResolver.WithCache(components.NewLocalComponentCache(fs))
+	}
+
 	// add the input to the ctf format
 	cd := &cdv2.ComponentDescriptor{}
 	if err := codec.Decode(data, cd); err != nil {
 		return fmt.Errorf("unable to decode component descriptor from %q: %s", o.ComponentDescriptorPath, err.Error())
 	}
 
-	if err := o.parseImageVector(cd, fs); err != nil {
+	if err := o.parseImageVector(ctx, compResolver, cd, fs); err != nil {
 		return err
 	}
 
@@ -275,14 +293,15 @@ func (o *AddOptions) AddFlags(set *pflag.FlagSet) {
 	set.StringArrayVar(&o.ParseImageOptions.ExcludeComponentReference, "exclude-component-reference", []string{}, "Specify all image name that should not be added as component reference")
 	set.StringArrayVar(&o.ParseImageOptions.GenericDependencies, "generic-dependency", []string{}, "Specify all image source names that are a generic dependency.")
 	set.StringVar(&o.GenericDependencies, "generic-dependencies", "", "Specify all prefixes that define a image  from another component")
+	o.OciOptions.AddFlags(set)
 }
 
 // parseImageVector parses the given image vector and returns a list of all resources.
-func (o *AddOptions) parseImageVector(cd *cdv2.ComponentDescriptor, fs vfs.FileSystem) error {
+func (o *AddOptions) parseImageVector(ctx context.Context, compResolver ctf.ComponentResolver, cd *cdv2.ComponentDescriptor, fs vfs.FileSystem) error {
 	file, err := fs.Open(o.ImageVectorPath)
 	if err != nil {
 		return fmt.Errorf("unable to open image vector file: %q: %w", o.ImageVectorPath, err)
 	}
 	defer file.Close()
-	return imagevector.ParseImageVector(cd, file, &o.ParseImageOptions)
+	return iv.ParseImageVector(ctx, compResolver, cd, file, &o.ParseImageOptions)
 }

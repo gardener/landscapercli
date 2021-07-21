@@ -6,21 +6,20 @@ package remote
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
-	"github.com/gardener/component-spec/bindings-go/codec"
-	"github.com/gardener/component-spec/bindings-go/ctf"
 	cdoci "github.com/gardener/component-spec/bindings-go/oci"
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/osfs"
 	"github.com/mandelsoft/vfs/pkg/vfs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.com/gardener/component-cli/pkg/componentarchive"
+
+	"github.com/gardener/component-cli/pkg/components"
 
 	ociopts "github.com/gardener/component-cli/ociclient/options"
 	"github.com/gardener/component-cli/pkg/logger"
@@ -29,22 +28,13 @@ import (
 
 // PushOptions contains all options to upload a component archive.
 type PushOptions struct {
-	// BaseUrl is the oci registry where the component is stored.
-	BaseUrl string
-	// ComponentName is the unique name of the component in the registry.
-	ComponentName string
-	// Version is the component Version in the oci registry.
-	Version string
-	// ComponentPath is the path to the directory containing the definition.
-	ComponentPath string
 	// AdditionalTags defines additional tags that the oci artifact should be tagged with.
 	AdditionalTags []string
 
-	// cd is the effective component descriptor
-	cd *cdv2.ComponentDescriptor
-
 	// OciOptions contains all exposed options to configure the oci client.
 	OciOptions ociopts.Options
+	// BuilderOptions for the component archive builder
+	componentarchive.BuilderOptions
 }
 
 // NewPushCommand creates a new definition command to push definitions
@@ -71,7 +61,7 @@ push [baseurl] [componentname] [Version] [path to component descriptor]
 				os.Exit(1)
 			}
 
-			if err := opts.run(ctx, logger.Log, osfs.New()); err != nil {
+			if err := opts.Run(ctx, logger.Log, osfs.New()); err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
@@ -83,26 +73,29 @@ push [baseurl] [componentname] [Version] [path to component descriptor]
 	return cmd
 }
 
-func (o *PushOptions) run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
+func (o *PushOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
 	ociClient, cache, err := o.OciOptions.Build(log, fs)
 	if err != nil {
 		return fmt.Errorf("unable to build oci client: %s", err.Error())
 	}
 
-	archive, err := ctf.ComponentArchiveFromPath(o.ComponentPath)
+	archive, err := o.BuilderOptions.Build(fs)
 	if err != nil {
 		return fmt.Errorf("unable to build component archive: %w", err)
 	}
 	// update repository context
-	archive.ComponentDescriptor.RepositoryContexts = utils.AddRepositoryContext(archive.ComponentDescriptor.RepositoryContexts, cdv2.OCIRegistryType, o.BaseUrl)
+	if len(o.BaseUrl) != 0 {
+		if err := cdv2.InjectRepositoryContext(archive.ComponentDescriptor, cdv2.NewOCIRegistryRepository(o.BaseUrl, "")); err != nil {
+			return fmt.Errorf("unable to add repository context to component descriptor: %w", err)
+		}
+	}
 
 	manifest, err := cdoci.NewManifestBuilder(cache, archive).Build(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to build oci artifact for component acrchive: %w", err)
 	}
 
-	repoCtx := o.cd.GetEffectiveRepositoryContext()
-	ref, err := cdoci.OCIRef(repoCtx, o.cd.Name, o.cd.Version)
+	ref, err := components.OCIRef(archive.ComponentDescriptor.GetEffectiveRepositoryContext(), archive.ComponentDescriptor.Name, archive.ComponentDescriptor.Version)
 	if err != nil {
 		return fmt.Errorf("invalid component reference: %w", err)
 	}
@@ -112,7 +105,7 @@ func (o *PushOptions) run(ctx context.Context, log logr.Logger, fs vfs.FileSyste
 	log.Info(fmt.Sprintf("Successfully uploaded component descriptor at %q", ref))
 
 	for _, tag := range o.AdditionalTags {
-		ref, err := cdoci.OCIRef(repoCtx, o.cd.Name, tag)
+		ref, err := components.OCIRef(archive.ComponentDescriptor.GetEffectiveRepositoryContext(), archive.ComponentDescriptor.Name, tag)
 		if err != nil {
 			return fmt.Errorf("invalid component reference: %w", err)
 		}
@@ -127,12 +120,12 @@ func (o *PushOptions) run(ctx context.Context, log logr.Logger, fs vfs.FileSyste
 func (o *PushOptions) Complete(args []string) error {
 	switch len(args) {
 	case 1:
-		o.ComponentPath = args[0]
+		o.BuilderOptions.ComponentArchivePath = args[0]
 	case 4:
-		o.BaseUrl = args[0]
-		o.ComponentName = args[1]
-		o.Version = args[2]
-		o.ComponentPath = args[3]
+		o.BuilderOptions.BaseUrl = args[0]
+		o.BuilderOptions.Name = args[1]
+		o.BuilderOptions.Version = args[2]
+		o.BuilderOptions.ComponentArchivePath = args[3]
 	}
 
 	var err error
@@ -144,57 +137,17 @@ func (o *PushOptions) Complete(args []string) error {
 	if err := o.Validate(); err != nil {
 		return err
 	}
-
-	info, err := os.Stat(o.ComponentPath)
-	if err != nil {
-		return fmt.Errorf("unable to get info for %s: %w", o.ComponentPath, err)
-	}
-	if !info.IsDir() {
-		return fmt.Errorf(`%s is not a directory. 
-It is expected that the given path points to a diectory that contains the component descriptor as file in "%s" 
-`, o.ComponentPath, ctf.ComponentDescriptorFileName)
-	}
-
-	data, err := ioutil.ReadFile(filepath.Join(o.ComponentPath, ctf.ComponentDescriptorFileName))
-	if err != nil {
-		return err
-	}
-	o.cd = &cdv2.ComponentDescriptor{}
-	if err := codec.Decode(data, o.cd); err != nil {
-		return err
-	}
-
-	if len(o.ComponentName) != 0 {
-		if o.cd.Name != o.ComponentName {
-			return fmt.Errorf("name in component descriptor '%s' does not match the given name '%s'", o.cd.Name, o.ComponentName)
-		}
-		if o.cd.Version != o.Version {
-			return fmt.Errorf("Version in component descriptor '%s' does not match the given Version '%s'", o.cd.Version, o.Version)
-		}
-	}
-
-	if len(o.BaseUrl) != 0 {
-		o.cd.RepositoryContexts = append(o.cd.RepositoryContexts, cdv2.RepositoryContext{
-			Type:    cdv2.OCIRegistryType,
-			BaseURL: o.BaseUrl,
-		})
-	}
-
 	return nil
 }
 
 // Validate validates push options
 func (o *PushOptions) Validate() error {
-	if len(o.ComponentPath) == 0 {
-		return errors.New("a path to the component descriptor must be defined")
-	}
-
 	// todo: validate references exist
-	return nil
+	return o.BuilderOptions.Validate()
 }
 
 func (o *PushOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.BaseUrl, "repo-ctx", "", "repository context url for component to upload. The repository url will be automatically added to the repository contexts.")
 	fs.StringArrayVarP(&o.AdditionalTags, "tag", "t", []string{}, "set additional tags on the oci artifact")
 	o.OciOptions.AddFlags(fs)
+	o.BuilderOptions.AddFlags(fs)
 }

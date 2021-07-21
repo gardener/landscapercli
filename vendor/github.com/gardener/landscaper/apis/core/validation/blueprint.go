@@ -5,14 +5,14 @@
 package validation
 
 import (
-	"os"
+	"fmt"
+	"reflect"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 
-	"github.com/mandelsoft/vfs/pkg/vfs"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -24,16 +24,26 @@ var landscaperScheme = runtime.NewScheme()
 
 func init() {
 	coreinstall.Install(landscaperScheme)
+	relevantConfigFields = computeRelevantConfigFields()
 }
 
 // ValidateBlueprint validates a Blueprint
-func ValidateBlueprint(fs vfs.FileSystem, blueprint *core.Blueprint) field.ErrorList {
+func ValidateBlueprint(blueprint *core.Blueprint) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, ValidateBlueprintImportDefinitions(field.NewPath("imports"), blueprint.Imports)...)
 	allErrs = append(allErrs, ValidateBlueprintExportDefinitions(field.NewPath("exports"), blueprint.Exports)...)
 	allErrs = append(allErrs, ValidateTemplateExecutorList(field.NewPath("deployExecutions"), blueprint.DeployExecutions)...)
 	allErrs = append(allErrs, ValidateTemplateExecutorList(field.NewPath("exportExecutions"), blueprint.ExportExecutions)...)
-	allErrs = append(allErrs, ValidateSubinstallations(field.NewPath("subinstallations"), fs, blueprint.Imports, blueprint.Subinstallations)...)
+	allErrs = append(allErrs, ValidateSubinstallations(field.NewPath("subinstallations"), blueprint.Subinstallations)...)
+	allErrs = append(allErrs, ValidateTemplateExecutorList(field.NewPath("subinstallationExecutions"), blueprint.SubinstallationExecutions)...)
+	return allErrs
+}
+
+// ValidateBlueprintWithInstallationTemplates validates a Blueprint
+func ValidateBlueprintWithInstallationTemplates(blueprint *core.Blueprint, installationTemplates []*core.InstallationTemplate) field.ErrorList {
+	allErrs := field.ErrorList{}
+	allErrs = append(allErrs, ValidateBlueprint(blueprint)...)
+	allErrs = append(allErrs, ValidateInstallationTemplates(field.NewPath(""), blueprint.Imports, installationTemplates)...)
 	return allErrs
 }
 
@@ -55,6 +65,26 @@ func validateBlueprintImportDefinitions(fldPath *field.Path, imports []core.Impo
 				allErrs = append(allErrs, field.Duplicate(defPath, "duplicate import name"))
 			}
 			importNames.Insert(importDef.Name)
+		}
+
+		if len(importDef.Type) != 0 {
+			// type is specified, use new validation
+			expectedConfigs, ok := importTypesWithExpectedConfig[string(importDef.Type)]
+			if ok {
+				// valid type, check that the required config is given
+				allErrs = append(allErrs, validateMutuallyExclusiveConfig(defPath, importDef, expectedConfigs, string(importDef.Type))...)
+			} else {
+				// specified type is not among the valid types
+				allErrs = append(allErrs, field.NotSupported(defPath.Child("type"), string(importDef.Type), keys(importTypesWithExpectedConfig)))
+			}
+		} else {
+			// type is not specified, fallback to validation based on specified fields
+			if importDef.Schema == nil && len(importDef.TargetType) == 0 {
+				allErrs = append(allErrs, field.Required(defPath, "either schema or targetType must not be empty"))
+			}
+			if importDef.Schema != nil && len(importDef.TargetType) != 0 {
+				allErrs = append(allErrs, field.Invalid(defPath, importDef, "either schema or targetType must be specified, not both"))
+			}
 		}
 
 		required := true
@@ -91,8 +121,72 @@ func ValidateBlueprintExportDefinitions(fldPath *field.Path, exports []core.Expo
 			allErrs = append(allErrs, field.Duplicate(defPath, "duplicated export name"))
 		}
 		exportNames.Insert(exportDef.Name)
+
+		if len(exportDef.Type) != 0 {
+			// type is specified, use new validation
+			expectedConfigs, ok := exportTypesWithExpectedConfig[string(exportDef.Type)]
+			if ok {
+				// valid type, check that the required config is given
+				allErrs = append(allErrs, validateMutuallyExclusiveConfig(defPath, exportDef, expectedConfigs, string(exportDef.Type))...)
+			} else {
+				// specified type is not among the valid types
+				allErrs = append(allErrs, field.NotSupported(defPath.Child("type"), string(exportDef.Type), keys(importTypesWithExpectedConfig)))
+			}
+		} else {
+			// type is not specified, fallback to validation based on specified fields
+			if exportDef.Schema == nil && len(exportDef.TargetType) == 0 {
+				allErrs = append(allErrs, field.Required(defPath, "either schema or targetType must not be empty"))
+			}
+			if exportDef.Schema != nil && len(exportDef.TargetType) != 0 {
+				allErrs = append(allErrs, field.Invalid(defPath, exportDef, "either schema or targetType must be specified, not both"))
+			}
+		}
+
 	}
 
+	return allErrs
+}
+
+// validateMutuallyExclusiveConfig validates that the expected configs for the import/export definition are set and that no other config is set
+// In this context, a 'config is set' if it
+//   - can be nil but is not
+//   - is not the zero value if it cannot be nil
+func validateMutuallyExclusiveConfig(fldPath *field.Path, def interface{}, expectedConfigs []string, defType string) field.ErrorList {
+	allErrs := field.ErrorList{}
+	val := reflect.ValueOf(def)
+	for key := range relevantConfigFields {
+		var f reflect.Value
+		if _, ok := isFieldValueDefinition[key]; ok {
+			f = val.FieldByName("FieldValueDefinition")
+		} else {
+			f = val
+		}
+		f = f.FieldByName(key)
+		if !f.IsValid() {
+			// definition doesn't have this field
+			// this can happen because import and export definitions support different fields
+			continue
+		}
+		kind := f.Kind()
+		expected := false
+		for _, exp := range expectedConfigs {
+			if key == exp {
+				expected = true
+				break
+			}
+		}
+		if expected {
+			if ((kind == reflect.Ptr || kind == reflect.Slice || kind == reflect.Map || kind == reflect.Interface) && f.IsNil()) || f.IsZero() {
+				// field should be set but is empty
+				allErrs = append(allErrs, field.Required(fldPath, fmt.Sprintf("%s must not be empty for type %s", key, defType)))
+			}
+		} else {
+			if ((kind == reflect.Ptr || kind == reflect.Slice || kind == reflect.Map || kind == reflect.Interface) && !f.IsNil()) || !f.IsZero() {
+				// field should not be set but it is
+				allErrs = append(allErrs, field.Invalid(fldPath, def, fmt.Sprintf("unexpected config '%s', only [%s] should be set", key, strings.Join(expectedConfigs, ", "))))
+			}
+		}
+	}
 	return allErrs
 }
 
@@ -101,9 +195,6 @@ func ValidateFieldValueDefinition(fldPath *field.Path, def core.FieldValueDefini
 	allErrs := field.ErrorList{}
 	if len(def.Name) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("name"), "name must not be empty"))
-	}
-	if def.Schema == nil && len(def.TargetType) == 0 {
-		allErrs = append(allErrs, field.Required(fldPath, "schema or targetType must not be empty"))
 	}
 
 	if def.Schema != nil {
@@ -144,7 +235,31 @@ func ValidateTemplateExecutorList(fldPath *field.Path, list []core.TemplateExecu
 }
 
 // ValidateSubinstallations validates all inline subinstallation and installation templates from a file
-func ValidateSubinstallations(fldPath *field.Path, fs vfs.FileSystem, blueprintImportDefs []core.ImportDefinition, subinstallations []core.SubinstallationTemplate) field.ErrorList {
+func ValidateSubinstallations(fldPath *field.Path, subinstallations []core.SubinstallationTemplate) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	for i, subinst := range subinstallations {
+		instPath := fldPath.Index(i)
+
+		if subinst.InstallationTemplate == nil && len(subinst.File) == 0 {
+			allErrs = append(allErrs, field.Required(instPath, "subinstallation has to be defined inline or by file"))
+			continue
+		}
+		if subinst.InstallationTemplate != nil && len(subinst.File) != 0 {
+			allErrs = append(allErrs, field.Invalid(instPath, subinst, "subinstallation must not be defined inline and by file"))
+			continue
+		}
+
+		if subinst.InstallationTemplate != nil {
+			allErrs = append(allErrs, ValidateInstallationTemplate(instPath, subinst.InstallationTemplate)...)
+		}
+	}
+	return allErrs
+}
+
+// ValidateInstallationTemplates validates a list of subinstallations.
+// Take care to also include all templated templates for proper validation.
+func ValidateInstallationTemplates(fldPath *field.Path, blueprintImportDefs []core.ImportDefinition, subinstallations []*core.InstallationTemplate) field.ErrorList {
 	var (
 		allErrs             = field.ErrorList{}
 		names               = sets.NewString()
@@ -166,37 +281,30 @@ func ValidateSubinstallations(fldPath *field.Path, fs vfs.FileSystem, blueprintI
 
 	}
 
-	for i, subinst := range subinstallations {
+	for i, instTmpl := range subinstallations {
 		instPath := fldPath.Index(i)
-
-		if subinst.InstallationTemplate == nil && len(subinst.File) == 0 {
-			allErrs = append(allErrs, field.Required(instPath, "subinstallation has to be defined inline or by file"))
-			continue
-		}
-		if subinst.InstallationTemplate != nil && len(subinst.File) != 0 {
-			allErrs = append(allErrs, field.Invalid(instPath, subinst, "subinstallation must not be defined inline and by file"))
-			continue
+		if len(instTmpl.Name) != 0 {
+			instPath = fldPath.Child(instTmpl.Name)
 		}
 
-		instTmpl := subinst.InstallationTemplate
-		if len(subinst.File) != 0 {
-			data, err := vfs.ReadFile(fs, subinst.File)
-			if err != nil {
-				if os.IsNotExist(err) {
-					allErrs = append(allErrs, field.NotFound(instPath.Child("file"), subinst.File))
-					continue
-				}
-				allErrs = append(allErrs, field.InternalError(instPath.Child("file"), err))
-				continue
-			}
-
-			instTmpl = &core.InstallationTemplate{}
-
-			if _, _, err := serializer.NewCodecFactory(landscaperScheme).UniversalDecoder().Decode(data, nil, instTmpl); err != nil {
-				allErrs = append(allErrs, field.Invalid(instPath.Child("file"), subinst.File, err.Error()))
-				continue
-			}
-		}
+		//if len(subinst.File) != 0 {
+		//	data, err := vfs.ReadFile(fs, subinst.File)
+		//	if err != nil {
+		//		if os.IsNotExist(err) {
+		//			allErrs = append(allErrs, field.NotFound(instPath.Child("file"), subinst.File))
+		//			continue
+		//		}
+		//		allErrs = append(allErrs, field.InternalError(instPath.Child("file"), err))
+		//		continue
+		//	}
+		//
+		//	instTmpl = &core.InstallationTemplate{}
+		//
+		//	if _, _, err := serializer.NewCodecFactory(landscaperScheme).UniversalDecoder().Decode(data, nil, instTmpl); err != nil {
+		//		allErrs = append(allErrs, field.Invalid(instPath.Child("file"), subinst.File, err.Error()))
+		//		continue
+		//	}
+		//}
 
 		for i, do := range instTmpl.Exports.Data {
 			dataPath := instPath.Child("exports").Child("data").Index(i).Key(do.Name)

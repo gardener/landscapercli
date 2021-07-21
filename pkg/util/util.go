@@ -8,12 +8,13 @@ import (
 	"time"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
-	lscore "github.com/gardener/landscaper/apis/core"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/apis/mediatype"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -288,7 +289,9 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath string) (*lsv1
 	}
 
 	config := lsv1alpha1.KubernetesClusterTargetConfig{
-		Kubeconfig: string(kubeconfigContent),
+		Kubeconfig: lsv1alpha1.ValueRef{
+			StrVal: pointer.StringPtr(string(kubeconfigContent)),
+		},
 	}
 
 	marshalledConfig, err := json.Marshal(config)
@@ -319,7 +322,7 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath string) (*lsv1
 func GetBlueprintResource(cd *cdv2.ComponentDescriptor, blueprintResourceName string) (*cdv2.Resource, error) {
 	blueprintResources := map[string]cdv2.Resource{}
 	for _, resource := range cd.ComponentSpec.Resources {
-		if resource.IdentityObjectMeta.Type == lscore.BlueprintType || resource.IdentityObjectMeta.Type == lscore.OldBlueprintType {
+		if resource.IdentityObjectMeta.Type == mediatype.BlueprintType || resource.IdentityObjectMeta.Type == mediatype.OldBlueprintType {
 			blueprintResources[resource.Name] = resource
 		}
 	}

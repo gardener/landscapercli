@@ -1,0 +1,48 @@
+## landscaper-cli component-cli component-archive remote copy
+
+copies a component descriptor from a context repository to another
+
+### Synopsis
+
+
+copies a component descriptor and its blobs from the source repository to the target repository.
+
+By default the component descriptor and all its component references are recursively copied.
+This behavior can be overwritten by specifying "--recursive=false"
+
+
+
+```
+landscaper-cli component-cli component-archive remote copy COMPONENT_NAME VERSION --from SOURCE_REPOSITORY --to TARGET_REPOSITORY [flags]
+```
+
+### Options
+
+```
+      --allow-plain-http           allows the fallback to http if the oci registry does not support https
+      --cc-config string           path to the local concourse config file
+      --copy-by-value              [EXPERIMENTAL] copies all references oci images and artifacts by value and not by reference.
+      --force                      Forces the tool to overwrite already existing component descriptors.
+      --from string                source repository base url.
+  -h, --help                       help for copy
+      --insecure-skip-tls-verify   If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
+      --recursive                  Recursively copy the component descriptor and its references. (default true)
+      --registry-config string     path to the dockerconfig.json with the oci registry authentication information
+      --to string                  target repository where the components are copied to.
+```
+
+### Options inherited from parent commands
+
+```
+      --cli                  logger runs as cli logger. enables cli logging
+      --dev                  enable development logging which result in console encoding, enabled stacktrace and enabled caller
+      --disable-caller       disable the caller of logs (default true)
+      --disable-stacktrace   disable the stacktrace of error logs (default true)
+      --disable-timestamp    disable timestamp output (default true)
+  -v, --verbosity int        number for the log level verbosity (default 1)
+```
+
+### SEE ALSO
+
+* [landscaper-cli component-cli component-archive remote](landscaper-cli_component-cli_component-archive_remote.md)	 - command to interact with component descriptors stored in an oci registry
+

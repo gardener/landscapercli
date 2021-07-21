@@ -13,6 +13,7 @@ import (
 	unsafe "unsafe"
 
 	v2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 
@@ -28,6 +29,26 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
+	if err := s.AddGeneratedConversionFunc((*AgentConfiguration)(nil), (*config.AgentConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_AgentConfiguration_To_config_AgentConfiguration(a.(*AgentConfiguration), b.(*config.AgentConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*config.AgentConfiguration)(nil), (*AgentConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_config_AgentConfiguration_To_v1alpha1_AgentConfiguration(a.(*config.AgentConfiguration), b.(*AgentConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*BlueprintStore)(nil), (*config.BlueprintStore)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_BlueprintStore_To_config_BlueprintStore(a.(*BlueprintStore), b.(*config.BlueprintStore), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*config.BlueprintStore)(nil), (*BlueprintStore)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_config_BlueprintStore_To_v1alpha1_BlueprintStore(a.(*config.BlueprintStore), b.(*BlueprintStore), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*CrdManagementConfiguration)(nil), (*config.CrdManagementConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_CrdManagementConfiguration_To_config_CrdManagementConfiguration(a.(*CrdManagementConfiguration), b.(*config.CrdManagementConfiguration), scope)
 	}); err != nil {
@@ -45,6 +66,36 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*config.DeployItemTimeouts)(nil), (*DeployItemTimeouts)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_config_DeployItemTimeouts_To_v1alpha1_DeployItemTimeouts(a.(*config.DeployItemTimeouts), b.(*DeployItemTimeouts), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DeployerManagementConfiguration)(nil), (*config.DeployerManagementConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_DeployerManagementConfiguration_To_config_DeployerManagementConfiguration(a.(*DeployerManagementConfiguration), b.(*config.DeployerManagementConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*config.DeployerManagementConfiguration)(nil), (*DeployerManagementConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_config_DeployerManagementConfiguration_To_v1alpha1_DeployerManagementConfiguration(a.(*config.DeployerManagementConfiguration), b.(*DeployerManagementConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*GarbageCollectionConfiguration)(nil), (*config.GarbageCollectionConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_GarbageCollectionConfiguration_To_config_GarbageCollectionConfiguration(a.(*GarbageCollectionConfiguration), b.(*config.GarbageCollectionConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*config.GarbageCollectionConfiguration)(nil), (*GarbageCollectionConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_config_GarbageCollectionConfiguration_To_v1alpha1_GarbageCollectionConfiguration(a.(*config.GarbageCollectionConfiguration), b.(*GarbageCollectionConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*LandscaperAgentConfiguration)(nil), (*config.LandscaperAgentConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_LandscaperAgentConfiguration_To_config_LandscaperAgentConfiguration(a.(*LandscaperAgentConfiguration), b.(*config.LandscaperAgentConfiguration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*config.LandscaperAgentConfiguration)(nil), (*LandscaperAgentConfiguration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_config_LandscaperAgentConfiguration_To_v1alpha1_LandscaperAgentConfiguration(a.(*config.LandscaperAgentConfiguration), b.(*LandscaperAgentConfiguration), scope)
 	}); err != nil {
 		return err
 	}
@@ -111,6 +162,60 @@ func RegisterConversions(s *runtime.Scheme) error {
 	return nil
 }
 
+func autoConvert_v1alpha1_AgentConfiguration_To_config_AgentConfiguration(in *AgentConfiguration, out *config.AgentConfiguration, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Namespace = in.Namespace
+	out.OCI = (*config.OCIConfiguration)(unsafe.Pointer(in.OCI))
+	out.TargetSelectors = *(*[]corev1alpha1.TargetSelector)(unsafe.Pointer(&in.TargetSelectors))
+	return nil
+}
+
+// Convert_v1alpha1_AgentConfiguration_To_config_AgentConfiguration is an autogenerated conversion function.
+func Convert_v1alpha1_AgentConfiguration_To_config_AgentConfiguration(in *AgentConfiguration, out *config.AgentConfiguration, s conversion.Scope) error {
+	return autoConvert_v1alpha1_AgentConfiguration_To_config_AgentConfiguration(in, out, s)
+}
+
+func autoConvert_config_AgentConfiguration_To_v1alpha1_AgentConfiguration(in *config.AgentConfiguration, out *AgentConfiguration, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Namespace = in.Namespace
+	out.OCI = (*OCIConfiguration)(unsafe.Pointer(in.OCI))
+	out.TargetSelectors = *(*[]corev1alpha1.TargetSelector)(unsafe.Pointer(&in.TargetSelectors))
+	return nil
+}
+
+// Convert_config_AgentConfiguration_To_v1alpha1_AgentConfiguration is an autogenerated conversion function.
+func Convert_config_AgentConfiguration_To_v1alpha1_AgentConfiguration(in *config.AgentConfiguration, out *AgentConfiguration, s conversion.Scope) error {
+	return autoConvert_config_AgentConfiguration_To_v1alpha1_AgentConfiguration(in, out, s)
+}
+
+func autoConvert_v1alpha1_BlueprintStore_To_config_BlueprintStore(in *BlueprintStore, out *config.BlueprintStore, s conversion.Scope) error {
+	out.Path = in.Path
+	out.DisableCache = in.DisableCache
+	if err := Convert_v1alpha1_GarbageCollectionConfiguration_To_config_GarbageCollectionConfiguration(&in.GarbageCollectionConfiguration, &out.GarbageCollectionConfiguration, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_BlueprintStore_To_config_BlueprintStore is an autogenerated conversion function.
+func Convert_v1alpha1_BlueprintStore_To_config_BlueprintStore(in *BlueprintStore, out *config.BlueprintStore, s conversion.Scope) error {
+	return autoConvert_v1alpha1_BlueprintStore_To_config_BlueprintStore(in, out, s)
+}
+
+func autoConvert_config_BlueprintStore_To_v1alpha1_BlueprintStore(in *config.BlueprintStore, out *BlueprintStore, s conversion.Scope) error {
+	out.Path = in.Path
+	out.DisableCache = in.DisableCache
+	if err := Convert_config_GarbageCollectionConfiguration_To_v1alpha1_GarbageCollectionConfiguration(&in.GarbageCollectionConfiguration, &out.GarbageCollectionConfiguration, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_config_BlueprintStore_To_v1alpha1_BlueprintStore is an autogenerated conversion function.
+func Convert_config_BlueprintStore_To_v1alpha1_BlueprintStore(in *config.BlueprintStore, out *BlueprintStore, s conversion.Scope) error {
+	return autoConvert_config_BlueprintStore_To_v1alpha1_BlueprintStore(in, out, s)
+}
+
 func autoConvert_v1alpha1_CrdManagementConfiguration_To_config_CrdManagementConfiguration(in *CrdManagementConfiguration, out *config.CrdManagementConfiguration, s conversion.Scope) error {
 	out.DeployCustomResourceDefinitions = (*bool)(unsafe.Pointer(in.DeployCustomResourceDefinitions))
 	out.ForceUpdate = (*bool)(unsafe.Pointer(in.ForceUpdate))
@@ -157,13 +262,105 @@ func Convert_config_DeployItemTimeouts_To_v1alpha1_DeployItemTimeouts(in *config
 	return autoConvert_config_DeployItemTimeouts_To_v1alpha1_DeployItemTimeouts(in, out, s)
 }
 
+func autoConvert_v1alpha1_DeployerManagementConfiguration_To_config_DeployerManagementConfiguration(in *DeployerManagementConfiguration, out *config.DeployerManagementConfiguration, s conversion.Scope) error {
+	out.Disable = in.Disable
+	out.Namespace = in.Namespace
+	if err := Convert_v1alpha1_LandscaperAgentConfiguration_To_config_LandscaperAgentConfiguration(&in.Agent, &out.Agent, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_DeployerManagementConfiguration_To_config_DeployerManagementConfiguration is an autogenerated conversion function.
+func Convert_v1alpha1_DeployerManagementConfiguration_To_config_DeployerManagementConfiguration(in *DeployerManagementConfiguration, out *config.DeployerManagementConfiguration, s conversion.Scope) error {
+	return autoConvert_v1alpha1_DeployerManagementConfiguration_To_config_DeployerManagementConfiguration(in, out, s)
+}
+
+func autoConvert_config_DeployerManagementConfiguration_To_v1alpha1_DeployerManagementConfiguration(in *config.DeployerManagementConfiguration, out *DeployerManagementConfiguration, s conversion.Scope) error {
+	out.Disable = in.Disable
+	out.Namespace = in.Namespace
+	if err := Convert_config_LandscaperAgentConfiguration_To_v1alpha1_LandscaperAgentConfiguration(&in.Agent, &out.Agent, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_config_DeployerManagementConfiguration_To_v1alpha1_DeployerManagementConfiguration is an autogenerated conversion function.
+func Convert_config_DeployerManagementConfiguration_To_v1alpha1_DeployerManagementConfiguration(in *config.DeployerManagementConfiguration, out *DeployerManagementConfiguration, s conversion.Scope) error {
+	return autoConvert_config_DeployerManagementConfiguration_To_v1alpha1_DeployerManagementConfiguration(in, out, s)
+}
+
+func autoConvert_v1alpha1_GarbageCollectionConfiguration_To_config_GarbageCollectionConfiguration(in *GarbageCollectionConfiguration, out *config.GarbageCollectionConfiguration, s conversion.Scope) error {
+	out.Size = in.Size
+	out.GCHighThreshold = in.GCHighThreshold
+	out.GCLowThreshold = in.GCLowThreshold
+	if err := v1.Convert_Pointer_v1_Duration_To_v1_Duration(&in.ResetInterval, &out.ResetInterval, s); err != nil {
+		return err
+	}
+	out.PreservedHitsProportion = in.PreservedHitsProportion
+	return nil
+}
+
+// Convert_v1alpha1_GarbageCollectionConfiguration_To_config_GarbageCollectionConfiguration is an autogenerated conversion function.
+func Convert_v1alpha1_GarbageCollectionConfiguration_To_config_GarbageCollectionConfiguration(in *GarbageCollectionConfiguration, out *config.GarbageCollectionConfiguration, s conversion.Scope) error {
+	return autoConvert_v1alpha1_GarbageCollectionConfiguration_To_config_GarbageCollectionConfiguration(in, out, s)
+}
+
+func autoConvert_config_GarbageCollectionConfiguration_To_v1alpha1_GarbageCollectionConfiguration(in *config.GarbageCollectionConfiguration, out *GarbageCollectionConfiguration, s conversion.Scope) error {
+	out.Size = in.Size
+	out.GCHighThreshold = in.GCHighThreshold
+	out.GCLowThreshold = in.GCLowThreshold
+	if err := v1.Convert_v1_Duration_To_Pointer_v1_Duration(&in.ResetInterval, &out.ResetInterval, s); err != nil {
+		return err
+	}
+	out.PreservedHitsProportion = in.PreservedHitsProportion
+	return nil
+}
+
+// Convert_config_GarbageCollectionConfiguration_To_v1alpha1_GarbageCollectionConfiguration is an autogenerated conversion function.
+func Convert_config_GarbageCollectionConfiguration_To_v1alpha1_GarbageCollectionConfiguration(in *config.GarbageCollectionConfiguration, out *GarbageCollectionConfiguration, s conversion.Scope) error {
+	return autoConvert_config_GarbageCollectionConfiguration_To_v1alpha1_GarbageCollectionConfiguration(in, out, s)
+}
+
+func autoConvert_v1alpha1_LandscaperAgentConfiguration_To_config_LandscaperAgentConfiguration(in *LandscaperAgentConfiguration, out *config.LandscaperAgentConfiguration, s conversion.Scope) error {
+	out.Disable = in.Disable
+	if err := Convert_v1alpha1_AgentConfiguration_To_config_AgentConfiguration(&in.AgentConfiguration, &out.AgentConfiguration, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_LandscaperAgentConfiguration_To_config_LandscaperAgentConfiguration is an autogenerated conversion function.
+func Convert_v1alpha1_LandscaperAgentConfiguration_To_config_LandscaperAgentConfiguration(in *LandscaperAgentConfiguration, out *config.LandscaperAgentConfiguration, s conversion.Scope) error {
+	return autoConvert_v1alpha1_LandscaperAgentConfiguration_To_config_LandscaperAgentConfiguration(in, out, s)
+}
+
+func autoConvert_config_LandscaperAgentConfiguration_To_v1alpha1_LandscaperAgentConfiguration(in *config.LandscaperAgentConfiguration, out *LandscaperAgentConfiguration, s conversion.Scope) error {
+	out.Disable = in.Disable
+	if err := Convert_config_AgentConfiguration_To_v1alpha1_AgentConfiguration(&in.AgentConfiguration, &out.AgentConfiguration, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_config_LandscaperAgentConfiguration_To_v1alpha1_LandscaperAgentConfiguration is an autogenerated conversion function.
+func Convert_config_LandscaperAgentConfiguration_To_v1alpha1_LandscaperAgentConfiguration(in *config.LandscaperAgentConfiguration, out *LandscaperAgentConfiguration, s conversion.Scope) error {
+	return autoConvert_config_LandscaperAgentConfiguration_To_v1alpha1_LandscaperAgentConfiguration(in, out, s)
+}
+
 func autoConvert_v1alpha1_LandscaperConfiguration_To_config_LandscaperConfiguration(in *LandscaperConfiguration, out *config.LandscaperConfiguration, s conversion.Scope) error {
-	out.RepositoryContext = (*v2.RepositoryContext)(unsafe.Pointer(in.RepositoryContext))
+	out.RepositoryContext = (*v2.UnstructuredTypedObject)(unsafe.Pointer(in.RepositoryContext))
 	if err := Convert_v1alpha1_RegistryConfiguration_To_config_RegistryConfiguration(&in.Registry, &out.Registry, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_BlueprintStore_To_config_BlueprintStore(&in.BlueprintStore, &out.BlueprintStore, s); err != nil {
 		return err
 	}
 	out.Metrics = (*config.MetricsConfiguration)(unsafe.Pointer(in.Metrics))
 	if err := Convert_v1alpha1_CrdManagementConfiguration_To_config_CrdManagementConfiguration(&in.CrdManagement, &out.CrdManagement, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_DeployerManagementConfiguration_To_config_DeployerManagementConfiguration(&in.DeployerManagement, &out.DeployerManagement, s); err != nil {
 		return err
 	}
 	out.DeployItemTimeouts = (*config.DeployItemTimeouts)(unsafe.Pointer(in.DeployItemTimeouts))
@@ -176,12 +373,18 @@ func Convert_v1alpha1_LandscaperConfiguration_To_config_LandscaperConfiguration(
 }
 
 func autoConvert_config_LandscaperConfiguration_To_v1alpha1_LandscaperConfiguration(in *config.LandscaperConfiguration, out *LandscaperConfiguration, s conversion.Scope) error {
-	out.RepositoryContext = (*v2.RepositoryContext)(unsafe.Pointer(in.RepositoryContext))
+	out.RepositoryContext = (*v2.UnstructuredTypedObject)(unsafe.Pointer(in.RepositoryContext))
 	if err := Convert_config_RegistryConfiguration_To_v1alpha1_RegistryConfiguration(&in.Registry, &out.Registry, s); err != nil {
+		return err
+	}
+	if err := Convert_config_BlueprintStore_To_v1alpha1_BlueprintStore(&in.BlueprintStore, &out.BlueprintStore, s); err != nil {
 		return err
 	}
 	out.Metrics = (*MetricsConfiguration)(unsafe.Pointer(in.Metrics))
 	if err := Convert_config_CrdManagementConfiguration_To_v1alpha1_CrdManagementConfiguration(&in.CrdManagement, &out.CrdManagement, s); err != nil {
+		return err
+	}
+	if err := Convert_config_DeployerManagementConfiguration_To_v1alpha1_DeployerManagementConfiguration(&in.DeployerManagement, &out.DeployerManagement, s); err != nil {
 		return err
 	}
 	out.DeployItemTimeouts = (*DeployItemTimeouts)(unsafe.Pointer(in.DeployItemTimeouts))
