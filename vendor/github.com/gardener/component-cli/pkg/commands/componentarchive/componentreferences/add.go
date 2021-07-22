@@ -52,7 +52,7 @@ func NewAddCommand(ctx context.Context) *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 		Short: "Adds a component reference to a component descriptor",
 		Long: fmt.Sprintf(`
-add adds component references to the defined component descriptor.
+adds component references to the defined component descriptor.
 The component references can be defined in a file or given through stdin.
 
 The component references are expected to be a multidoc yaml of the following form

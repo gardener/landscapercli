@@ -15,6 +15,7 @@ import (
 	"github.com/gardener/component-cli/pkg/commands/ctf"
 	"github.com/gardener/component-cli/pkg/commands/imagevector"
 	"github.com/gardener/component-cli/pkg/commands/oci"
+	"github.com/gardener/component-cli/pkg/logcontext"
 	"github.com/gardener/component-cli/pkg/logger"
 	"github.com/gardener/component-cli/pkg/version"
 
@@ -22,9 +23,11 @@ import (
 )
 
 func NewComponentsCliCommand(ctx context.Context) *cobra.Command {
+	ctx, _ = logcontext.NewContext(ctx)
 	cmd := &cobra.Command{
-		Use:   "components-cli",
-		Short: "components cli",
+		Use:     "component-cli",
+		Short:   "component cli",
+		Version: version.Get().String(),
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			log, err := logger.NewCliLogger()
 			if err != nil {
@@ -32,7 +35,7 @@ func NewComponentsCliCommand(ctx context.Context) *cobra.Command {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
-			logger.SetLogger(log)
+			logger.SetLogger(logcontext.New(ctx, log))
 		},
 	}
 

@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core"
+	"github.com/gardener/landscaper/pkg/utils/tar"
 
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
@@ -27,7 +28,6 @@ import (
 
 	lsinstall "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/pkg/api"
-	"github.com/gardener/landscaper/pkg/utils"
 
 	"github.com/gardener/landscapercli/pkg/logger"
 
@@ -94,7 +94,7 @@ func (o *showOptions) run(ctx context.Context, log logr.Logger) error {
 	}
 
 	memFS := memoryfs.New()
-	if err := utils.ExtractTarGzip(&data, memFS, "/"); err != nil {
+	if err := tar.ExtractTarGzip(ctx, &data, memFS, tar.ToPath("/")); err != nil {
 		return err
 	}
 

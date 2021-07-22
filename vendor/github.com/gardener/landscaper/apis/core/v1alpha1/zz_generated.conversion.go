@@ -81,6 +81,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*ClusterRestConfig)(nil), (*core.ClusterRestConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ClusterRestConfig_To_core_ClusterRestConfig(a.(*ClusterRestConfig), b.(*core.ClusterRestConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.ClusterRestConfig)(nil), (*ClusterRestConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_ClusterRestConfig_To_v1alpha1_ClusterRestConfig(a.(*core.ClusterRestConfig), b.(*ClusterRestConfig), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*ComponentDescriptorDefinition)(nil), (*core.ComponentDescriptorDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_ComponentDescriptorDefinition_To_core_ComponentDescriptorDefinition(a.(*ComponentDescriptorDefinition), b.(*core.ComponentDescriptorDefinition), scope)
 	}); err != nil {
@@ -98,6 +108,46 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*core.ComponentDescriptorReference)(nil), (*ComponentDescriptorReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_core_ComponentDescriptorReference_To_v1alpha1_ComponentDescriptorReference(a.(*core.ComponentDescriptorReference), b.(*ComponentDescriptorReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ComponentOverwrite)(nil), (*core.ComponentOverwrite)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ComponentOverwrite_To_core_ComponentOverwrite(a.(*ComponentOverwrite), b.(*core.ComponentOverwrite), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.ComponentOverwrite)(nil), (*ComponentOverwrite)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_ComponentOverwrite_To_v1alpha1_ComponentOverwrite(a.(*core.ComponentOverwrite), b.(*ComponentOverwrite), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ComponentOverwriteReference)(nil), (*core.ComponentOverwriteReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ComponentOverwriteReference_To_core_ComponentOverwriteReference(a.(*ComponentOverwriteReference), b.(*core.ComponentOverwriteReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.ComponentOverwriteReference)(nil), (*ComponentOverwriteReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_ComponentOverwriteReference_To_v1alpha1_ComponentOverwriteReference(a.(*core.ComponentOverwriteReference), b.(*ComponentOverwriteReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ComponentOverwrites)(nil), (*core.ComponentOverwrites)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ComponentOverwrites_To_core_ComponentOverwrites(a.(*ComponentOverwrites), b.(*core.ComponentOverwrites), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.ComponentOverwrites)(nil), (*ComponentOverwrites)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_ComponentOverwrites_To_v1alpha1_ComponentOverwrites(a.(*core.ComponentOverwrites), b.(*ComponentOverwrites), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ComponentOverwritesList)(nil), (*core.ComponentOverwritesList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ComponentOverwritesList_To_core_ComponentOverwritesList(a.(*ComponentOverwritesList), b.(*core.ComponentOverwritesList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.ComponentOverwritesList)(nil), (*ComponentOverwritesList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_ComponentOverwritesList_To_v1alpha1_ComponentOverwritesList(a.(*core.ComponentOverwritesList), b.(*ComponentOverwritesList), scope)
 	}); err != nil {
 		return err
 	}
@@ -221,6 +271,56 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*DeployerInformation)(nil), (*core.DeployerInformation)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_DeployerInformation_To_core_DeployerInformation(a.(*DeployerInformation), b.(*core.DeployerInformation), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.DeployerInformation)(nil), (*DeployerInformation)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_DeployerInformation_To_v1alpha1_DeployerInformation(a.(*core.DeployerInformation), b.(*DeployerInformation), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DeployerInstallationTemplate)(nil), (*core.DeployerInstallationTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_DeployerInstallationTemplate_To_core_DeployerInstallationTemplate(a.(*DeployerInstallationTemplate), b.(*core.DeployerInstallationTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.DeployerInstallationTemplate)(nil), (*DeployerInstallationTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_DeployerInstallationTemplate_To_v1alpha1_DeployerInstallationTemplate(a.(*core.DeployerInstallationTemplate), b.(*DeployerInstallationTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DeployerRegistration)(nil), (*core.DeployerRegistration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_DeployerRegistration_To_core_DeployerRegistration(a.(*DeployerRegistration), b.(*core.DeployerRegistration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.DeployerRegistration)(nil), (*DeployerRegistration)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_DeployerRegistration_To_v1alpha1_DeployerRegistration(a.(*core.DeployerRegistration), b.(*DeployerRegistration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DeployerRegistrationList)(nil), (*core.DeployerRegistrationList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_DeployerRegistrationList_To_core_DeployerRegistrationList(a.(*DeployerRegistrationList), b.(*core.DeployerRegistrationList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.DeployerRegistrationList)(nil), (*DeployerRegistrationList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_DeployerRegistrationList_To_v1alpha1_DeployerRegistrationList(a.(*core.DeployerRegistrationList), b.(*DeployerRegistrationList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*DeployerRegistrationSpec)(nil), (*core.DeployerRegistrationSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_DeployerRegistrationSpec_To_core_DeployerRegistrationSpec(a.(*DeployerRegistrationSpec), b.(*core.DeployerRegistrationSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.DeployerRegistrationSpec)(nil), (*DeployerRegistrationSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_DeployerRegistrationSpec_To_v1alpha1_DeployerRegistrationSpec(a.(*core.DeployerRegistrationSpec), b.(*DeployerRegistrationSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*Duration)(nil), (*core.Duration)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_Duration_To_core_Duration(a.(*Duration), b.(*core.Duration), scope)
 	}); err != nil {
@@ -228,6 +328,36 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*core.Duration)(nil), (*Duration)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_core_Duration_To_v1alpha1_Duration(a.(*core.Duration), b.(*Duration), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Environment)(nil), (*core.Environment)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_Environment_To_core_Environment(a.(*Environment), b.(*core.Environment), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.Environment)(nil), (*Environment)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_Environment_To_v1alpha1_Environment(a.(*core.Environment), b.(*Environment), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*EnvironmentList)(nil), (*core.EnvironmentList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_EnvironmentList_To_core_EnvironmentList(a.(*EnvironmentList), b.(*core.EnvironmentList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.EnvironmentList)(nil), (*EnvironmentList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_EnvironmentList_To_v1alpha1_EnvironmentList(a.(*core.EnvironmentList), b.(*EnvironmentList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*EnvironmentSpec)(nil), (*core.EnvironmentSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_EnvironmentSpec_To_core_EnvironmentSpec(a.(*EnvironmentSpec), b.(*core.EnvironmentSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.EnvironmentSpec)(nil), (*EnvironmentSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_EnvironmentSpec_To_v1alpha1_EnvironmentSpec(a.(*core.EnvironmentSpec), b.(*EnvironmentSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -511,6 +641,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*TLSClientConfig)(nil), (*core.TLSClientConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_TLSClientConfig_To_core_TLSClientConfig(a.(*TLSClientConfig), b.(*core.TLSClientConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.TLSClientConfig)(nil), (*TLSClientConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_TLSClientConfig_To_v1alpha1_TLSClientConfig(a.(*core.TLSClientConfig), b.(*TLSClientConfig), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*Target)(nil), (*core.Target)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_Target_To_core_Target(a.(*Target), b.(*core.Target), scope)
 	}); err != nil {
@@ -668,9 +808,10 @@ func autoConvert_v1alpha1_Blueprint_To_core_Blueprint(in *Blueprint, out *core.B
 	out.Annotations = *(*map[string]string)(unsafe.Pointer(&in.Annotations))
 	out.JSONSchemaVersion = in.JSONSchemaVersion
 	out.LocalTypes = *(*map[string]core.JSONSchemaDefinition)(unsafe.Pointer(&in.LocalTypes))
-	out.Imports = *(*[]core.ImportDefinition)(unsafe.Pointer(&in.Imports))
-	out.Exports = *(*[]core.ExportDefinition)(unsafe.Pointer(&in.Exports))
-	out.Subinstallations = *(*[]core.SubinstallationTemplate)(unsafe.Pointer(&in.Subinstallations))
+	out.Imports = *(*core.ImportDefinitionList)(unsafe.Pointer(&in.Imports))
+	out.Exports = *(*core.ExportDefinitionList)(unsafe.Pointer(&in.Exports))
+	out.Subinstallations = *(*core.SubinstallationTemplateList)(unsafe.Pointer(&in.Subinstallations))
+	out.SubinstallationExecutions = *(*[]core.TemplateExecutor)(unsafe.Pointer(&in.SubinstallationExecutions))
 	out.DeployExecutions = *(*[]core.TemplateExecutor)(unsafe.Pointer(&in.DeployExecutions))
 	out.ExportExecutions = *(*[]core.TemplateExecutor)(unsafe.Pointer(&in.ExportExecutions))
 	return nil
@@ -686,8 +827,9 @@ func autoConvert_core_Blueprint_To_v1alpha1_Blueprint(in *core.Blueprint, out *B
 	out.JSONSchemaVersion = in.JSONSchemaVersion
 	out.LocalTypes = *(*map[string]JSONSchemaDefinition)(unsafe.Pointer(&in.LocalTypes))
 	out.Imports = *(*ImportDefinitionList)(unsafe.Pointer(&in.Imports))
-	out.Exports = *(*[]ExportDefinition)(unsafe.Pointer(&in.Exports))
-	out.Subinstallations = *(*[]SubinstallationTemplate)(unsafe.Pointer(&in.Subinstallations))
+	out.Exports = *(*ExportDefinitionList)(unsafe.Pointer(&in.Exports))
+	out.Subinstallations = *(*SubinstallationTemplateList)(unsafe.Pointer(&in.Subinstallations))
+	out.SubinstallationExecutions = *(*[]TemplateExecutor)(unsafe.Pointer(&in.SubinstallationExecutions))
 	out.DeployExecutions = *(*[]TemplateExecutor)(unsafe.Pointer(&in.DeployExecutions))
 	out.ExportExecutions = *(*[]TemplateExecutor)(unsafe.Pointer(&in.ExportExecutions))
 	return nil
@@ -766,6 +908,34 @@ func Convert_core_BlueprintStaticDataValueFrom_To_v1alpha1_BlueprintStaticDataVa
 	return autoConvert_core_BlueprintStaticDataValueFrom_To_v1alpha1_BlueprintStaticDataValueFrom(in, out, s)
 }
 
+func autoConvert_v1alpha1_ClusterRestConfig_To_core_ClusterRestConfig(in *ClusterRestConfig, out *core.ClusterRestConfig, s conversion.Scope) error {
+	out.Host = in.Host
+	out.APIPath = in.APIPath
+	if err := Convert_v1alpha1_TLSClientConfig_To_core_TLSClientConfig(&in.TLSClientConfig, &out.TLSClientConfig, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_ClusterRestConfig_To_core_ClusterRestConfig is an autogenerated conversion function.
+func Convert_v1alpha1_ClusterRestConfig_To_core_ClusterRestConfig(in *ClusterRestConfig, out *core.ClusterRestConfig, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ClusterRestConfig_To_core_ClusterRestConfig(in, out, s)
+}
+
+func autoConvert_core_ClusterRestConfig_To_v1alpha1_ClusterRestConfig(in *core.ClusterRestConfig, out *ClusterRestConfig, s conversion.Scope) error {
+	out.Host = in.Host
+	out.APIPath = in.APIPath
+	if err := Convert_core_TLSClientConfig_To_v1alpha1_TLSClientConfig(&in.TLSClientConfig, &out.TLSClientConfig, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_core_ClusterRestConfig_To_v1alpha1_ClusterRestConfig is an autogenerated conversion function.
+func Convert_core_ClusterRestConfig_To_v1alpha1_ClusterRestConfig(in *core.ClusterRestConfig, out *ClusterRestConfig, s conversion.Scope) error {
+	return autoConvert_core_ClusterRestConfig_To_v1alpha1_ClusterRestConfig(in, out, s)
+}
+
 func autoConvert_v1alpha1_ComponentDescriptorDefinition_To_core_ComponentDescriptorDefinition(in *ComponentDescriptorDefinition, out *core.ComponentDescriptorDefinition, s conversion.Scope) error {
 	out.Reference = (*core.ComponentDescriptorReference)(unsafe.Pointer(in.Reference))
 	out.Inline = (*v2.ComponentDescriptor)(unsafe.Pointer(in.Inline))
@@ -789,7 +959,7 @@ func Convert_core_ComponentDescriptorDefinition_To_v1alpha1_ComponentDescriptorD
 }
 
 func autoConvert_v1alpha1_ComponentDescriptorReference_To_core_ComponentDescriptorReference(in *ComponentDescriptorReference, out *core.ComponentDescriptorReference, s conversion.Scope) error {
-	out.RepositoryContext = (*v2.RepositoryContext)(unsafe.Pointer(in.RepositoryContext))
+	out.RepositoryContext = (*v2.UnstructuredTypedObject)(unsafe.Pointer(in.RepositoryContext))
 	out.ComponentName = in.ComponentName
 	out.Version = in.Version
 	return nil
@@ -801,7 +971,7 @@ func Convert_v1alpha1_ComponentDescriptorReference_To_core_ComponentDescriptorRe
 }
 
 func autoConvert_core_ComponentDescriptorReference_To_v1alpha1_ComponentDescriptorReference(in *core.ComponentDescriptorReference, out *ComponentDescriptorReference, s conversion.Scope) error {
-	out.RepositoryContext = (*v2.RepositoryContext)(unsafe.Pointer(in.RepositoryContext))
+	out.RepositoryContext = (*v2.UnstructuredTypedObject)(unsafe.Pointer(in.RepositoryContext))
 	out.ComponentName = in.ComponentName
 	out.Version = in.Version
 	return nil
@@ -810,6 +980,104 @@ func autoConvert_core_ComponentDescriptorReference_To_v1alpha1_ComponentDescript
 // Convert_core_ComponentDescriptorReference_To_v1alpha1_ComponentDescriptorReference is an autogenerated conversion function.
 func Convert_core_ComponentDescriptorReference_To_v1alpha1_ComponentDescriptorReference(in *core.ComponentDescriptorReference, out *ComponentDescriptorReference, s conversion.Scope) error {
 	return autoConvert_core_ComponentDescriptorReference_To_v1alpha1_ComponentDescriptorReference(in, out, s)
+}
+
+func autoConvert_v1alpha1_ComponentOverwrite_To_core_ComponentOverwrite(in *ComponentOverwrite, out *core.ComponentOverwrite, s conversion.Scope) error {
+	if err := Convert_v1alpha1_ComponentOverwriteReference_To_core_ComponentOverwriteReference(&in.Component, &out.Component, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_ComponentOverwriteReference_To_core_ComponentOverwriteReference(&in.Target, &out.Target, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_ComponentOverwrite_To_core_ComponentOverwrite is an autogenerated conversion function.
+func Convert_v1alpha1_ComponentOverwrite_To_core_ComponentOverwrite(in *ComponentOverwrite, out *core.ComponentOverwrite, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ComponentOverwrite_To_core_ComponentOverwrite(in, out, s)
+}
+
+func autoConvert_core_ComponentOverwrite_To_v1alpha1_ComponentOverwrite(in *core.ComponentOverwrite, out *ComponentOverwrite, s conversion.Scope) error {
+	if err := Convert_core_ComponentOverwriteReference_To_v1alpha1_ComponentOverwriteReference(&in.Component, &out.Component, s); err != nil {
+		return err
+	}
+	if err := Convert_core_ComponentOverwriteReference_To_v1alpha1_ComponentOverwriteReference(&in.Target, &out.Target, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_core_ComponentOverwrite_To_v1alpha1_ComponentOverwrite is an autogenerated conversion function.
+func Convert_core_ComponentOverwrite_To_v1alpha1_ComponentOverwrite(in *core.ComponentOverwrite, out *ComponentOverwrite, s conversion.Scope) error {
+	return autoConvert_core_ComponentOverwrite_To_v1alpha1_ComponentOverwrite(in, out, s)
+}
+
+func autoConvert_v1alpha1_ComponentOverwriteReference_To_core_ComponentOverwriteReference(in *ComponentOverwriteReference, out *core.ComponentOverwriteReference, s conversion.Scope) error {
+	out.RepositoryContext = (*v2.UnstructuredTypedObject)(unsafe.Pointer(in.RepositoryContext))
+	out.ComponentName = in.ComponentName
+	out.Version = in.Version
+	return nil
+}
+
+// Convert_v1alpha1_ComponentOverwriteReference_To_core_ComponentOverwriteReference is an autogenerated conversion function.
+func Convert_v1alpha1_ComponentOverwriteReference_To_core_ComponentOverwriteReference(in *ComponentOverwriteReference, out *core.ComponentOverwriteReference, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ComponentOverwriteReference_To_core_ComponentOverwriteReference(in, out, s)
+}
+
+func autoConvert_core_ComponentOverwriteReference_To_v1alpha1_ComponentOverwriteReference(in *core.ComponentOverwriteReference, out *ComponentOverwriteReference, s conversion.Scope) error {
+	out.RepositoryContext = (*v2.UnstructuredTypedObject)(unsafe.Pointer(in.RepositoryContext))
+	out.ComponentName = in.ComponentName
+	out.Version = in.Version
+	return nil
+}
+
+// Convert_core_ComponentOverwriteReference_To_v1alpha1_ComponentOverwriteReference is an autogenerated conversion function.
+func Convert_core_ComponentOverwriteReference_To_v1alpha1_ComponentOverwriteReference(in *core.ComponentOverwriteReference, out *ComponentOverwriteReference, s conversion.Scope) error {
+	return autoConvert_core_ComponentOverwriteReference_To_v1alpha1_ComponentOverwriteReference(in, out, s)
+}
+
+func autoConvert_v1alpha1_ComponentOverwrites_To_core_ComponentOverwrites(in *ComponentOverwrites, out *core.ComponentOverwrites, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	out.Overwrites = *(*core.ComponentOverwriteList)(unsafe.Pointer(&in.Overwrites))
+	return nil
+}
+
+// Convert_v1alpha1_ComponentOverwrites_To_core_ComponentOverwrites is an autogenerated conversion function.
+func Convert_v1alpha1_ComponentOverwrites_To_core_ComponentOverwrites(in *ComponentOverwrites, out *core.ComponentOverwrites, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ComponentOverwrites_To_core_ComponentOverwrites(in, out, s)
+}
+
+func autoConvert_core_ComponentOverwrites_To_v1alpha1_ComponentOverwrites(in *core.ComponentOverwrites, out *ComponentOverwrites, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	out.Overwrites = *(*ComponentOverwriteList)(unsafe.Pointer(&in.Overwrites))
+	return nil
+}
+
+// Convert_core_ComponentOverwrites_To_v1alpha1_ComponentOverwrites is an autogenerated conversion function.
+func Convert_core_ComponentOverwrites_To_v1alpha1_ComponentOverwrites(in *core.ComponentOverwrites, out *ComponentOverwrites, s conversion.Scope) error {
+	return autoConvert_core_ComponentOverwrites_To_v1alpha1_ComponentOverwrites(in, out, s)
+}
+
+func autoConvert_v1alpha1_ComponentOverwritesList_To_core_ComponentOverwritesList(in *ComponentOverwritesList, out *core.ComponentOverwritesList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]core.ComponentOverwrites)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_ComponentOverwritesList_To_core_ComponentOverwritesList is an autogenerated conversion function.
+func Convert_v1alpha1_ComponentOverwritesList_To_core_ComponentOverwritesList(in *ComponentOverwritesList, out *core.ComponentOverwritesList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ComponentOverwritesList_To_core_ComponentOverwritesList(in, out, s)
+}
+
+func autoConvert_core_ComponentOverwritesList_To_v1alpha1_ComponentOverwritesList(in *core.ComponentOverwritesList, out *ComponentOverwritesList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]ComponentOverwrites)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_core_ComponentOverwritesList_To_v1alpha1_ComponentOverwritesList is an autogenerated conversion function.
+func Convert_core_ComponentOverwritesList_To_v1alpha1_ComponentOverwritesList(in *core.ComponentOverwritesList, out *ComponentOverwritesList, s conversion.Scope) error {
+	return autoConvert_core_ComponentOverwritesList_To_v1alpha1_ComponentOverwritesList(in, out, s)
 }
 
 func autoConvert_v1alpha1_Condition_To_core_Condition(in *Condition, out *core.Condition, s conversion.Scope) error {
@@ -1080,6 +1348,9 @@ func autoConvert_v1alpha1_DeployItemStatus_To_core_DeployItemStatus(in *DeployIt
 	out.Conditions = *(*[]core.Condition)(unsafe.Pointer(&in.Conditions))
 	out.LastError = (*core.Error)(unsafe.Pointer(in.LastError))
 	out.LastReconcileTime = (*v1.Time)(unsafe.Pointer(in.LastReconcileTime))
+	if err := Convert_v1alpha1_DeployerInformation_To_core_DeployerInformation(&in.Deployer, &out.Deployer, s); err != nil {
+		return err
+	}
 	out.ProviderStatus = (*runtime.RawExtension)(unsafe.Pointer(in.ProviderStatus))
 	out.ExportReference = (*core.ObjectReference)(unsafe.Pointer(in.ExportReference))
 	return nil
@@ -1096,6 +1367,9 @@ func autoConvert_core_DeployItemStatus_To_v1alpha1_DeployItemStatus(in *core.Dep
 	out.Conditions = *(*[]Condition)(unsafe.Pointer(&in.Conditions))
 	out.LastError = (*Error)(unsafe.Pointer(in.LastError))
 	out.LastReconcileTime = (*v1.Time)(unsafe.Pointer(in.LastReconcileTime))
+	if err := Convert_core_DeployerInformation_To_v1alpha1_DeployerInformation(&in.Deployer, &out.Deployer, s); err != nil {
+		return err
+	}
 	out.ProviderStatus = (*runtime.RawExtension)(unsafe.Pointer(in.ProviderStatus))
 	out.ExportReference = (*ObjectReference)(unsafe.Pointer(in.ExportReference))
 	return nil
@@ -1136,6 +1410,138 @@ func Convert_core_DeployItemTemplate_To_v1alpha1_DeployItemTemplate(in *core.Dep
 	return autoConvert_core_DeployItemTemplate_To_v1alpha1_DeployItemTemplate(in, out, s)
 }
 
+func autoConvert_v1alpha1_DeployerInformation_To_core_DeployerInformation(in *DeployerInformation, out *core.DeployerInformation, s conversion.Scope) error {
+	out.Identity = in.Identity
+	out.Name = in.Name
+	out.Version = in.Version
+	return nil
+}
+
+// Convert_v1alpha1_DeployerInformation_To_core_DeployerInformation is an autogenerated conversion function.
+func Convert_v1alpha1_DeployerInformation_To_core_DeployerInformation(in *DeployerInformation, out *core.DeployerInformation, s conversion.Scope) error {
+	return autoConvert_v1alpha1_DeployerInformation_To_core_DeployerInformation(in, out, s)
+}
+
+func autoConvert_core_DeployerInformation_To_v1alpha1_DeployerInformation(in *core.DeployerInformation, out *DeployerInformation, s conversion.Scope) error {
+	out.Identity = in.Identity
+	out.Name = in.Name
+	out.Version = in.Version
+	return nil
+}
+
+// Convert_core_DeployerInformation_To_v1alpha1_DeployerInformation is an autogenerated conversion function.
+func Convert_core_DeployerInformation_To_v1alpha1_DeployerInformation(in *core.DeployerInformation, out *DeployerInformation, s conversion.Scope) error {
+	return autoConvert_core_DeployerInformation_To_v1alpha1_DeployerInformation(in, out, s)
+}
+
+func autoConvert_v1alpha1_DeployerInstallationTemplate_To_core_DeployerInstallationTemplate(in *DeployerInstallationTemplate, out *core.DeployerInstallationTemplate, s conversion.Scope) error {
+	out.ComponentDescriptor = (*core.ComponentDescriptorDefinition)(unsafe.Pointer(in.ComponentDescriptor))
+	if err := Convert_v1alpha1_BlueprintDefinition_To_core_BlueprintDefinition(&in.Blueprint, &out.Blueprint, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_InstallationImports_To_core_InstallationImports(&in.Imports, &out.Imports, s); err != nil {
+		return err
+	}
+	out.ImportDataMappings = *(*map[string]core.AnyJSON)(unsafe.Pointer(&in.ImportDataMappings))
+	return nil
+}
+
+// Convert_v1alpha1_DeployerInstallationTemplate_To_core_DeployerInstallationTemplate is an autogenerated conversion function.
+func Convert_v1alpha1_DeployerInstallationTemplate_To_core_DeployerInstallationTemplate(in *DeployerInstallationTemplate, out *core.DeployerInstallationTemplate, s conversion.Scope) error {
+	return autoConvert_v1alpha1_DeployerInstallationTemplate_To_core_DeployerInstallationTemplate(in, out, s)
+}
+
+func autoConvert_core_DeployerInstallationTemplate_To_v1alpha1_DeployerInstallationTemplate(in *core.DeployerInstallationTemplate, out *DeployerInstallationTemplate, s conversion.Scope) error {
+	out.ComponentDescriptor = (*ComponentDescriptorDefinition)(unsafe.Pointer(in.ComponentDescriptor))
+	if err := Convert_core_BlueprintDefinition_To_v1alpha1_BlueprintDefinition(&in.Blueprint, &out.Blueprint, s); err != nil {
+		return err
+	}
+	if err := Convert_core_InstallationImports_To_v1alpha1_InstallationImports(&in.Imports, &out.Imports, s); err != nil {
+		return err
+	}
+	out.ImportDataMappings = *(*map[string]AnyJSON)(unsafe.Pointer(&in.ImportDataMappings))
+	return nil
+}
+
+// Convert_core_DeployerInstallationTemplate_To_v1alpha1_DeployerInstallationTemplate is an autogenerated conversion function.
+func Convert_core_DeployerInstallationTemplate_To_v1alpha1_DeployerInstallationTemplate(in *core.DeployerInstallationTemplate, out *DeployerInstallationTemplate, s conversion.Scope) error {
+	return autoConvert_core_DeployerInstallationTemplate_To_v1alpha1_DeployerInstallationTemplate(in, out, s)
+}
+
+func autoConvert_v1alpha1_DeployerRegistration_To_core_DeployerRegistration(in *DeployerRegistration, out *core.DeployerRegistration, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_DeployerRegistrationSpec_To_core_DeployerRegistrationSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_DeployerRegistration_To_core_DeployerRegistration is an autogenerated conversion function.
+func Convert_v1alpha1_DeployerRegistration_To_core_DeployerRegistration(in *DeployerRegistration, out *core.DeployerRegistration, s conversion.Scope) error {
+	return autoConvert_v1alpha1_DeployerRegistration_To_core_DeployerRegistration(in, out, s)
+}
+
+func autoConvert_core_DeployerRegistration_To_v1alpha1_DeployerRegistration(in *core.DeployerRegistration, out *DeployerRegistration, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_core_DeployerRegistrationSpec_To_v1alpha1_DeployerRegistrationSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_core_DeployerRegistration_To_v1alpha1_DeployerRegistration is an autogenerated conversion function.
+func Convert_core_DeployerRegistration_To_v1alpha1_DeployerRegistration(in *core.DeployerRegistration, out *DeployerRegistration, s conversion.Scope) error {
+	return autoConvert_core_DeployerRegistration_To_v1alpha1_DeployerRegistration(in, out, s)
+}
+
+func autoConvert_v1alpha1_DeployerRegistrationList_To_core_DeployerRegistrationList(in *DeployerRegistrationList, out *core.DeployerRegistrationList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]core.DeployerRegistration)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_DeployerRegistrationList_To_core_DeployerRegistrationList is an autogenerated conversion function.
+func Convert_v1alpha1_DeployerRegistrationList_To_core_DeployerRegistrationList(in *DeployerRegistrationList, out *core.DeployerRegistrationList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_DeployerRegistrationList_To_core_DeployerRegistrationList(in, out, s)
+}
+
+func autoConvert_core_DeployerRegistrationList_To_v1alpha1_DeployerRegistrationList(in *core.DeployerRegistrationList, out *DeployerRegistrationList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]DeployerRegistration)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_core_DeployerRegistrationList_To_v1alpha1_DeployerRegistrationList is an autogenerated conversion function.
+func Convert_core_DeployerRegistrationList_To_v1alpha1_DeployerRegistrationList(in *core.DeployerRegistrationList, out *DeployerRegistrationList, s conversion.Scope) error {
+	return autoConvert_core_DeployerRegistrationList_To_v1alpha1_DeployerRegistrationList(in, out, s)
+}
+
+func autoConvert_v1alpha1_DeployerRegistrationSpec_To_core_DeployerRegistrationSpec(in *DeployerRegistrationSpec, out *core.DeployerRegistrationSpec, s conversion.Scope) error {
+	out.DeployItemTypes = *(*[]core.DeployItemType)(unsafe.Pointer(&in.DeployItemTypes))
+	if err := Convert_v1alpha1_DeployerInstallationTemplate_To_core_DeployerInstallationTemplate(&in.InstallationTemplate, &out.InstallationTemplate, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_DeployerRegistrationSpec_To_core_DeployerRegistrationSpec is an autogenerated conversion function.
+func Convert_v1alpha1_DeployerRegistrationSpec_To_core_DeployerRegistrationSpec(in *DeployerRegistrationSpec, out *core.DeployerRegistrationSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_DeployerRegistrationSpec_To_core_DeployerRegistrationSpec(in, out, s)
+}
+
+func autoConvert_core_DeployerRegistrationSpec_To_v1alpha1_DeployerRegistrationSpec(in *core.DeployerRegistrationSpec, out *DeployerRegistrationSpec, s conversion.Scope) error {
+	out.DeployItemTypes = *(*[]DeployItemType)(unsafe.Pointer(&in.DeployItemTypes))
+	if err := Convert_core_DeployerInstallationTemplate_To_v1alpha1_DeployerInstallationTemplate(&in.InstallationTemplate, &out.InstallationTemplate, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_core_DeployerRegistrationSpec_To_v1alpha1_DeployerRegistrationSpec is an autogenerated conversion function.
+func Convert_core_DeployerRegistrationSpec_To_v1alpha1_DeployerRegistrationSpec(in *core.DeployerRegistrationSpec, out *DeployerRegistrationSpec, s conversion.Scope) error {
+	return autoConvert_core_DeployerRegistrationSpec_To_v1alpha1_DeployerRegistrationSpec(in, out, s)
+}
+
 func autoConvert_v1alpha1_Duration_To_core_Duration(in *Duration, out *core.Duration, s conversion.Scope) error {
 	out.Duration = time.Duration(in.Duration)
 	return nil
@@ -1154,6 +1560,88 @@ func autoConvert_core_Duration_To_v1alpha1_Duration(in *core.Duration, out *Dura
 // Convert_core_Duration_To_v1alpha1_Duration is an autogenerated conversion function.
 func Convert_core_Duration_To_v1alpha1_Duration(in *core.Duration, out *Duration, s conversion.Scope) error {
 	return autoConvert_core_Duration_To_v1alpha1_Duration(in, out, s)
+}
+
+func autoConvert_v1alpha1_Environment_To_core_Environment(in *Environment, out *core.Environment, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_EnvironmentSpec_To_core_EnvironmentSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_Environment_To_core_Environment is an autogenerated conversion function.
+func Convert_v1alpha1_Environment_To_core_Environment(in *Environment, out *core.Environment, s conversion.Scope) error {
+	return autoConvert_v1alpha1_Environment_To_core_Environment(in, out, s)
+}
+
+func autoConvert_core_Environment_To_v1alpha1_Environment(in *core.Environment, out *Environment, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_core_EnvironmentSpec_To_v1alpha1_EnvironmentSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_core_Environment_To_v1alpha1_Environment is an autogenerated conversion function.
+func Convert_core_Environment_To_v1alpha1_Environment(in *core.Environment, out *Environment, s conversion.Scope) error {
+	return autoConvert_core_Environment_To_v1alpha1_Environment(in, out, s)
+}
+
+func autoConvert_v1alpha1_EnvironmentList_To_core_EnvironmentList(in *EnvironmentList, out *core.EnvironmentList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]core.Environment)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_EnvironmentList_To_core_EnvironmentList is an autogenerated conversion function.
+func Convert_v1alpha1_EnvironmentList_To_core_EnvironmentList(in *EnvironmentList, out *core.EnvironmentList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_EnvironmentList_To_core_EnvironmentList(in, out, s)
+}
+
+func autoConvert_core_EnvironmentList_To_v1alpha1_EnvironmentList(in *core.EnvironmentList, out *EnvironmentList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]Environment)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_core_EnvironmentList_To_v1alpha1_EnvironmentList is an autogenerated conversion function.
+func Convert_core_EnvironmentList_To_v1alpha1_EnvironmentList(in *core.EnvironmentList, out *EnvironmentList, s conversion.Scope) error {
+	return autoConvert_core_EnvironmentList_To_v1alpha1_EnvironmentList(in, out, s)
+}
+
+func autoConvert_v1alpha1_EnvironmentSpec_To_core_EnvironmentSpec(in *EnvironmentSpec, out *core.EnvironmentSpec, s conversion.Scope) error {
+	if err := Convert_v1alpha1_TargetTemplate_To_core_TargetTemplate(&in.HostTarget, &out.HostTarget, s); err != nil {
+		return err
+	}
+	out.Namespace = in.Namespace
+	if err := Convert_v1alpha1_ClusterRestConfig_To_core_ClusterRestConfig(&in.LandscaperClusterRestConfig, &out.LandscaperClusterRestConfig, s); err != nil {
+		return err
+	}
+	out.TargetSelectors = *(*[]core.TargetSelector)(unsafe.Pointer(&in.TargetSelectors))
+	return nil
+}
+
+// Convert_v1alpha1_EnvironmentSpec_To_core_EnvironmentSpec is an autogenerated conversion function.
+func Convert_v1alpha1_EnvironmentSpec_To_core_EnvironmentSpec(in *EnvironmentSpec, out *core.EnvironmentSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_EnvironmentSpec_To_core_EnvironmentSpec(in, out, s)
+}
+
+func autoConvert_core_EnvironmentSpec_To_v1alpha1_EnvironmentSpec(in *core.EnvironmentSpec, out *EnvironmentSpec, s conversion.Scope) error {
+	if err := Convert_core_TargetTemplate_To_v1alpha1_TargetTemplate(&in.HostTarget, &out.HostTarget, s); err != nil {
+		return err
+	}
+	out.Namespace = in.Namespace
+	if err := Convert_core_ClusterRestConfig_To_v1alpha1_ClusterRestConfig(&in.LandscaperClusterRestConfig, &out.LandscaperClusterRestConfig, s); err != nil {
+		return err
+	}
+	out.TargetSelectors = *(*[]TargetSelector)(unsafe.Pointer(&in.TargetSelectors))
+	return nil
+}
+
+// Convert_core_EnvironmentSpec_To_v1alpha1_EnvironmentSpec is an autogenerated conversion function.
+func Convert_core_EnvironmentSpec_To_v1alpha1_EnvironmentSpec(in *core.EnvironmentSpec, out *EnvironmentSpec, s conversion.Scope) error {
+	return autoConvert_core_EnvironmentSpec_To_v1alpha1_EnvironmentSpec(in, out, s)
 }
 
 func autoConvert_v1alpha1_Error_To_core_Error(in *Error, out *core.Error, s conversion.Scope) error {
@@ -1306,6 +1794,7 @@ func autoConvert_v1alpha1_ExportDefinition_To_core_ExportDefinition(in *ExportDe
 	if err := Convert_v1alpha1_FieldValueDefinition_To_core_FieldValueDefinition(&in.FieldValueDefinition, &out.FieldValueDefinition, s); err != nil {
 		return err
 	}
+	out.Type = core.ExportType(in.Type)
 	return nil
 }
 
@@ -1318,6 +1807,7 @@ func autoConvert_core_ExportDefinition_To_v1alpha1_ExportDefinition(in *core.Exp
 	if err := Convert_core_FieldValueDefinition_To_v1alpha1_FieldValueDefinition(&in.FieldValueDefinition, &out.FieldValueDefinition, s); err != nil {
 		return err
 	}
+	out.Type = ExportType(in.Type)
 	return nil
 }
 
@@ -1354,6 +1844,7 @@ func autoConvert_v1alpha1_ImportDefinition_To_core_ImportDefinition(in *ImportDe
 	if err := Convert_v1alpha1_FieldValueDefinition_To_core_FieldValueDefinition(&in.FieldValueDefinition, &out.FieldValueDefinition, s); err != nil {
 		return err
 	}
+	out.Type = core.ImportType(in.Type)
 	out.Required = (*bool)(unsafe.Pointer(in.Required))
 	if err := Convert_v1alpha1_Default_To_core_Default(&in.Default, &out.Default, s); err != nil {
 		return err
@@ -1371,6 +1862,7 @@ func autoConvert_core_ImportDefinition_To_v1alpha1_ImportDefinition(in *core.Imp
 	if err := Convert_core_FieldValueDefinition_To_v1alpha1_FieldValueDefinition(&in.FieldValueDefinition, &out.FieldValueDefinition, s); err != nil {
 		return err
 	}
+	out.Type = ImportType(in.Type)
 	out.Required = (*bool)(unsafe.Pointer(in.Required))
 	if err := Convert_core_Default_To_v1alpha1_Default(&in.Default, &out.Default, s); err != nil {
 		return err
@@ -1938,6 +2430,32 @@ func Convert_core_SubinstallationTemplate_To_v1alpha1_SubinstallationTemplate(in
 	return autoConvert_core_SubinstallationTemplate_To_v1alpha1_SubinstallationTemplate(in, out, s)
 }
 
+func autoConvert_v1alpha1_TLSClientConfig_To_core_TLSClientConfig(in *TLSClientConfig, out *core.TLSClientConfig, s conversion.Scope) error {
+	out.Insecure = in.Insecure
+	out.ServerName = in.ServerName
+	out.CAData = *(*[]byte)(unsafe.Pointer(&in.CAData))
+	out.NextProtos = *(*[]string)(unsafe.Pointer(&in.NextProtos))
+	return nil
+}
+
+// Convert_v1alpha1_TLSClientConfig_To_core_TLSClientConfig is an autogenerated conversion function.
+func Convert_v1alpha1_TLSClientConfig_To_core_TLSClientConfig(in *TLSClientConfig, out *core.TLSClientConfig, s conversion.Scope) error {
+	return autoConvert_v1alpha1_TLSClientConfig_To_core_TLSClientConfig(in, out, s)
+}
+
+func autoConvert_core_TLSClientConfig_To_v1alpha1_TLSClientConfig(in *core.TLSClientConfig, out *TLSClientConfig, s conversion.Scope) error {
+	out.Insecure = in.Insecure
+	out.ServerName = in.ServerName
+	out.CAData = *(*[]byte)(unsafe.Pointer(&in.CAData))
+	out.NextProtos = *(*[]string)(unsafe.Pointer(&in.NextProtos))
+	return nil
+}
+
+// Convert_core_TLSClientConfig_To_v1alpha1_TLSClientConfig is an autogenerated conversion function.
+func Convert_core_TLSClientConfig_To_v1alpha1_TLSClientConfig(in *core.TLSClientConfig, out *TLSClientConfig, s conversion.Scope) error {
+	return autoConvert_core_TLSClientConfig_To_v1alpha1_TLSClientConfig(in, out, s)
+}
+
 func autoConvert_v1alpha1_Target_To_core_Target(in *Target, out *core.Target, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1alpha1_TargetSpec_To_core_TargetSpec(&in.Spec, &out.Spec, s); err != nil {
@@ -2009,6 +2527,7 @@ func Convert_core_TargetList_To_v1alpha1_TargetList(in *core.TargetList, out *Ta
 }
 
 func autoConvert_v1alpha1_TargetSelector_To_core_TargetSelector(in *TargetSelector, out *core.TargetSelector, s conversion.Scope) error {
+	out.Targets = *(*[]core.ObjectReference)(unsafe.Pointer(&in.Targets))
 	out.Annotations = *(*[]core.Requirement)(unsafe.Pointer(&in.Annotations))
 	out.Labels = *(*[]core.Requirement)(unsafe.Pointer(&in.Labels))
 	return nil
@@ -2020,6 +2539,7 @@ func Convert_v1alpha1_TargetSelector_To_core_TargetSelector(in *TargetSelector, 
 }
 
 func autoConvert_core_TargetSelector_To_v1alpha1_TargetSelector(in *core.TargetSelector, out *TargetSelector, s conversion.Scope) error {
+	out.Targets = *(*[]ObjectReference)(unsafe.Pointer(&in.Targets))
 	out.Annotations = *(*[]Requirement)(unsafe.Pointer(&in.Annotations))
 	out.Labels = *(*[]Requirement)(unsafe.Pointer(&in.Labels))
 	return nil

@@ -18,15 +18,20 @@ type LandscaperConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
 	// RepositoryContext defines the default repository context that should be used to resolve component descriptors.
 	// +optional
-	RepositoryContext *cdv2.RepositoryContext `json:"repositoryContext,omitempty"`
+	RepositoryContext *cdv2.UnstructuredTypedObject `json:"repositoryContext,omitempty"`
 	// Registry configures the landscaper registry to resolve component descriptors, blueprints and other artifacts.
 	Registry RegistryConfiguration `json:"registry"`
+	// BlueprintStore contains the configuration for the blueprint cache.
+	BlueprintStore BlueprintStore `json:"blueprintStore"`
 	// Metrics allows to configure how metrics are exposed
 	//+optional
 	Metrics *MetricsConfiguration `json:"metrics,omitempty"`
 	// CrdManagement configures whether the landscaper controller should deploy the CRDs it needs into the cluster
 	// +optional
 	CrdManagement CrdManagementConfiguration `json:"crdManagement,omitempty"`
+	// DeployerManagement configures the deployer management of the landscaper.
+	// +optional
+	DeployerManagement DeployerManagementConfiguration `json:"deployerManagement,omitempty"`
 	// DeployItemTimeouts contains configuration for multiple deploy item timeouts
 	// +optional
 	DeployItemTimeouts *DeployItemTimeouts `json:"deployItemTimeouts,omitempty"`
@@ -111,4 +116,49 @@ type CrdManagementConfiguration struct {
 	// ForceUpdate specifies whether existing CRDs should be updated
 	// +optional
 	ForceUpdate *bool `json:"forceUpdate,omitempty"`
+}
+
+// DeployerManagementConfiguration contains the configuration of the deployer management
+type DeployerManagementConfiguration struct {
+	// Disable disables the landscaper deployer management.
+	Disable bool `json:"disable"`
+	// Namespace defines the system namespace where the deployer installation should be deployed to.
+	Namespace string `json:"namespace"`
+	// Agent contains the landscaper agent configuration.
+	Agent LandscaperAgentConfiguration `json:"agent"`
+}
+
+// LandscaperAgentConfiguration is the landscaper specific agent configuration
+type LandscaperAgentConfiguration struct {
+	// Disable disables the default agent that is started with the landscaper.
+	// This is automatically disabled if the deployment management is disabled.
+	Disable            bool `json:"disable"`
+	AgentConfiguration `json:",inline"`
+}
+
+// BlueprintStore contains the configuration for the blueprint store.
+type BlueprintStore struct {
+	// Path defines the root path where the blueprints are cached.
+	Path string `json:"path"`
+	// DisableCache disables the cache and always fetches the blob from the registry.
+	// The blueprint is still stored on the filesystem.
+	DisableCache bool `json:"disableCache"`
+	GarbageCollectionConfiguration
+}
+
+// GarbageCollectionConfiguration contains all options for the cache garbage collection.
+type GarbageCollectionConfiguration struct {
+	// Size is the size of the filesystem.
+	// If the value is 0 there is no limit and no garbage collection will happen.
+	// See the kubernetes quantity docs for detailed description of the format
+	// https://github.com/kubernetes/apimachinery/blob/master/pkg/api/resource/quantity.go
+	Size string
+	// GCHighThreshold defines the percent of disk usage which triggers files garbage collection.
+	GCHighThreshold float64
+	// GCLowThreshold defines the percent of disk usage to which files garbage collection attempts to free.
+	GCLowThreshold float64
+	// ResetInterval defines the interval when the hit reset should run.
+	ResetInterval metav1.Duration
+	// PreservedHitsProportion defines the percent of hits that should be preserved.
+	PreservedHitsProportion float64
 }

@@ -6,7 +6,6 @@ package components
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -366,12 +365,8 @@ func (o *addHelmLsDeployItemOptions) createResources() (*cdresources.ResourceOpt
 }
 
 func (o *addHelmLsDeployItemOptions) createOciResource() (*cdresources.ResourceOptions, error) {
-	ociRegistryRef := cd.OCIRegistryAccess{
-		ObjectType:     cd.ObjectType{Type: cd.OCIRegistryType},
-		ImageReference: o.ociReference,
-	}
 
-	data, err := json.Marshal(&ociRegistryRef)
+	access, err := cd.NewUnstructured(cd.NewOCIRegistryAccess(o.ociReference))
 	if err != nil {
 		return nil, err
 	}
@@ -385,10 +380,7 @@ func (o *addHelmLsDeployItemOptions) createOciResource() (*cdresources.ResourceO
 				Type:    helm,
 			},
 			Relation: cd.ExternalRelation,
-			Access: &cd.UnstructuredAccessType{
-				ObjectType: cd.ObjectType{Type: cd.OCIRegistryType},
-				Raw:        data,
-			},
+			Access:   &access,
 		},
 	}
 

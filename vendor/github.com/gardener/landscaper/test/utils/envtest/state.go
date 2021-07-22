@@ -105,7 +105,7 @@ func (s UpdateStatus) ApplyOption(options *CreateOptions) error {
 	return nil
 }
 
-// CreateOrUpdate creates or updates a kubernetes resources and adds it to the current state
+// Create creates or updates a kubernetes resources and adds it to the current state
 func (s *State) Create(ctx context.Context, c client.Client, obj client.Object, opts ...CreateOption) error {
 	options := &CreateOptions{}
 	if err := options.ApplyOptions(opts...); err != nil {
@@ -251,7 +251,7 @@ func removeFinalizer(ctx context.Context, c client.Client, obj client.Object) er
 	if err := c.Get(ctx, kutil.ObjectKey(obj.GetName(), obj.GetNamespace()), obj); err != nil {
 		return err
 	}
-	currObj := obj.DeepCopyObject()
+	currObj := obj.DeepCopyObject().(client.Object)
 
 	obj.SetFinalizers([]string{})
 	patch := client.MergeFrom(currObj)

@@ -19,7 +19,7 @@ import (
 	lsjsonschema "github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
 	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
-	"github.com/gardener/landscaper/pkg/utils"
+	"github.com/gardener/landscaper/pkg/utils/tar"
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
 	"github.com/mandelsoft/vfs/pkg/osfs"
@@ -84,11 +84,8 @@ func NewCreateCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logger, fs vfs.FileSystem) error {
-	repoCtx := cdv2.RepositoryContext{
-		Type:    cdv2.OCIRegistryType,
-		BaseURL: o.baseURL,
-	}
-	ociRef, err := cdoci.OCIRef(repoCtx, o.componentName, o.version)
+	repoCtx := cdv2.NewOCIRegistryRepository(o.baseURL, "")
+	ociRef, err := cdoci.OCIRef(*repoCtx, o.componentName, o.version)
 	if err != nil {
 		return fmt.Errorf("invalid component reference: %w", err)
 	}
@@ -98,8 +95,8 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		return fmt.Errorf("unable to build oci client: %s", err.Error())
 	}
 
-	cdresolver := cdoci.NewResolver().WithOCIClient(ociClient).WithRepositoryContext(repoCtx)
-	cd, blobResolver, err := cdresolver.Resolve(ctx, o.componentName, o.version)
+	cdresolver := cdoci.NewResolver(ociClient)
+	cd, blobResolver, err := cdresolver.ResolveWithBlobResolver(ctx, repoCtx, o.componentName, o.version)
 	if err != nil {
 		return fmt.Errorf("unable to to fetch component descriptor %s: %w", ociRef, err)
 	}
@@ -115,7 +112,7 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 	}
 
 	memFS := memoryfs.New()
-	if err := utils.ExtractTarGzip(data, memFS, "/"); err != nil {
+	if err := tar.ExtractTarGzip(ctx, data, memFS, tar.ToPath("/")); err != nil {
 		return fmt.Errorf("cannot extract blueprint blob: %w", err)
 	}
 
@@ -133,7 +130,7 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 
 	var marshaledYaml []byte
 	if o.renderSchemaInfo {
-		ociRegistry, err := componentsregistry.NewOCIRegistryWithOCIClient(ociClient)
+		ociRegistry, err := componentsregistry.NewOCIRegistryWithOCIClient(log, ociClient)
 		if err != nil {
 			return fmt.Errorf("cannot build oci registry: %w", err)
 		}
@@ -407,7 +404,7 @@ func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes c
 		Spec: lsv1alpha1.InstallationSpec{
 			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
 				Reference: &lsv1alpha1.ComponentDescriptorReference{
-					RepositoryContext: &cd.RepositoryContexts[len(cd.RepositoryContexts)-1],
+					RepositoryContext: cd.GetEffectiveRepositoryContext(),
 					ComponentName:     cd.ObjectMeta.Name,
 					Version:           cd.ObjectMeta.Version,
 				},

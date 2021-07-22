@@ -11,6 +11,7 @@ import (
 	"regexp"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/gardener/landscaper/apis/mediatype"
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
@@ -199,6 +200,7 @@ func (o *createOptions) createComponentDir() error {
 }
 
 func (o *createOptions) buildInitialComponentDescriptor() *cd.ComponentDescriptor {
+	repoCtx, _ := cd.NewUnstructured(cd.NewOCIRegistryRepository("", ""))
 	return &cd.ComponentDescriptor{
 		Metadata: cd.Metadata{
 			Version: cd.SchemaVersion,
@@ -208,12 +210,7 @@ func (o *createOptions) buildInitialComponentDescriptor() *cd.ComponentDescripto
 				Name:    o.componentName,
 				Version: o.componentVersion,
 			},
-			RepositoryContexts: []cd.RepositoryContext{
-				{
-					Type:    cd.OCIRegistryType,
-					BaseURL: "",
-				},
-			},
+			RepositoryContexts:  []*cd.UnstructuredTypedObject{&repoCtx},
 			Provider:            cd.InternalProvider,
 			Sources:             []cd.Source{},
 			ComponentReferences: []cd.ComponentReference{},
@@ -239,7 +236,9 @@ func (o *createOptions) buildInitialResources() []cdresources.ResourceOptions {
 				Type:             input.DirInputType,
 				Path:             "./blueprint",
 				CompressWithGzip: &compress,
-				MediaType:        v1alpha1.BlueprintArtifactsMediaType,
+				MediaType: mediatype.NewBuilder(mediatype.BlueprintArtifactsLayerMediaTypeV1).
+					Compression(mediatype.GZipCompression).
+					String(),
 			},
 		},
 	}

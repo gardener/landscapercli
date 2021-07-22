@@ -11,8 +11,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mandelsoft/vfs/pkg/osfs"
-	"github.com/mandelsoft/vfs/pkg/projectionfs"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
@@ -65,11 +63,7 @@ func (o *validationOptions) run() error {
 		return err
 	}
 
-	blueprintFs, err := projectionfs.New(osfs.New(), o.blueprintPath)
-	if err != nil {
-		return fmt.Errorf("unable to construct blueprint filesystem: %w", err)
-	}
-	if errList := validation.ValidateBlueprint(blueprintFs, blueprint); len(errList) != 0 {
+	if errList := validation.ValidateBlueprint(blueprint); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
 

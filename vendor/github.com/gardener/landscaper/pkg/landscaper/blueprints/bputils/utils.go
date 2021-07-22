@@ -16,17 +16,19 @@ import (
 	ocispecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
+	"github.com/gardener/landscaper/pkg/utils/tar"
+
+	"github.com/gardener/landscaper/apis/mediatype"
+
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/pkg/api"
-	"github.com/gardener/landscaper/pkg/utils"
 
 	"github.com/gardener/component-cli/ociclient/cache"
 )
 
-// BuildNewDefinition creates a ocispec Manifest from a component definition.
-func BuildNewDefinition(cache cache.Cache, fs vfs.FileSystem, path string) (*ocispecv1.Manifest, error) {
-
-	config, err := BuildNewDefinitionConfig(cache, fs, path)
+// BuildNewBlueprint creates a ocispec Manifest from a component definition.
+func BuildNewBlueprint(cache cache.Cache, fs vfs.FileSystem, path string) (*ocispecv1.Manifest, error) {
+	config, err := BuildNewBlueprintConfig(cache, fs, path)
 	if err != nil {
 		return nil, err
 	}
@@ -35,6 +37,7 @@ func BuildNewDefinition(cache cache.Cache, fs vfs.FileSystem, path string) (*oci
 	if err != nil {
 		return nil, err
 	}
+	defLayer.MediaType = mediatype.BlueprintArtifactsLayerMediaTypeV1
 
 	manifest := &ocispecv1.Manifest{
 		Versioned: specs.Versioned{SchemaVersion: 2},
@@ -47,8 +50,8 @@ func BuildNewDefinition(cache cache.Cache, fs vfs.FileSystem, path string) (*oci
 	return manifest, nil
 }
 
-// BuildNewDefinitionConfig creates a ocispec Manifest from a component definition.
-func BuildNewDefinitionConfig(cache cache.Cache, fs vfs.FileSystem, path string) (ocispecv1.Descriptor, error) {
+// BuildNewBlueprintConfig creates a ocispec Manifest from a component definition.
+func BuildNewBlueprintConfig(cache cache.Cache, fs vfs.FileSystem, path string) (ocispecv1.Descriptor, error) {
 	data, err := vfs.ReadFile(fs, filepath.Join(path, lsv1alpha1.BlueprintFileName))
 	if err != nil {
 		return ocispecv1.Descriptor{}, err
@@ -65,7 +68,7 @@ func BuildNewDefinitionConfig(cache cache.Cache, fs vfs.FileSystem, path string)
 	}
 
 	desc := ocispecv1.Descriptor{
-		MediaType: lsv1alpha1.BlueprintArtifactsMediaType,
+		MediaType: mediatype.BlueprintArtifactsConfigMediaTypeV1,
 		Digest:    digest.FromBytes(data),
 		Size:      int64(len(data)),
 	}
@@ -78,5 +81,5 @@ func BuildNewDefinitionConfig(cache cache.Cache, fs vfs.FileSystem, path string)
 
 // BuildNewContentBlob creates a ocispec Manifest from a component definition.
 func BuildNewContentBlob(cache cache.Cache, fs vfs.FileSystem, path string) (ocispecv1.Descriptor, error) {
-	return utils.BuildTarGzipLayer(cache, fs, path, nil)
+	return tar.BuildTarGzipLayer(cache, fs, path, nil)
 }

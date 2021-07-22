@@ -53,6 +53,11 @@ type ResourceOptions struct {
 	Input *input.BlobInput `json:"input,omitempty"`
 }
 
+// ResourceOptionList contains a list of options that are used to describe a resource.
+type ResourceOptionList struct {
+	Resources []ResourceOptions `json:"resources"`
+}
+
 // InternalResourceOptions contains options that are used to describe a resource
 // as well as the filepath of the resource that is used to search for the input blob
 type InternalResourceOptions struct {
@@ -106,10 +111,37 @@ input:
   type: "dir"
   path: /my/path
   compress: true # defaults to false
-  exclude: "*.txt"
+  includeFiles: # optional; list of shell file patterns
+  - "*.txt"
+  excludeFiles: # optional; list of shell file patterns
+  - "*.txt"
   mediaType: "application/gzip" # optional, defaulted to "application/x-tar" or "application/gzip" if compress=true 
   preserveDir: true # optional, defaulted to false; if true, the top level folder "my/path" is included 
 ...
+
+</pre>
+
+Alternativly the resources can also be defined as list of resources (both methods can also be combined).
+
+<pre>
+
+---
+resources:
+- name: 'myimage'
+  type: 'ociImage'
+  relation: 'external'
+  version: 0.2.0
+  access:
+    type: ociRegistry
+    imageReference: eu.gcr.io/gardener-project/component-cli:0.2.0
+
+- name: 'myconfig'
+  type: 'json'
+  relation: 'local'
+  input:
+    type: "file"
+    path: "some/path"
+    mediaType: "application/octet-stream" # optional, defaulted to "application/octet-stream" or "application/gzip" if compress=true
 
 </pre>
 
@@ -292,23 +324,44 @@ func generateResourcesFromReader(cd *cdv2.ComponentDescriptor, reader io.Reader)
 	resources := make([]ResourceOptions, 0)
 	yamldecoder := yamlutil.NewYAMLOrJSONDecoder(reader, 1024)
 	for {
-		resource := ResourceOptions{}
-		if err := yamldecoder.Decode(&resource); err != nil {
+		// ResourceOption contains either a list of options that are used to describe a resource or a resource.
+		type ResourceOption struct {
+			*ResourceOptionList
+			*ResourceOptions
+		}
+		opts := ResourceOption{}
+		if err := yamldecoder.Decode(&opts); err != nil {
 			if err == io.EOF {
 				break
 			}
 			return nil, fmt.Errorf("unable to decode resource: %w", err)
 		}
+		if opts.ResourceOptions != nil {
+			resource := *opts.ResourceOptions
+			// automatically set the version to the component descriptors version for local resources
+			if resource.Relation == cdv2.LocalRelation && len(resource.Version) == 0 {
+				resource.Version = cd.GetVersion()
+			}
 
-		// automatically set the version to the component descriptors version for local resources
-		if resource.Relation == cdv2.LocalRelation && len(resource.Version) == 0 {
-			resource.Version = cd.GetVersion()
-		}
+			if resource.Input != nil && resource.Access != nil {
+				return nil, fmt.Errorf("the resources %q input and access is defind. Only one option is allowed", resource.Name)
+			}
+			resources = append(resources, resource)
+		} else if opts.Resources != nil {
+			resourcesList := opts.ResourceOptionList
+			for _, res := range resourcesList.Resources {
+				resource := res
+				// automatically set the version to the component descriptors version for local resources
+				if resource.Relation == cdv2.LocalRelation && len(resource.Version) == 0 {
+					resource.Version = cd.GetVersion()
+				}
 
-		if resource.Input != nil && resource.Access != nil {
-			return nil, fmt.Errorf("the resources %q input and access is defind. Only one option is allowed", resource.Name)
+				if resource.Input != nil && resource.Access != nil {
+					return nil, fmt.Errorf("the resources %q input and access is defind. Only one option is allowed", resource.Name)
+				}
+				resources = append(resources, resource)
+			}
 		}
-		resources = append(resources, resource)
 	}
 
 	return resources, nil

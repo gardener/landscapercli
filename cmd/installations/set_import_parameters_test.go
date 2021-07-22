@@ -13,6 +13,7 @@ import (
 )
 
 func TestImportParameterFilling(t *testing.T) {
+	repoCtx, _ := cdv2.NewUnstructured(cdv2.NewOCIRegistryRepository("sample.cluster.local", ""))
 	installation := lsv1alpha1.Installation{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: lsv1alpha1.SchemeGroupVersion.String(),
@@ -24,12 +25,9 @@ func TestImportParameterFilling(t *testing.T) {
 		Spec: lsv1alpha1.InstallationSpec{
 			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
 				Reference: &lsv1alpha1.ComponentDescriptorReference{
-					RepositoryContext: &cdv2.RepositoryContext{
-						Type:    cdv2.OCIRegistryType,
-						BaseURL: "sample.cluster.local",
-					},
-					ComponentName: "component name",
-					Version:       "v0.0.1",
+					RepositoryContext: &repoCtx,
+					ComponentName:     "component name",
+					Version:           "v0.0.1",
 				},
 			},
 			Blueprint: lsv1alpha1.BlueprintDefinition{

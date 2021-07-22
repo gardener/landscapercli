@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# SPDX-FileCopyrightText: 2020 SAP SE or an SAP affiliate company and Gardener contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+SOURCE_PATH="$(dirname $0)/.."
+
+# setup component descriptor in archive format
+COMPONENT_ARCHIVE_PATH="/tmp/ca"
+COMPONENT_DESCRIPTOR_FILE_PATH="$COMPONENT_ARCHIVE_PATH/component-descriptor.yaml"
+mkdir -p "$COMPONENT_ARCHIVE_PATH"
+cp "$BASE_DEFINITION_PATH" "$COMPONENT_DESCRIPTOR_FILE_PATH"
+
+# add component references
+ccli_component_name="github.com/gardener/component-cli"
+ccli_component_version=$(go list -m -mod=mod all | grep "$ccli_component_name" | awk '{ print $2 }')
+
+cat <<EOF | $COMPONENT_CLI ca component-references add "$COMPONENT_ARCHIVE_PATH" -
+name: component-cli
+componentName: ${ccli_component_name}
+version: ${ccli_component_version}
+EOF
+
+
+printf "> add ca to ctf\n"
+$COMPONENT_CLI ctf add "$CTF_PATH" -f "$COMPONENT_ARCHIVE_PATH"

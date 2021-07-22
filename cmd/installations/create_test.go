@@ -19,11 +19,8 @@ func TestBuildInstallation(t *testing.T) {
 			name: "test with single repo context",
 			cd: &cdv2.ComponentDescriptor{
 				ComponentSpec: cdv2.ComponentSpec{
-					RepositoryContexts: []cdv2.RepositoryContext{
-						{
-							Type:    "ociRegistry",
-							BaseURL: "first-registry.com",
-						},
+					RepositoryContexts: []*cdv2.UnstructuredTypedObject{
+						newRepositoryCtx("first-registry.com"),
 					},
 				},
 			},
@@ -38,10 +35,7 @@ func TestBuildInstallation(t *testing.T) {
 				Spec: lsv1alpha1.InstallationSpec{
 					ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
 						Reference: &lsv1alpha1.ComponentDescriptorReference{
-							RepositoryContext: &cdv2.RepositoryContext{
-								Type:    "ociRegistry",
-								BaseURL: "first-registry.com",
-							},
+							RepositoryContext: newRepositoryCtx("first-registry.com"),
 						},
 					},
 					Blueprint: lsv1alpha1.BlueprintDefinition{
@@ -73,15 +67,9 @@ func TestBuildInstallation(t *testing.T) {
 			name: "use latest repo context if multiple repo contexts exist",
 			cd: &cdv2.ComponentDescriptor{
 				ComponentSpec: cdv2.ComponentSpec{
-					RepositoryContexts: []cdv2.RepositoryContext{
-						{
-							Type:    "ociRegistry",
-							BaseURL: "first-registry.com",
-						},
-						{
-							Type:    "ociRegistry",
-							BaseURL: "second-registry.com",
-						},
+					RepositoryContexts: []*cdv2.UnstructuredTypedObject{
+						newRepositoryCtx("first-registry.com"),
+						newRepositoryCtx("second-registry.com"),
 					},
 				},
 			},
@@ -96,10 +84,7 @@ func TestBuildInstallation(t *testing.T) {
 				Spec: lsv1alpha1.InstallationSpec{
 					ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
 						Reference: &lsv1alpha1.ComponentDescriptorReference{
-							RepositoryContext: &cdv2.RepositoryContext{
-								Type:    "ociRegistry",
-								BaseURL: "second-registry.com",
-							},
+							RepositoryContext: newRepositoryCtx("second-registry.com"),
 						},
 					},
 					Blueprint: lsv1alpha1.BlueprintDefinition{
@@ -158,4 +143,9 @@ func TestBuildInstallation(t *testing.T) {
 		})
 	}
 
+}
+
+func newRepositoryCtx(baseUrl string) *cdv2.UnstructuredTypedObject {
+	repoCtx, _ := cdv2.NewUnstructured(cdv2.NewOCIRegistryRepository(baseUrl, ""))
+	return &repoCtx
 }

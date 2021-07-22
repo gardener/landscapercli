@@ -259,6 +259,11 @@ func (t *installationsCreateTest) waitForInstallationSuccess() error {
 func (t *installationsCreateTest) checkInstallation(outBuf *bytes.Buffer) error {
 	fmt.Println("Checking generated installation")
 
+	// The uploaded cd of the component will have 2 repository contexts
+	//   - [0]: oci-registry.landscaper.svc.cluster.local:5000 (initially defined)
+	//   - [1]: localhost:5000 (appended by component cli during upload)
+	// "installations create" cmd will use the last context from that list
+	repoCtx, _ := cdv2.NewUnstructured(cdv2.NewOCIRegistryRepository("localhost:5000", ""))
 	expectedInstallation := lsv1alpha1.Installation{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Installation",
@@ -270,16 +275,9 @@ func (t *installationsCreateTest) checkInstallation(outBuf *bytes.Buffer) error 
 		Spec: lsv1alpha1.InstallationSpec{
 			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
 				Reference: &lsv1alpha1.ComponentDescriptorReference{
-					Version:       t.componentVersion,
-					ComponentName: t.componentName,
-					RepositoryContext: &cdv2.RepositoryContext{
-						Type: cdv2.OCIRegistryType,
-						// The uploaded cd of the component will have 2 repository contexts
-						//   - [0]: oci-registry.landscaper.svc.cluster.local:5000 (initially defined)
-						//   - [1]: localhost:5000 (appended by component cli during upload)
-						// "installations create" cmd will use the last context from that list
-						BaseURL: "localhost:5000",
-					},
+					Version:           t.componentVersion,
+					ComponentName:     t.componentName,
+					RepositoryContext: &repoCtx,
 				},
 			},
 			Blueprint: lsv1alpha1.BlueprintDefinition{

@@ -9,6 +9,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// LoggingVerbosityEnvVar is the name of the variable to configure the logging verbosity
+const LoggingVerbosityEnvVar = "LOGGING_VERBOSITY"
+
 type Config struct {
 	flagset *flag.FlagSet
 

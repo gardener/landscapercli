@@ -83,3 +83,13 @@ landscaper-cli:
         release:
           nextversion: 'bump_minor'
           release_notes_policy: disabled
+
+    create_upgrade_prs:
+      steps: ~
+      traits:
+        component_descriptor: ~
+        update_component_deps:
+          ignore_prerelease_versions: true
+        cronjob:
+          interval: '10m'
+        version: ~

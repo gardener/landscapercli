@@ -36,6 +36,7 @@ landscaper-cli blueprints render BLUEPRINT_DIR [all,deployitems,subinstallations
   -c, --component-descriptor string                   Path to the local component descriptor
   -f, --file stringArray                              List of filepaths to value yaml files that define the imports
   -h, --help                                          help for render
+      --insecure-skip-tls-verify                      If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
   -o, --output string                                 The format of the output. Can be json or yaml. (default "yaml")
       --registry-config string                        path to the dockerconfig.json with the oci registry authentication information
   -w, --write string                                  The output directory where the rendered files should be written to

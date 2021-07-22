@@ -19,12 +19,14 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/gardener/component-cli/pkg/components"
+
 	ociopts "github.com/gardener/component-cli/ociclient/options"
 	"github.com/gardener/component-cli/pkg/logger"
 	"github.com/gardener/component-cli/pkg/utils"
 )
 
-type pushOptions struct {
+type PushOptions struct {
 	// CTFPath is the path to the directory containing the ctf archive.
 	CTFPath string
 	// BaseUrl is the repository context base url for all included component descriptors.
@@ -38,7 +40,7 @@ type pushOptions struct {
 
 // NewPushCommand creates a new definition command to push definitions
 func NewPushCommand(ctx context.Context) *cobra.Command {
-	opts := &pushOptions{}
+	opts := &PushOptions{}
 	cmd := &cobra.Command{
 		Use:   "push CTF_PATH",
 		Args:  cobra.ExactArgs(1),
@@ -70,7 +72,7 @@ Note: Currently only component archives are supoprted. Generic OCI Artifacts wil
 	return cmd
 }
 
-func (o *pushOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
+func (o *PushOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
 	info, err := fs.Stat(o.CTFPath)
 	if err != nil {
 		return fmt.Errorf("unable to get info for %s: %w", o.CTFPath, err)
@@ -92,14 +94,18 @@ It is expected that the given path points to a CTF Archive`, o.CTFPath)
 
 	err = ctfArchive.Walk(func(ca *ctf.ComponentArchive) error {
 		// update repository context
-		ca.ComponentDescriptor.RepositoryContexts = utils.AddRepositoryContext(ca.ComponentDescriptor.RepositoryContexts, cdv2.OCIRegistryType, o.BaseUrl)
+		if len(o.BaseUrl) != 0 {
+			if err := cdv2.InjectRepositoryContext(ca.ComponentDescriptor, cdv2.NewOCIRegistryRepository(o.BaseUrl, "")); err != nil {
+				return fmt.Errorf("unable to add repository context: %w", err)
+			}
+		}
 
 		manifest, err := cdoci.NewManifestBuilder(cache, ca).Build(ctx)
 		if err != nil {
 			return fmt.Errorf("unable to build oci artifact for component acrchive: %w", err)
 		}
 
-		ref, err := cdoci.OCIRef(ca.ComponentDescriptor.GetEffectiveRepositoryContext(), ca.ComponentDescriptor.GetName(), ca.ComponentDescriptor.GetVersion())
+		ref, err := components.OCIRef(ca.ComponentDescriptor.GetEffectiveRepositoryContext(), ca.ComponentDescriptor.GetName(), ca.ComponentDescriptor.GetVersion())
 		if err != nil {
 			return fmt.Errorf("unable to calculate oci ref for %q: %s", ca.ComponentDescriptor.GetName(), err.Error())
 		}
@@ -109,7 +115,7 @@ It is expected that the given path points to a CTF Archive`, o.CTFPath)
 		log.Info(fmt.Sprintf("Successfully uploaded component archive to %q", ref))
 
 		for _, tag := range o.AdditionalTags {
-			ref, err := cdoci.OCIRef(ca.ComponentDescriptor.GetEffectiveRepositoryContext(), ca.ComponentDescriptor.GetName(), tag)
+			ref, err := components.OCIRef(ca.ComponentDescriptor.GetEffectiveRepositoryContext(), ca.ComponentDescriptor.GetName(), tag)
 			if err != nil {
 				return fmt.Errorf("unable to calculate oci ref for %q: %s", ca.ComponentDescriptor.GetName(), err.Error())
 			}
@@ -128,7 +134,7 @@ It is expected that the given path points to a CTF Archive`, o.CTFPath)
 	return ctfArchive.Close()
 }
 
-func (o *pushOptions) Complete(args []string) error {
+func (o *PushOptions) Complete(args []string) error {
 	o.CTFPath = args[0]
 
 	var err error
@@ -145,14 +151,14 @@ func (o *pushOptions) Complete(args []string) error {
 }
 
 // Validate validates push options
-func (o *pushOptions) Validate() error {
+func (o *PushOptions) Validate() error {
 	if len(o.CTFPath) == 0 {
 		return errors.New("a path to the component descriptor must be defined")
 	}
 	return nil
 }
 
-func (o *pushOptions) AddFlags(fs *pflag.FlagSet) {
+func (o *PushOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.BaseUrl, "repo-ctx", "", "repository context url for component to upload. The repository url will be automatically added to the repository contexts.")
 	fs.StringArrayVarP(&o.AdditionalTags, "tag", "t", []string{}, "set additional tags on the oci artifact")
 

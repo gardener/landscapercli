@@ -20,8 +20,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	lserrors "github.com/gardener/landscaper/apis/errors"
 
 	"github.com/gardener/landscaper/pkg/api"
 	"github.com/gardener/landscaper/pkg/landscaper/dataobjects"
@@ -36,7 +39,7 @@ import (
 
 // Operation contains all installation operations and implements the Operation interface.
 type Operation struct {
-	lsoperation.Interface
+	*lsoperation.Operation
 
 	Inst                            *Installation
 	ComponentDescriptor             *cdv2.ComponentDescriptor
@@ -48,18 +51,18 @@ type Operation struct {
 	CurrentOperation string
 
 	// default repo context
-	DefaultRepoContext *cdv2.RepositoryContext
+	DefaultRepoContext *cdv2.UnstructuredTypedObject
 }
 
 // NewInstallationOperation creates a new installation operation
-func NewInstallationOperation(ctx context.Context, log logr.Logger, c client.Client, scheme *runtime.Scheme, cRegistry ctf.ComponentResolver, inst *Installation) (*Operation, error) {
-	return NewInstallationOperationFromOperation(ctx, lsoperation.NewOperation(log, c, scheme, cRegistry), inst, nil)
+func NewInstallationOperation(ctx context.Context, log logr.Logger, c client.Client, scheme *runtime.Scheme, recorder record.EventRecorder, cRegistry ctf.ComponentResolver, inst *Installation) (*Operation, error) {
+	return NewInstallationOperationFromOperation(ctx, lsoperation.NewOperation(log, c, scheme, recorder).SetComponentsRegistry(cRegistry), inst, nil)
 }
 
 // NewInstallationOperationFromOperation creates a new installation operation from an existing common operation
-func NewInstallationOperationFromOperation(ctx context.Context, op lsoperation.Interface, inst *Installation, defaultRepoContext *cdv2.RepositoryContext) (*Operation, error) {
+func NewInstallationOperationFromOperation(ctx context.Context, op *lsoperation.Operation, inst *Installation, defaultRepoContext *cdv2.UnstructuredTypedObject) (*Operation, error) {
 	instOp := &Operation{
-		Interface:          op,
+		Operation:          op,
 		Inst:               inst,
 		DefaultRepoContext: defaultRepoContext,
 	}
@@ -95,7 +98,7 @@ func (o *Operation) ResolveComponentDescriptors(ctx context.Context) error {
 
 // Log returns a modified logger for the installation.
 func (o *Operation) Log() logr.Logger {
-	return o.Interface.Log().WithValues("installation", types.NamespacedName{
+	return o.Operation.Log().WithValues("installation", types.NamespacedName{
 		Namespace: o.Inst.Info.Namespace,
 		Name:      o.Inst.Info.Name,
 	})
@@ -211,7 +214,7 @@ func (o *Operation) GetImportedDataObjects(ctx context.Context) (map[string]*dat
 func (o *Operation) GetImportedTargets(ctx context.Context) (map[string]*dataobjects.Target, error) {
 	targets := map[string]*dataobjects.Target{}
 	for _, def := range o.Inst.Info.Spec.Imports.Targets {
-		target, _, err := GetTargetImport(ctx, o, o.Context().Name, o.Inst, def.Target)
+		target, _, err := GetTargetImport(ctx, o.Client(), o.Context().Name, o.Inst, def.Target)
 		if err != nil {
 			return nil, err
 		}
@@ -248,35 +251,13 @@ func (o *Operation) GetImportedTargets(ctx context.Context) (map[string]*dataobj
 
 // NewError creates a new error with the current operation
 func (o *Operation) NewError(err error, reason, message string, codes ...lsv1alpha1.ErrorCode) error {
-	return lsv1alpha1helper.NewWrappedError(err,
+	return lserrors.NewWrappedError(err,
 		o.CurrentOperation, reason, message, codes...)
 }
 
 // CreateEventFromCondition creates a new event based on the given condition
 func (o *Operation) CreateEventFromCondition(ctx context.Context, inst *lsv1alpha1.Installation, cond lsv1alpha1.Condition) error {
-	event := &corev1.Event{}
-	event.GenerateName = "inst-"
-	event.Namespace = inst.Namespace
-	event.Type = "Warning"
-	event.Source = corev1.EventSource{
-		Component: "landscaper", // todo: make configurable by the caller
-	}
-	event.InvolvedObject = corev1.ObjectReference{
-		Kind:            inst.Kind,
-		Namespace:       inst.Namespace,
-		Name:            inst.Name,
-		UID:             inst.UID,
-		APIVersion:      inst.APIVersion,
-		ResourceVersion: inst.ResourceVersion,
-	}
-	event.Reason = cond.Reason
-	event.Message = cond.Message
-	event.Action = string(cond.Type)
-
-	if err := o.Client().Create(ctx, event); err != nil {
-		o.Log().Error(err, "unable to set installation status")
-		return err
-	}
+	o.Operation.EventRecorder().Event(inst, corev1.EventTypeWarning, cond.Reason, cond.Message)
 	return nil
 }
 
@@ -451,9 +432,14 @@ func (o *Operation) CreateOrUpdateExports(ctx context.Context, dataExports []*da
 }
 
 // CreateOrUpdateImports creates or updates the data objects that holds the imported values for every import
-func (o *Operation) CreateOrUpdateImports(ctx context.Context, importedValues map[string]interface{}) error {
+func (o *Operation) CreateOrUpdateImports(ctx context.Context) error {
+	return o.createOrUpdateImports(ctx, o.Inst.Blueprint.Info.Imports)
+}
+
+func (o *Operation) createOrUpdateImports(ctx context.Context, importDefs lsv1alpha1.ImportDefinitionList) error {
+	importedValues := o.Inst.GetImports()
 	src := lsv1alpha1helper.DataObjectSourceFromInstallation(o.Inst.Info)
-	for _, importDef := range o.Inst.Blueprint.Info.Imports {
+	for _, importDef := range importDefs {
 		importData, ok := importedValues[importDef.Name]
 		if !ok {
 			// todo: create test for optional imports
@@ -463,16 +449,25 @@ func (o *Operation) CreateOrUpdateImports(ctx context.Context, importedValues ma
 			return fmt.Errorf("import %s not defined", importDef.Name)
 		}
 
-		if len(importDef.TargetType) != 0 {
+		if len(importDef.ConditionalImports) > 0 {
+			if err := o.createOrUpdateImports(ctx, importDef.ConditionalImports); err != nil {
+				return err
+			}
+		}
+
+		switch importDef.Type {
+		case lsv1alpha1.ImportTypeData:
+			if err := o.createOrUpdateDataImport(ctx, src, importDef, importData); err != nil {
+				return fmt.Errorf("unable to create or update data import '%s': %w", importDef.Name, err)
+			}
+		case lsv1alpha1.ImportTypeTarget:
 			if err := o.createOrUpdateTargetImport(ctx, src, importDef, importData); err != nil {
 				return fmt.Errorf("unable to create or update target import '%s': %w", importDef.Name, err)
 			}
-			continue
+		default:
+			return fmt.Errorf("unknown import type '%s' for import %s", string(importDef.Type), importDef.Name)
 		}
 
-		if err := o.createOrUpdateDataImport(ctx, src, importDef, importData); err != nil {
-			return fmt.Errorf("unable to create or update data import '%s': %w", importDef.Name, err)
-		}
 	}
 	return nil
 }
@@ -490,7 +485,7 @@ func (o *Operation) createOrUpdateDataImport(ctx context.Context, src string, im
 			lsv1alpha1helper.UpdatedCondition(cond, lsv1alpha1.ConditionFalse,
 				"CreateDataObjects",
 				fmt.Sprintf("unable to create data object for import '%s'", importDef.Name)))
-		o.Inst.Info.Status.LastError = lsv1alpha1helper.UpdatedError(o.Inst.Info.Status.LastError,
+		o.Inst.Info.Status.LastError = lserrors.UpdatedError(o.Inst.Info.Status.LastError,
 			"CreateDataObjects", fmt.Sprintf("unable to create dataobjects for import '%s'", importDef.Name),
 			err.Error())
 		return fmt.Errorf("unable to build data object for import '%s': %w", importDef.Name, err)
@@ -507,7 +502,7 @@ func (o *Operation) createOrUpdateDataImport(ctx context.Context, src string, im
 			lsv1alpha1helper.UpdatedCondition(cond, lsv1alpha1.ConditionFalse,
 				"CreateDataObjects",
 				fmt.Sprintf("unable to create data object for import '%s'", importDef.Name)))
-		o.Inst.Info.Status.LastError = lsv1alpha1helper.UpdatedError(o.Inst.Info.Status.LastError,
+		o.Inst.Info.Status.LastError = lserrors.UpdatedError(o.Inst.Info.Status.LastError,
 			"CreateDatatObjects", fmt.Sprintf("unable to create data objects for import '%s'", importDef.Name),
 			err.Error())
 		return fmt.Errorf("unable to create or update data object '%s' for import '%s': %w", raw.Name, importDef.Name, err)
@@ -540,7 +535,7 @@ func (o *Operation) createOrUpdateTargetImport(ctx context.Context, src string, 
 			lsv1alpha1helper.UpdatedCondition(cond, lsv1alpha1.ConditionFalse,
 				"CreateTargets",
 				fmt.Sprintf("unable to create target for import '%s'", importDef.Name)))
-		o.Inst.Info.Status.LastError = lsv1alpha1helper.UpdatedError(o.Inst.Info.Status.LastError,
+		o.Inst.Info.Status.LastError = lserrors.UpdatedError(o.Inst.Info.Status.LastError,
 			"CreateTargets", fmt.Sprintf("unable to create target for import '%s'", importDef.Name),
 			err.Error())
 		return fmt.Errorf("unable to build target for import '%s': %w", importDef.Name, err)
@@ -557,7 +552,7 @@ func (o *Operation) createOrUpdateTargetImport(ctx context.Context, src string, 
 			lsv1alpha1helper.UpdatedCondition(cond, lsv1alpha1.ConditionFalse,
 				"CreateTargets",
 				fmt.Sprintf("unable to create target for import '%s'", importDef.Name)))
-		o.Inst.Info.Status.LastError = lsv1alpha1helper.UpdatedError(o.Inst.Info.Status.LastError,
+		o.Inst.Info.Status.LastError = lserrors.UpdatedError(o.Inst.Info.Status.LastError,
 			"CreateTargets", fmt.Sprintf("unable to create target for import '%s'", importDef.Name),
 			err.Error())
 		return fmt.Errorf("unable to create or update target '%s' for import '%s': %w", target.Name, importDef.Name, err)

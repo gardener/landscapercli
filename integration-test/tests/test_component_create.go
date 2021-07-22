@@ -392,6 +392,7 @@ func (t *componentCreateTest) createTarget(ctx context.Context) error {
 func (t *componentCreateTest) createInstallation(ctx context.Context) error {
 	fmt.Printf("Creating installation %s\n", t.installationName)
 
+	repoCtx, _ := cdv2.NewUnstructured(cdv2.NewOCIRegistryRepository(t.config.RegistryBaseURL, ""))
 	installation := lsv1alpha1.Installation{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      t.installationName,
@@ -400,12 +401,9 @@ func (t *componentCreateTest) createInstallation(ctx context.Context) error {
 		Spec: lsv1alpha1.InstallationSpec{
 			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
 				Reference: &lsv1alpha1.ComponentDescriptorReference{
-					RepositoryContext: &cdv2.RepositoryContext{
-						Type:    "ociRegistry",
-						BaseURL: t.config.RegistryBaseURL,
-					},
-					ComponentName: t.componentName,
-					Version:       t.componentVersion,
+					RepositoryContext: &repoCtx,
+					ComponentName:     t.componentName,
+					Version:           t.componentVersion,
 				},
 			},
 			Blueprint: lsv1alpha1.BlueprintDefinition{
