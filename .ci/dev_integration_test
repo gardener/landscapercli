@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+PROJECT_ROOT="$(dirname $0)/.."
+LANDSCAPE="dev"
+TARGET_CLUSTER_NAME=""
+
+for i in "$@"
+do
+case $i in
+        -target-clustername=*|--target-clustername=*)
+        TARGET_CLUSTER_NAME="${i#*=}"
+        shift
+    ;;
+    *)
+        # unknown option
+        echo "Unkown option ${i#*=}"
+        exit 1
+    ;;
+esac
+done
+
+if [[ $TARGET_CLUSTER_NAME == "" ]]; then
+    echo "Required parameter: --target-clustername"
+    exit 1
+fi
+
+if ! command -v python3 &> /dev/null
+then
+    echo "Python3 could not be found"
+    echo "Try installing it..."
+    apk add --no-cache --no-progress python3 py3-pip
+fi
+
+${PROJECT_ROOT}/.ci/integration_test.py
