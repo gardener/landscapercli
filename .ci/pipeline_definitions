@@ -22,9 +22,9 @@ landscaper-cli:
       component_descriptor: ~
     steps:
       verify:
-        image: 'golang:1.16.0'
+        image: 'golang:1.16.6'
       build:
-        image: 'golang:1.16.0'
+        image: 'golang:1.16.6'
         execute: 'build'
         output_dir: 'out'
         timeout: '5m'
@@ -35,9 +35,10 @@ landscaper-cli:
         draft_release: ~
     pull-request:
       steps:
+        image: 'golang:1.16.6'
         run_integration_test:
           execute:
-          - "dev_integration_test.py"
+          - "dev_integration_test"
           - "--target-clustername int-test-pr"
           output_dir: 'integration_test'
       traits:
@@ -55,15 +56,17 @@ landscaper-cli:
           suppress_parallel_execution: true
       steps:
         run_integration_test:
+          image: 'golang:1.16.6'
           execute:
-          - "dev_integration_test.py"
+          - "dev_integration_test"
           - "--target-clustername int-test-cron"
           output_dir: 'integration_test'
     release:
       steps:
         run_integration_test:
+          image: 'golang:1.16.6'
           execute:
-          - "dev_integration_test.py"
+          - "dev_integration_test"
           - "--target-clustername int-test"
           output_dir: 'integration_test'
         update-release:

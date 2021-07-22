@@ -27,8 +27,9 @@ golang_found = shutil.which("go")
 if golang_found:
     print(f"Found go compiler in {golang_found}")
 else:
-    print("No Go compiler found, installing Go")
-    command = ['apk', 'add', 'go', '--no-progress']
+    version = '1.16.6'
+    print(f"No Go compiler found, installing Go {version}")
+    command = ['sh', '-c', f'curl -L -O https://golang.org/dl/go{version}.linux-amd64.tar.gz && rm -rf /usr/local/go && tar -C /usr/local -xzf go{version}.linux-amd64.tar.gz && ln -s /usr/local/go/bin/go /usr/local/bin/go']
     result = run(command)
     result.check_returncode()
 
@@ -50,7 +51,7 @@ print(f"'kubectl version' from python")
 kubectl_client.version()
 print(f"'kubectl version' from PATH={os.environ['PATH']}")
 kubectl_version = run(["kubectl", "version", "--client"])
-    
+
 os.chdir(os.path.join(root_path, source_path, "integration-test"))
 
 factory = ctx().cfg_factory()
