@@ -9,6 +9,9 @@ set -o nounset
 set -o pipefail
 
 SOURCE_PATH="$(dirname $0)/.."
+cd $SOURCE_PATH
+
+apk add --no-cache --no-progress make go
 
 # setup component descriptor in archive format
 COMPONENT_ARCHIVE_PATH="/tmp/ca"
@@ -20,12 +23,11 @@ cp "$BASE_DEFINITION_PATH" "$COMPONENT_DESCRIPTOR_FILE_PATH"
 ccli_component_name="github.com/gardener/component-cli"
 ccli_component_version=$(go list -m -mod=mod all | grep "$ccli_component_name" | awk '{ print $2 }')
 
-cat <<EOF | $COMPONENT_CLI ca component-references add "$COMPONENT_ARCHIVE_PATH" -
+cat <<EOF | component-cli ca component-references add "$COMPONENT_ARCHIVE_PATH" -
 name: component-cli
 componentName: ${ccli_component_name}
 version: ${ccli_component_version}
 EOF
-
 
 printf "> add ca to ctf\n"
 $COMPONENT_CLI ctf add "$CTF_PATH" -f "$COMPONENT_ARCHIVE_PATH"
