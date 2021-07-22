@@ -35,8 +35,8 @@ landscaper-cli:
         draft_release: ~
     pull-request:
       steps:
-        image: 'golang:1.16.6'
         run_integration_test:
+          image: 'golang:1.16.6'
           execute:
           - "dev_integration_test"
           - "--target-clustername int-test-pr"
