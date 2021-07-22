@@ -30,4 +30,4 @@ version: ${ccli_component_version}
 EOF
 
 printf "> add ca to ctf\n"
-$COMPONENT_CLI ctf add "$CTF_PATH" -f "$COMPONENT_ARCHIVE_PATH"
+component-cli ctf add "$CTF_PATH" -f "$COMPONENT_ARCHIVE_PATH"
