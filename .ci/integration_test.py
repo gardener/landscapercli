@@ -13,7 +13,7 @@ from util import ctx
 print("Starting integration test")
 print(f"current environment: {os.environ}")
 source_path = os.environ['SOURCE_PATH']
-root_path = os.environ['ROOT_PATH']
+root_path = os.getcwd()
 target_cluster = os.environ['TARGET_CLUSTER']
 
 try:

@@ -2,13 +2,13 @@
 
 PROJECT_ROOT="$(dirname $0)/.."
 LANDSCAPE="dev"
-TARGET_CLUSTER_NAME=""
+TARGET_CLUSTER=""
 
 for i in "$@"
 do
 case $i in
         -target-clustername=*|--target-clustername=*)
-        TARGET_CLUSTER_NAME="${i#*=}"
+        export TARGET_CLUSTER="${i#*=}"
         shift
     ;;
     *)
@@ -19,7 +19,7 @@ case $i in
 esac
 done
 
-if [[ $TARGET_CLUSTER_NAME == "" ]]; then
+if [[ $TARGET_CLUSTER == "" ]]; then
     echo "Required parameter: --target-clustername"
     exit 1
 fi
