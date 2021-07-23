@@ -13,6 +13,7 @@ from util import ctx
 print("Starting integration test")
 print(f"current environment: {os.environ}")
 source_path = os.environ['SOURCE_PATH']
+root_path = os.environ['ROOT_PATH']
 target_cluster = os.environ['TARGET_CLUSTER']
 
 try:
@@ -46,7 +47,7 @@ kubectl_client.version()
 print(f"'kubectl version' from PATH={os.environ['PATH']}")
 kubectl_version = run(["kubectl", "version", "--client"])
 
-os.chdir(os.path.join(source_path, "integration-test"))
+os.chdir(os.path.join(root_path, source_path, "integration-test"))
 
 factory = ctx().cfg_factory()
 print(f"Getting kubeconfig for {target_cluster}")
@@ -70,7 +71,7 @@ with utils.TempFileAuto(prefix="landscape_kubeconfig_") as temp_file:
     except NameError:
         run = run(command)
     else:
-        output_path = os.path.join(source_path, integration_test_path, "out")
+        output_path = os.path.join(root_path, integration_test_path, "out")
 
         with Popen(command, stdout=PIPE, stderr=STDOUT, bufsize=1, universal_newlines=True) as run, open(output_path, 'w') as file:
             for line in run.stdout:
