@@ -306,6 +306,10 @@ func (t *installationsCreateTest) checkInstallation(outBuf *bytes.Buffer) error 
 		return fmt.Errorf("cannot unmarshal cmd output into installation: %w", err)
 	}
 
+	// exclude raw fields from check, because the order of fields can vary
+	expectedInstallation.Spec.ComponentDescriptor.Reference.RepositoryContext.Raw = nil
+	actualInstallation.Spec.ComponentDescriptor.Reference.RepositoryContext.Raw = nil
+
 	ok := assert.Equal(inttestutil.DummyTestingT{}, expectedInstallation, actualInstallation)
 	if !ok {
 		return fmt.Errorf("expected installation does not match with actual installation")
