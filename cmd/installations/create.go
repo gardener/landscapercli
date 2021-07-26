@@ -18,7 +18,6 @@ import (
 	"github.com/gardener/landscaper/pkg/api"
 	lsjsonschema "github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
-	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
 	"github.com/gardener/landscaper/pkg/utils/tar"
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
@@ -136,11 +135,10 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		}
 
 		loaderConfig := lsjsonschema.LoaderConfig{
-			LocalTypes:                 blueprint.LocalTypes,
-			BlueprintFs:                memFS,
-			ComponentDescriptor:        cd,
-			ComponentResolver:          ociRegistry,
-			ComponentReferenceResolver: cdutils.ComponentReferenceResolverFromResolver(ociRegistry, repoCtx),
+			LocalTypes:          blueprint.LocalTypes,
+			BlueprintFs:         memFS,
+			ComponentDescriptor: cd,
+			ComponentResolver:   ociRegistry,
 		}
 		jsonschemaResolver := jsonschema.NewJSONSchemaResolver(&loaderConfig, 10)
 
