@@ -320,17 +320,18 @@ func runQuickstartInstall(config *inttestutil.Config) error {
 
 func buildLandscaperValues(namespace string) ([]byte, error) {
 	const valuesTemplate = `
-registryConfig: # contains optional oci secrets
-  allowPlainHttpRegistries: true
-  secrets: {}
-deployers:
-- container
-- helm
-- manifest
-deployerManagement:
-  namespace: {{ .Namespace }}
-  agent:
+landscaper:
+  registryConfig: # contains optional oci secrets
+    allowPlainHttpRegistries: true
+    secrets: {}
+  deployers:
+  - container
+  - helm
+  - manifest
+  deployerManagement:
     namespace: {{ .Namespace }}
+    agent:
+      namespace: {{ .Namespace }}
 `
 
 	t, err := template.New("valuesTemplate").Parse(valuesTemplate)
