@@ -328,6 +328,7 @@ deployers:
 - helm
 - manifest
 deployerManagement:
+  namespace: {{ .Namespace }}
   agent:
     namespace: {{ .Namespace }}
 `
