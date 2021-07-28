@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"text/template"
 	"time"
 
 	componentclilog "github.com/gardener/component-cli/pkg/logger"
@@ -275,19 +277,10 @@ func runQuickstartUninstall(config *inttestutil.Config) error {
 }
 
 func runQuickstartInstall(config *inttestutil.Config) error {
-	const landscaperValues = `
-landscaper:
-  registryConfig: # contains optional oci secrets
-    allowPlainHttpRegistries: true
-    secrets: {}
-  deployers:
-  - container
-  - helm
-  - manifest
-  deployerManagement:
-    disable: true
-  deployItemTimeouts: {}
-`
+	landscaperValues, err := buildLandscaperValues(config.LandscaperNamespace)
+	if err != nil {
+		return fmt.Errorf("cannot template landscaper values: %w", err)
+	}
 
 	tmpFile, err := ioutil.TempFile(".", "landscaper-values-")
 	if err != nil {
@@ -323,4 +316,40 @@ landscaper:
 	}
 
 	return nil
+}
+
+func buildLandscaperValues(namespace string) ([]byte, error) {
+	const valuesTemplate = `
+landscaper:
+  registryConfig: # contains optional oci secrets
+    allowPlainHttpRegistries: true
+    secrets: {}
+  deployers:
+  - container
+  - helm
+  - manifest
+  deployerManagement:
+    disable: false
+    agent:
+      namespace: {{ .Namespace }}
+`
+
+	t, err := template.New("valuesTemplate").Parse(valuesTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	data := struct {
+		Namespace string
+	}{
+		Namespace: namespace,
+	}
+
+	b := &bytes.Buffer{}
+	err = t.Execute(b, data)
+	if err != nil {
+		return nil, fmt.Errorf("could not template helm values: %w", err)
+	}
+
+	return b.Bytes(), nil
 }
