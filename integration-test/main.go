@@ -284,6 +284,9 @@ landscaper:
   - container
   - helm
   - manifest
+  deployerManagement:
+    disable: true
+  deployItemTimeouts: {}
 `
 
 	tmpFile, err := ioutil.TempFile(".", "landscaper-values-")
