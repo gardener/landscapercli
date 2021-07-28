@@ -329,7 +329,6 @@ landscaper:
   - helm
   - manifest
   deployerManagement:
-    disable: false
     agent:
       namespace: {{ .Namespace }}
 `
