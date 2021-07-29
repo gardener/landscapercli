@@ -44,7 +44,7 @@ func TestBuildInstallation(t *testing.T) {
 						},
 					},
 					Imports: lsv1alpha1.InstallationImports{
-						Targets: []lsv1alpha1.TargetImportExport{
+						Targets: []lsv1alpha1.TargetImport{
 							{
 								Name:   "test-target",
 								Target: "",
@@ -57,7 +57,7 @@ func TestBuildInstallation(t *testing.T) {
 						},
 					},
 					Exports: lsv1alpha1.InstallationExports{
-						Targets: []lsv1alpha1.TargetImportExport{},
+						Targets: []lsv1alpha1.TargetExport{},
 						Data:    []lsv1alpha1.DataExport{},
 					},
 				},
@@ -93,7 +93,7 @@ func TestBuildInstallation(t *testing.T) {
 						},
 					},
 					Imports: lsv1alpha1.InstallationImports{
-						Targets: []lsv1alpha1.TargetImportExport{
+						Targets: []lsv1alpha1.TargetImport{
 							{
 								Name: "test-target",
 							},
@@ -105,7 +105,7 @@ func TestBuildInstallation(t *testing.T) {
 						},
 					},
 					Exports: lsv1alpha1.InstallationExports{
-						Targets: []lsv1alpha1.TargetImportExport{},
+						Targets: []lsv1alpha1.TargetExport{},
 						Data:    []lsv1alpha1.DataExport{},
 					},
 				},

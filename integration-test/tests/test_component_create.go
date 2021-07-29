@@ -412,7 +412,7 @@ func (t *componentCreateTest) createInstallation(ctx context.Context) error {
 				},
 			},
 			Imports: lsv1alpha1.InstallationImports{
-				Targets: []lsv1alpha1.TargetImportExport{
+				Targets: []lsv1alpha1.TargetImport{
 					{
 						Name:   "target-cluster",
 						Target: "#" + t.target.Name,
