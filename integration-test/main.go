@@ -149,6 +149,11 @@ func run() error {
 		}
 	}()
 
+	// Port forwarding starts non-blocking (asynchronous), so we cant be sure it is completed.
+	// Hopefully completed after 5s.
+	fmt.Println("Waiting 5s for port forward to start...")
+	time.Sleep(5 * time.Second)
+
 	fmt.Println("========== Uploading echo-server helm chart to OCI registry ==========")
 	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace)
 	if err != nil {
