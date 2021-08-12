@@ -106,9 +106,9 @@ func (b *BlueprintBuilder) ExistsDeployExecution(executionName string) bool {
 
 func (b *BlueprintBuilder) AddDeployExecution(deployItemName string) {
 	b.blueprint.DeployExecutions = append(b.blueprint.DeployExecutions, v1alpha1.TemplateExecutor{
-		Name: deployItemName,
-		Type: v1alpha1.GOTemplateType,
-		File: "/" + util.ExecutionFileName(deployItemName),
+		Name:     deployItemName,
+		Type:     v1alpha1.GOTemplateType,
+		File:     "/" + util.ExecutionFileName(deployItemName),
 		Template: v1alpha1.NewAnyJSON([]byte{}),
 	})
 }
