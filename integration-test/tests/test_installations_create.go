@@ -291,7 +291,7 @@ func (t *installationsCreateTest) checkInstallation(outBuf *bytes.Buffer) error 
 						Name: "appnamespace",
 					},
 				},
-				Targets: []lsv1alpha1.TargetImportExport{
+				Targets: []lsv1alpha1.TargetImport{
 					{
 						Name: "cluster",
 					},

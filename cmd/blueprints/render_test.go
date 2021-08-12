@@ -43,7 +43,7 @@ func TestRenderCommandWithComponentDescriptor(t *testing.T) {
 
 	renderedFiles, err := vfs.ReadDir(testdataFs, filepath.Join(renderOpts.OutDir, blueprints.DeployItemOutputDir))
 	fail(a.NoError(err))
-	a.Len(renderedFiles, 1)
+	a.Len(renderedFiles, 2, "expect a deploy item and the state file")
 
 	data, err := vfs.ReadFile(testdataFs, filepath.Join(renderOpts.OutDir, blueprints.DeployItemOutputDir, renderedFiles[0].Name()))
 	fail(a.NoError(err))
@@ -79,7 +79,7 @@ func TestRenderCommandWithDefaults(t *testing.T) {
 
 	renderedFiles, err := vfs.ReadDir(testdataFs, filepath.Join(renderOpts.OutDir, blueprints.DeployItemOutputDir))
 	fail(a.NoError(err))
-	a.Len(renderedFiles, 1)
+	a.Len(renderedFiles, 2, "expect a deploy item and the state file")
 
 	data, err := vfs.ReadFile(testdataFs, filepath.Join(renderOpts.OutDir, blueprints.DeployItemOutputDir, renderedFiles[0].Name()))
 	fail(a.NoError(err))

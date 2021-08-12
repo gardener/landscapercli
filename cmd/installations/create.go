@@ -18,7 +18,6 @@ import (
 	"github.com/gardener/landscaper/pkg/api"
 	lsjsonschema "github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
-	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
 	"github.com/gardener/landscaper/pkg/utils/tar"
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
@@ -136,11 +135,10 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		}
 
 		loaderConfig := lsjsonschema.LoaderConfig{
-			LocalTypes:                 blueprint.LocalTypes,
-			BlueprintFs:                memFS,
-			ComponentDescriptor:        cd,
-			ComponentResolver:          ociRegistry,
-			ComponentReferenceResolver: cdutils.ComponentReferenceResolverFromResolver(ociRegistry, repoCtx),
+			LocalTypes:          blueprint.LocalTypes,
+			BlueprintFs:         memFS,
+			ComponentDescriptor: cd,
+			ComponentResolver:   ociRegistry,
 		}
 		jsonschemaResolver := jsonschema.NewJSONSchemaResolver(&loaderConfig, 10)
 
@@ -362,10 +360,10 @@ func (o *createOpts) AddFlags(fs *pflag.FlagSet) {
 
 func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes cdv2.Resource, blueprint *lsv1alpha1.Blueprint) *lsv1alpha1.Installation {
 	dataImports := []lsv1alpha1.DataImport{}
-	targetImports := []lsv1alpha1.TargetImportExport{}
+	targetImports := []lsv1alpha1.TargetImport{}
 	for _, imp := range blueprint.Imports {
 		if imp.TargetType != "" {
-			targetImport := lsv1alpha1.TargetImportExport{
+			targetImport := lsv1alpha1.TargetImport{
 				Name: imp.Name,
 			}
 			targetImports = append(targetImports, targetImport)
@@ -378,10 +376,10 @@ func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes c
 	}
 
 	dataExports := []lsv1alpha1.DataExport{}
-	targetExports := []lsv1alpha1.TargetImportExport{}
+	targetExports := []lsv1alpha1.TargetExport{}
 	for _, exp := range blueprint.Exports {
 		if exp.TargetType != "" {
-			targetExport := lsv1alpha1.TargetImportExport{
+			targetExport := lsv1alpha1.TargetExport{
 				Name: exp.Name,
 			}
 			targetExports = append(targetExports, targetExport)

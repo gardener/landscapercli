@@ -144,8 +144,8 @@ const (
 	ErrorConfigurationProblem ErrorCode = "ERR_CONFIGURATION_PROBLEM"
 	// ErrorInternalProblem indicates that the last error occurred due to a servere internal error
 	ErrorInternalProblem ErrorCode = "ERR_INTERNAL_PROBLEM"
-	// ErrorHealthCheckTimeout indicates that objects failed the health check within the given time
-	ErrorHealthCheckTimeout ErrorCode = "ERR_HEALTH_CHECK_TIMEOUT"
+	// ErrorReadinessCheckTimeout indicates that objects failed the readiness check within the given time
+	ErrorReadinessCheckTimeout ErrorCode = "ERR_READINESS_CHECK_TIMEOUT"
 	// ErrorTimeout indicates that an operation timed out.
 	ErrorTimeout ErrorCode = "ERR_TIMEOUT"
 )
@@ -262,6 +262,7 @@ type VersionedNamedObjectReference struct {
 type SecretReference struct {
 	ObjectReference `json:",inline"`
 	// Key is the name of the key in the secret that holds the data.
+	// +optional
 	Key string `json:"key"`
 }
 
@@ -270,6 +271,7 @@ type SecretReference struct {
 type ConfigMapReference struct {
 	ObjectReference `json:",inline"`
 	// Key is the name of the key in the configmap that holds the data.
+	// +optional
 	Key string `json:"key"`
 }
 

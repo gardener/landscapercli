@@ -16,32 +16,24 @@ import (
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/component-spec/bindings-go/codec"
 	"github.com/gardener/component-spec/bindings-go/ctf"
-	"github.com/gardener/landscaper/pkg/landscaper/installations/executions/template/gotemplate"
-	"github.com/gardener/landscaper/pkg/landscaper/installations/executions/template/spiff"
-	"github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
 	"github.com/go-logr/logr"
+	"github.com/mandelsoft/vfs/pkg/layerfs"
+	"github.com/mandelsoft/vfs/pkg/memoryfs"
 	"github.com/mandelsoft/vfs/pkg/osfs"
 	"github.com/mandelsoft/vfs/pkg/projectionfs"
 	"github.com/mandelsoft/vfs/pkg/vfs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscaper/apis/core"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/apis/core/validation"
 	"github.com/gardener/landscaper/pkg/api"
-	"github.com/gardener/landscaper/pkg/landscaper/blueprints"
-	"github.com/gardener/landscaper/pkg/landscaper/execution"
-	"github.com/gardener/landscaper/pkg/landscaper/installations/executions/template"
-	"github.com/gardener/landscaper/pkg/landscaper/installations/subinstallations"
-	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
+	lsutils "github.com/gardener/landscaper/pkg/utils/landscaper"
 
 	"github.com/gardener/landscapercli/pkg/logger"
 )
@@ -63,6 +55,7 @@ const (
 )
 
 const DeployItemOutputDir = "deployitems"
+const SubinstallationOutputDir = "subinstallations"
 
 // RenderOptions describes the options for the render command.
 type RenderOptions struct {
@@ -87,7 +80,6 @@ type RenderOptions struct {
 	componentDescriptor     *cdv2.ComponentDescriptor
 	componentDescriptorList *cdv2.ComponentDescriptorList
 	componentResolver       ctf.ComponentResolver
-	values                  Values
 }
 
 // NewRenderCommand creates a new local command to render a blueprint instance locally
@@ -142,116 +134,66 @@ func (o *RenderOptions) AddFlags(fs *pflag.FlagSet) {
 func (o *RenderOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
 	log.V(3).Info(fmt.Sprintf("rendering %s", strings.Join(o.outputResources.List(), ", ")))
 
-	blueprint := blueprints.New(o.blueprint, o.blueprintFs)
-
-	if err := o.validateImports(blueprint); err != nil {
+	overlayFs := layerfs.New(memoryfs.New(), fs)
+	if err := overlayFs.MkdirAll("/apptmp", os.ModePerm); err != nil {
 		return err
 	}
 
-	exampleInstallation := &lsv1alpha1.Installation{}
-	exampleInstallation.Spec.Blueprint.Reference = &lsv1alpha1.RemoteBlueprintReference{
-		ResourceName: "example-blueprint",
-	}
-	repoCtx, err := cdv2.NewUnstructured(cdv2.NewOCIRegistryRepository("example.com/components", ""))
-	if err != nil {
-		return fmt.Errorf("unable to construct repository context: %w", err)
-	}
-	exampleInstallation.Spec.ComponentDescriptor = &lsv1alpha1.ComponentDescriptorDefinition{
-		Reference: &lsv1alpha1.ComponentDescriptorReference{
-			RepositoryContext: &repoCtx,
-			ComponentName:     "my-example-component",
-			Version:           "v0.0.0",
-		},
+	renderArgs := lsutils.BlueprintRenderArgs{
+		Fs:                          overlayFs,
+		BlueprintPath:               o.BlueprintPath,
+		ComponentDescriptorFilepath: o.ComponentDescriptorPath,
+		ComponentResolver:           o.componentResolver,
+		ComponentDescriptorList:     o.componentDescriptorList,
 	}
 
-	var blobResolver ctf.BlobResolver
-	if o.componentDescriptor != nil {
-		exampleInstallation.Spec.ComponentDescriptor.Reference.ComponentName = o.componentDescriptor.GetName()
-		exampleInstallation.Spec.ComponentDescriptor.Reference.Version = o.componentDescriptor.GetVersion()
-		if len(o.componentDescriptor.RepositoryContexts) != 0 {
-			repoCtx := o.componentDescriptor.GetEffectiveRepositoryContext()
-			exampleInstallation.Spec.ComponentDescriptor.Reference.RepositoryContext = repoCtx
-			o.componentDescriptor, blobResolver, err = o.componentResolver.ResolveWithBlobResolver(ctx,
-				o.componentDescriptor.GetEffectiveRepositoryContext(),
-				o.componentDescriptor.GetName(),
-				o.componentDescriptor.GetVersion())
-			if err != nil {
-				return fmt.Errorf("unable to resolve component descriptor %s:%s: %w ",
-					o.componentDescriptor.GetName(), o.componentDescriptor.GetVersion(), err)
-			}
-		}
+	if err := o.setupImports(overlayFs, &renderArgs); err != nil {
+		return err
+	}
+	out, err := lsutils.RenderBlueprint(renderArgs)
+	if err != nil {
+		return err
 	}
 
 	if o.outputResources.Has(OutputResourceDeployItems) {
-		templateStateHandler := template.NewMemoryStateHandler()
-		deployItemTemplates, err := template.New(
-			gotemplate.New(blobResolver, templateStateHandler),
-			spiff.New(templateStateHandler),
-		).TemplateDeployExecutions(template.DeployExecutionOptions{
-			Imports:              o.values.Imports,
-			Blueprint:            blueprint,
-			ComponentDescriptor:  o.componentDescriptor,
-			ComponentDescriptors: &cdv2.ComponentDescriptorList{},
-			Installation:         exampleInstallation,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to template deploy executions: %w", err)
+		if len(out.DeployItems) == 0 {
+			fmt.Println("No deploy items defined")
 		}
-
 		// print out state
 		stateOut := map[string]map[string]json.RawMessage{
 			"state": {},
 		}
-		for key, state := range templateStateHandler {
+		for key, state := range out.DeployItemTemplateState {
 			stateOut["state"][key] = state
 		}
-		if err := o.out(fs, stateOut, "state"); err != nil {
+		if err := o.out(fs, stateOut, DeployItemOutputDir, "state"); err != nil {
 			return err
 		}
 
-		for _, diTmpl := range deployItemTemplates {
-			di := &lsv1alpha1.DeployItem{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: lsv1alpha1.SchemeGroupVersion.String(),
-					Kind:       "DeployItem",
-				},
-			}
-			execution.ApplyDeployItemTemplate(di, diTmpl)
-			if err := o.out(fs, di, DeployItemOutputDir, diTmpl.Name); err != nil {
+		for _, diTmpl := range out.DeployItems {
+			if err := o.out(fs, diTmpl, DeployItemOutputDir, diTmpl.Name); err != nil {
 				return err
 			}
 		}
 	}
 
 	if o.outputResources.Has(OutputResourceSubinstallations) {
-		dummyInst := &lsv1alpha1.Installation{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: lsv1alpha1.SchemeGroupVersion.String(),
-				Kind:       "Installation",
-			},
+		if len(out.Installations) == 0 {
+			fmt.Println("No subinstallations defined")
 		}
-		if len(blueprint.Info.Subinstallations) == 0 {
-			fmt.Printf("No subinstallations defined\n")
+
+		// print out state
+		stateOut := map[string]map[string]json.RawMessage{
+			"state": {},
 		}
-		for _, subInstTmpl := range blueprint.Info.Subinstallations {
-			subInst := &lsv1alpha1.Installation{}
-			subInst.Spec = lsv1alpha1.InstallationSpec{
-				Imports:            subInstTmpl.Imports,
-				ImportDataMappings: subInstTmpl.ImportDataMappings,
-				Exports:            subInstTmpl.Exports,
-				ExportDataMappings: subInstTmpl.ExportDataMappings,
-			}
-			subBlueprint, _, err := subinstallations.GetBlueprintDefinitionFromInstallationTemplate(
-				dummyInst,
-				subInstTmpl.InstallationTemplate,
-				o.componentDescriptor,
-				cdutils.ComponentReferenceResolverFromList(o.componentDescriptorList))
-			if err != nil {
-				fmt.Printf("unable to get blueprint: %s\n", err.Error())
-			} else if subBlueprint != nil {
-				subInst.Spec.Blueprint = *subBlueprint
-			}
-			if err := o.out(fs, subInst, "subinstallations", subInstTmpl.Name); err != nil {
+		for key, state := range out.DeployItemTemplateState {
+			stateOut["state"][key] = state
+		}
+		if err := o.out(fs, stateOut, SubinstallationOutputDir, "state"); err != nil {
+			return err
+		}
+		for _, inst := range out.Installations {
+			if err := o.out(fs, inst, SubinstallationOutputDir, inst.Name); err != nil {
 				return err
 			}
 		}
@@ -260,62 +202,25 @@ func (o *RenderOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSys
 	return nil
 }
 
-// validateImports validates the type of all imports.
-// todo(schrodit): use central landscaper validation function as soon as the new landscaper version is released
-func (o *RenderOptions) validateImports(bp *blueprints.Blueprint) error {
-	jsonschemaValidator := &jsonschema.Validator{
-		Config: &jsonschema.LoaderConfig{
-			LocalTypes:                 bp.Info.LocalTypes,
-			BlueprintFs:                bp.Fs,
-			ComponentDescriptor:        o.componentDescriptor,
-			ComponentResolver:          o.componentResolver,
-			ComponentReferenceResolver: cdutils.ComponentReferenceResolverFromList(o.componentDescriptorList),
-		},
+func (o *RenderOptions) setupImports(fs vfs.FileSystem, args *lsutils.BlueprintRenderArgs) error {
+	if len(o.ValueFiles) == 0 {
+		return nil
 	}
+	values := lsutils.Imports{}
+	for _, filePath := range o.ValueFiles {
+		data, err := vfs.ReadFile(fs, filePath)
+		if err != nil {
+			return fmt.Errorf("unable to read values file '%s': %w", filePath, err)
+		}
+		tmpValues := &lsutils.Imports{}
+		if err := yaml.Unmarshal(data, tmpValues); err != nil {
+			return fmt.Errorf("unable to parse values file '%s': %w", filePath, err)
+		}
 
-	var allErr field.ErrorList
-	for _, importDef := range bp.Info.Imports {
-		fldPath := field.NewPath(importDef.Name)
-		value, ok := o.values.Imports[importDef.Name]
-		if !ok {
-			if *importDef.Required {
-				allErr = append(allErr, field.Required(fldPath, "Import is required"))
-			}
-			continue
-		}
-		if importDef.Schema != nil {
-			if err := jsonschemaValidator.ValidateGoStruct(importDef.Schema.RawMessage, value); err != nil {
-				allErr = append(allErr, field.Invalid(
-					fldPath,
-					value,
-					fmt.Sprintf("invalid imported value: %s", err.Error())))
-			}
-		} else {
-			// import is a target import
-			targetObj, ok := value.(map[string]interface{})
-			if !ok {
-				allErr = append(allErr, field.Invalid(fldPath, value, "a target is expected to be an object"))
-				continue
-			}
-			targetType, _, err := unstructured.NestedString(targetObj, "spec", "type")
-			if err != nil {
-				allErr = append(allErr, field.Invalid(
-					fldPath,
-					value,
-					fmt.Sprintf("unable to get type of target: %s", err.Error())))
-				continue
-			}
-			if targetType != importDef.TargetType {
-				allErr = append(allErr, field.Invalid(
-					fldPath,
-					targetType,
-					fmt.Sprintf("expected target type to be %q but got %q", importDef.TargetType, targetType)))
-				continue
-			}
-		}
+		lsutils.MergeImports(&values, tmpValues)
 	}
-
-	return allErr.ToAggregate()
+	args.Imports = &values
+	return nil
 }
 
 func (o *RenderOptions) Complete(log logr.Logger, args []string, fs vfs.FileSystem) error {
@@ -358,20 +263,6 @@ func (o *RenderOptions) Complete(log logr.Logger, args []string, fs vfs.FileSyst
 		o.componentDescriptorList.Components = append(o.componentDescriptorList.Components, cd)
 	}
 
-	o.values = Values{}
-	for _, filePath := range o.ValueFiles {
-		data, err := vfs.ReadFile(fs, filePath)
-		if err != nil {
-			return fmt.Errorf("unable to read values file '%s': %w", filePath, err)
-		}
-		values := &Values{}
-		if err := yaml.Unmarshal(data, values); err != nil {
-			return fmt.Errorf("unable to parse values file '%s': %w", filePath, err)
-		}
-
-		MergeValues(&o.values, values)
-	}
-
 	if err := o.parseOutputResources(args); err != nil {
 		return err
 	}
@@ -398,10 +289,6 @@ func (o *RenderOptions) Validate() error {
 	}
 	if errList := validation.ValidateBlueprint(blueprint); len(errList) != 0 {
 		return errList.ToAggregate()
-	}
-
-	if err := ValidateValues(o.values); err != nil {
-		return err
 	}
 
 	if o.OutputFormat != YAMLOut && o.OutputFormat != JSONOut {

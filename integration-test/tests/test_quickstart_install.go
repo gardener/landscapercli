@@ -162,7 +162,7 @@ func buildHelmInstallation(name string, target *lsv1alpha1.Target, helmChartRef,
 				},
 			},
 			Imports: lsv1alpha1.InstallationImports{
-				Targets: []lsv1alpha1.TargetImportExport{
+				Targets: []lsv1alpha1.TargetImport{
 					{
 						Name:   "cluster",
 						Target: "#" + target.Name,
