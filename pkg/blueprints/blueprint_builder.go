@@ -109,7 +109,6 @@ func (b *BlueprintBuilder) AddDeployExecution(deployItemName string) {
 		Name:     deployItemName,
 		Type:     v1alpha1.GOTemplateType,
 		File:     "/" + util.ExecutionFileName(deployItemName),
-		Template: v1alpha1.NewAnyJSON([]byte{}),
 	})
 }
 
