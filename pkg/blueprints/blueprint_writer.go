@@ -49,12 +49,26 @@ func (w *BlueprintWriter) Write(blueprint *v1alpha1.Blueprint) error {
 		return err
 	}
 
+	for i := range blueprint.ExportExecutions {
+		exportExecution := &blueprint.ExportExecutions[i]
+		if len(exportExecution.Template.RawMessage) == 0 {
+			exportExecution.Template.RawMessage = nil
+		}
+	}
+
 	if err := w.writeList("exportExecutions", blueprint.ExportExecutions, len(blueprint.ExportExecutions), f); err != nil {
 		return err
 	}
 
 	if err := w.writeList("subinstallations", blueprint.Subinstallations, len(blueprint.Subinstallations), f); err != nil {
 		return err
+	}
+
+	for i := range blueprint.DeployExecutions {
+		deployExecution := &blueprint.DeployExecutions[i]
+		if len(deployExecution.Template.RawMessage) == 0 {
+			deployExecution.Template.RawMessage = nil
+		}
 	}
 
 	if err := w.writeList("deployExecutions", blueprint.DeployExecutions, len(blueprint.DeployExecutions), f); err != nil {
