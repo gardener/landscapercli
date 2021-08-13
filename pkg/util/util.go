@@ -56,10 +56,15 @@ func CheckAndWaitUntilAllPodsAreReady(k8sClient client.Client, namespace string,
 
 		numberOfRunningPods := 0
 		for _, pod := range podList.Items {
-			for _, condition := range pod.Status.Conditions {
-				if condition.Type == corev1.PodReady {
-					if condition.Status == corev1.ConditionTrue {
-						numberOfRunningPods++
+			if pod.Status.Phase == corev1.PodSucceeded {
+				numberOfRunningPods++
+			} else {
+				for _, condition := range pod.Status.Conditions {
+					if condition.Type == corev1.PodReady {
+						if condition.Status == corev1.ConditionTrue {
+							numberOfRunningPods++
+							break
+						}
 					}
 				}
 			}

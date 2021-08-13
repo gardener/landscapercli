@@ -33,6 +33,14 @@ func (w *BlueprintWriter) Write(blueprint *v1alpha1.Blueprint) error {
 		return err
 	}
 
+	// temporary workaround
+	for i := range blueprint.Imports {
+		nextImport := &blueprint.Imports[i]
+		if len(nextImport.Default.Value.RawMessage) == 0 {
+			nextImport.Default.Value.RawMessage = nil
+		}
+	}
+
 	if err := w.writeList("imports", blueprint.Imports, len(blueprint.Imports), f); err != nil {
 		return err
 	}
