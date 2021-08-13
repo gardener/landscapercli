@@ -14,8 +14,8 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
 	github.com/gardener/component-cli v0.28.0
 	github.com/gardener/component-spec/bindings-go v0.0.52
-	github.com/gardener/landscaper v0.11.0
-	github.com/gardener/landscaper/apis v0.11.0
+	github.com/gardener/landscaper v0.11.2
+	github.com/gardener/landscaper/apis v0.11.2
 	github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr v0.4.0
 	github.com/golang/mock v1.5.0
