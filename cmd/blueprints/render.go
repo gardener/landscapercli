@@ -224,7 +224,23 @@ func (o *RenderOptions) setupImports(fs vfs.FileSystem, args *lsutils.BlueprintR
 }
 
 func (o *RenderOptions) Complete(log logr.Logger, args []string, fs vfs.FileSystem) error {
-	o.BlueprintPath = args[0]
+	if len(o.ValueFiles) > 0 {
+		for i := range o.ValueFiles{
+			absPath, err := filepath.Abs(o.ValueFiles[i])
+			if err != nil {
+				return fmt.Errorf("unable get absolute values file path for %s: %w", o.ValueFiles[i], err)
+			}
+			o.ValueFiles[i] = absPath
+		}
+	}
+
+	absBlueprintPath, err := filepath.Abs(args[0])
+	if err != nil {
+		return fmt.Errorf("unable get absolute blueprint path for %s: %w", args[0], err)
+	}
+
+	o.BlueprintPath = absBlueprintPath
+
 	data, err := vfs.ReadFile(fs, filepath.Join(o.BlueprintPath, lsv1alpha1.BlueprintFileName))
 	if err != nil {
 		return fmt.Errorf("unable to read blueprint from %s: %w", filepath.Join(o.BlueprintPath, lsv1alpha1.BlueprintFileName), err)
@@ -239,6 +255,13 @@ func (o *RenderOptions) Complete(log logr.Logger, args []string, fs vfs.FileSyst
 	}
 
 	if len(o.ComponentDescriptorPath) != 0 {
+		absComponentDescriptorPath, err := filepath.Abs(o.ComponentDescriptorPath)
+		if err != nil {
+			return fmt.Errorf("unable get absolute component descriptor path for %s: %w", o.ComponentDescriptorPath, err)
+		}
+
+		o.ComponentDescriptorPath = absComponentDescriptorPath
+
 		data, err := vfs.ReadFile(fs, o.ComponentDescriptorPath)
 		if err != nil {
 			return fmt.Errorf("unable to read component descriptor from %s: %w", o.ComponentDescriptorPath, err)

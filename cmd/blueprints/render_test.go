@@ -28,17 +28,17 @@ func TestRenderCommandWithComponentDescriptor(t *testing.T) {
 	fail := failFunc(a)
 	assertNestedString := assertNestedStringFunc(a)
 
-	testdataFs, err := createTestdataFs("./testdata/00-render")
+	testdataFs, err := createTestdataFs(".")
 	fail(a.NoError(err))
 	renderOpts := &blueprints.RenderOptions{
-		ComponentDescriptorPath: "./component-descriptor.yaml",
-		ValueFiles:              []string{"./imports.yaml"},
+		ComponentDescriptorPath: "./testdata/00-render/component-descriptor.yaml",
+		ValueFiles:              []string{"./testdata/00-render/imports.yaml"},
 		OutDir:                  "./out",
 		OutputFormat:            blueprints.YAMLOut,
 	}
 
-	a.NoError(renderOpts.Complete(logr.Discard(), []string{"./blueprint"}, testdataFs))
-	fail(a.Equal("./blueprint", renderOpts.BlueprintPath))
+	a.NoError(renderOpts.Complete(logr.Discard(), []string{"./testdata/00-render/blueprint"}, testdataFs))
+	fail(a.Equal("./testdata/00-render/blueprint", renderOpts.BlueprintPath))
 	fail(a.NoError(renderOpts.Run(context.TODO(), logr.Discard(), testdataFs)))
 
 	renderedFiles, err := vfs.ReadDir(testdataFs, filepath.Join(renderOpts.OutDir, blueprints.DeployItemOutputDir))
