@@ -276,7 +276,7 @@ In a first step, we add the resources in file *[resources.yaml](resources/04-ste
 to the component descriptor with the following command:
 
 ```shell script
-landscaper-cli components-cli component-archive resources add \
+landscaper-cli component-cli component-archive resources add \
    $LS_COMPONENT_DIR/demo-component \
    $LS_COMPONENT_DIR/demo-component/resources.yaml
 ```
@@ -337,7 +337,7 @@ Note that you must adjust the base URL of the OCI registry.
 If your OCI registry requires authentication, see [login-to-oci-registry](../../login-to-oci-registry.md).
 
 ```shell script
-landscaper-cli components-cli ca remote push \
+landscaper-cli component-cli ca remote push \
     eu.gcr.io/<some-path> \
     github.com/gardener/landscapercli/nginx \
     v0.1.0 \
@@ -373,7 +373,7 @@ kubectl port-forward -n <namespace of OCI registry> oci-registry-<pod-id> 5000:5
 Then you could upload the component via:
 
 ```shell script
-landscaper-cli components-cli ca remote push \
+landscaper-cli component-cli ca remote push \
     localhost:5000 \
     github.com/gardener/landscapercli/nginx \
     v0.1.0 \
