@@ -225,7 +225,7 @@ func (o *RenderOptions) setupImports(fs vfs.FileSystem, args *lsutils.BlueprintR
 
 func (o *RenderOptions) Complete(log logr.Logger, args []string, fs vfs.FileSystem) error {
 	if len(o.ValueFiles) > 0 {
-		for i := range o.ValueFiles{
+		for i := range o.ValueFiles {
 			absPath, err := filepath.Abs(o.ValueFiles[i])
 			if err != nil {
 				return fmt.Errorf("unable get absolute values file path for %s: %w", o.ValueFiles[i], err)
