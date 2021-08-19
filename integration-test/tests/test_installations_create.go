@@ -470,7 +470,7 @@ access:
 
 	err = cmdPush.Execute()
 	if err != nil {
-		return fmt.Errorf("components-cli component-archive remote push failed: %w", err)
+		return fmt.Errorf("component-cli component-archive remote push failed: %w", err)
 	}
 
 	return nil

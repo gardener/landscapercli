@@ -25,7 +25,7 @@ landscaper-cli blueprints push localhost:5000/echo-server-blueprint:v0.1.0 ./com
 
 5. Upload Component Descriptor to the OCI registry
 ```
-landscaper-cli components-cli remote push localhost:5000/components github.com/gardener/echo-server-cd v0.1.0 ./component-descriptor-blueprint
+landscaper-cli component-cli remote push localhost:5000/components github.com/gardener/echo-server-cd v0.1.0 ./component-descriptor-blueprint
 ```
 
 6. Apply the target to your cluster
