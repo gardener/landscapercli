@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	cdvalidation "github.com/gardener/component-spec/bindings-go/apis/v2/validation"
+	"github.com/gardener/component-spec/bindings-go/codec"
 	"github.com/gardener/component-spec/bindings-go/ctf"
 	"github.com/mandelsoft/vfs/pkg/projectionfs"
 	"github.com/mandelsoft/vfs/pkg/vfs"
@@ -89,10 +91,32 @@ func (o *BuilderOptions) Build(fs vfs.FileSystem) (*ctf.ComponentArchive, error)
 			if err != nil {
 				return nil, fmt.Errorf("unable to create projectionfilesystem: %w", err)
 			}
-			archive, err := ctf.NewComponentArchiveFromFilesystem(archiveFs)
+
+			archive, err := ctf.NewComponentArchiveFromFilesystem(archiveFs, codec.DisableValidation(true))
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse component archive from %s: %w", o.ComponentArchivePath, err)
 			}
+
+			cd := archive.ComponentDescriptor
+
+			if o.Name != "" {
+				if cd.Name != "" && cd.Name != o.Name {
+					return nil, errors.New("unable to overwrite the existing component name: forbidden")
+				}
+				cd.Name = o.Name
+			}
+
+			if o.Version != "" {
+				if cd.Version != "" && cd.Version != o.Version {
+					return nil, errors.New("unable to overwrite the existing component version: forbidden")
+				}
+				cd.Version = o.Version
+			}
+
+			if err = cdvalidation.Validate(cd); err != nil {
+				return nil, fmt.Errorf("invalid component descriptor: %w", err)
+			}
+
 			return archive, nil
 		}
 	}

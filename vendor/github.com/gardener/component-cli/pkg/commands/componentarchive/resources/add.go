@@ -116,7 +116,8 @@ input:
   excludeFiles: # optional; list of shell file patterns
   - "*.txt"
   mediaType: "application/gzip" # optional, defaulted to "application/x-tar" or "application/gzip" if compress=true 
-  preserveDir: true # optional, defaulted to false; if true, the top level folder "my/path" is included 
+  preserveDir: true # optional, defaulted to false; if true, the top level folder "my/path" is included
+  followSymlinks: true # optional, defaulted to false; if true, symlinks are resolved and the content is included in the tar
 ...
 
 </pre>
@@ -184,7 +185,7 @@ func (o *Options) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) e
 
 		if resource.Input != nil {
 			log.Info(fmt.Sprintf("add input blob from %q", resource.Input.Path))
-			if err := o.addInputBlob(fs, archive, &resource); err != nil {
+			if err := o.addInputBlob(ctx, fs, archive, &resource); err != nil {
 				return err
 			}
 		} else {
@@ -367,8 +368,8 @@ func generateResourcesFromReader(cd *cdv2.ComponentDescriptor, reader io.Reader)
 	return resources, nil
 }
 
-func (o *Options) addInputBlob(fs vfs.FileSystem, archive *ctf.ComponentArchive, resource *InternalResourceOptions) error {
-	blob, err := resource.Input.Read(fs, resource.Path)
+func (o *Options) addInputBlob(ctx context.Context, fs vfs.FileSystem, archive *ctf.ComponentArchive, resource *InternalResourceOptions) error {
+	blob, err := resource.Input.Read(ctx, fs, resource.Path)
 	if err != nil {
 		return err
 	}

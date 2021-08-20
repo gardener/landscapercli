@@ -5,7 +5,11 @@
 package utils
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -77,4 +81,90 @@ func CleanMarkdownUsageFunc(cmd *cobra.Command) {
 		cmd.Long = strings.ReplaceAll(cmd.Long, "</pre>", "")
 		defaultHelpFunc(cmd, s)
 	})
+}
+
+// RawJSON converts an arbitrary value to json.RawMessage
+func RawJSON(value interface{}) (*json.RawMessage, error) {
+	jsonval, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	return (*json.RawMessage)(&jsonval), nil
+}
+
+// Gzip applies gzip compression to an arbitrary byte slice
+func Gzip(data []byte, compressionLevel int) ([]byte, error) {
+	buf := bytes.NewBuffer([]byte{})
+	gzipWriter, err := gzip.NewWriterLevel(buf, compressionLevel)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create gzip writer: %w", err)
+	}
+	defer gzipWriter.Close()
+
+	if _, err = gzipWriter.Write(data); err != nil {
+		return nil, fmt.Errorf("unable to write to stream: %w", err)
+	}
+
+	if err = gzipWriter.Close(); err != nil {
+		return nil, fmt.Errorf("unable to close writer: %w", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+var chars = []rune("abcdefghijklmnopqrstuvwxyz1234567890")
+
+// RandomString creates a new random string with the given length.
+func RandomString(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(b)
+}
+
+// SafeConvert converts a byte slice to string.
+// If the byte slice is nil, an empty string is returned.
+func SafeConvert(bytes []byte) string {
+	if bytes == nil {
+		return ""
+	}
+
+	return string(bytes)
+}
+
+const (
+	BYTE = 1.0 << (10 * iota)
+	KIBIBYTE
+	MEBIBYTE
+	GIBIBYTE
+)
+
+// BytesString converts bytes into a human readable string.
+// This function is inspired by https://www.reddit.com/r/golang/comments/8micn7/review_bytes_to_human_readable_format/
+func BytesString(bytes uint64, accuracy int) string {
+	unit := ""
+	value := float32(bytes)
+
+	switch {
+	case bytes >= GIBIBYTE:
+		unit = "GiB"
+		value = value / GIBIBYTE
+	case bytes >= MEBIBYTE:
+		unit = "MiB"
+		value = value / MEBIBYTE
+	case bytes >= KIBIBYTE:
+		unit = "KiB"
+		value = value / KIBIBYTE
+	case bytes >= BYTE:
+		unit = "bytes"
+	case bytes == 0:
+		return "0"
+	}
+
+	stringValue := strings.TrimSuffix(
+		fmt.Sprintf("%.2f", value), "."+strings.Repeat("0", accuracy),
+	)
+
+	return fmt.Sprintf("%s %s", stringValue, unit)
 }

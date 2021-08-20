@@ -5,10 +5,10 @@ github.com/Masterminds/goutils
 github.com/Masterminds/semver/v3
 # github.com/Masterminds/sprig/v3 v3.2.2
 github.com/Masterminds/sprig/v3
-# github.com/Microsoft/go-winio v0.4.16
+# github.com/Microsoft/go-winio v0.4.17
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
-# github.com/Microsoft/hcsshim v0.8.14
+# github.com/Microsoft/hcsshim v0.8.18
 github.com/Microsoft/hcsshim/osversion
 # github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
 ## explicit
@@ -17,10 +17,11 @@ github.com/ahmetb/gen-crd-api-reference-docs
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/containerd/containerd v1.4.4
+# github.com/containerd/containerd v1.5.5
 github.com/containerd/containerd/archive/compression
 github.com/containerd/containerd/content
 github.com/containerd/containerd/errdefs
+github.com/containerd/containerd/filters
 github.com/containerd/containerd/images
 github.com/containerd/containerd/labels
 github.com/containerd/containerd/log
@@ -29,9 +30,11 @@ github.com/containerd/containerd/reference
 github.com/containerd/containerd/reference/docker
 github.com/containerd/containerd/remotes
 github.com/containerd/containerd/remotes/docker
+github.com/containerd/containerd/remotes/docker/auth
 github.com/containerd/containerd/remotes/docker/schema1
+github.com/containerd/containerd/remotes/errors
 github.com/containerd/containerd/version
-# github.com/containerd/continuity v0.0.0-20201208142359-180525291bb7
+# github.com/containerd/continuity v0.1.0
 github.com/containerd/continuity/pathdriver
 # github.com/cpuguy83/go-md2man/v2 v2.0.0
 github.com/cpuguy83/go-md2man/v2/md2man
@@ -62,7 +65,7 @@ github.com/drone/envsubst/path
 github.com/evanphx/json-patch
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
-# github.com/gardener/component-cli v0.28.0
+# github.com/gardener/component-cli v0.29.0
 ## explicit
 github.com/gardener/component-cli/cmd/component-cli/app
 github.com/gardener/component-cli/ociclient
@@ -72,6 +75,7 @@ github.com/gardener/component-cli/ociclient/credentials/secretserver
 github.com/gardener/component-cli/ociclient/metrics
 github.com/gardener/component-cli/ociclient/oci
 github.com/gardener/component-cli/ociclient/options
+github.com/gardener/component-cli/pkg/commands/cache
 github.com/gardener/component-cli/pkg/commands/componentarchive
 github.com/gardener/component-cli/pkg/commands/componentarchive/componentreferences
 github.com/gardener/component-cli/pkg/commands/componentarchive/input
@@ -89,7 +93,7 @@ github.com/gardener/component-cli/pkg/logger
 github.com/gardener/component-cli/pkg/template
 github.com/gardener/component-cli/pkg/utils
 github.com/gardener/component-cli/pkg/version
-# github.com/gardener/component-spec/bindings-go v0.0.52
+# github.com/gardener/component-spec/bindings-go v0.0.53
 ## explicit
 github.com/gardener/component-spec/bindings-go/apis
 github.com/gardener/component-spec/bindings-go/apis/v2
@@ -102,7 +106,7 @@ github.com/gardener/component-spec/bindings-go/oci
 github.com/gardener/component-spec/bindings-go/utils/selector
 # github.com/gardener/image-vector v0.5.0
 github.com/gardener/image-vector/pkg
-# github.com/gardener/landscaper v0.11.2
+# github.com/gardener/landscaper v0.12.0
 ## explicit
 github.com/gardener/landscaper/pkg/api
 github.com/gardener/landscaper/pkg/landscaper/blueprints
@@ -125,7 +129,7 @@ github.com/gardener/landscaper/pkg/utils/kubernetes/mock
 github.com/gardener/landscaper/pkg/utils/landscaper
 github.com/gardener/landscaper/pkg/utils/tar
 github.com/gardener/landscaper/test/utils/envtest
-# github.com/gardener/landscaper/apis v0.11.2
+# github.com/gardener/landscaper/apis v0.12.0
 ## explicit
 github.com/gardener/landscaper/apis/config
 github.com/gardener/landscaper/apis/config/install
@@ -137,6 +141,7 @@ github.com/gardener/landscaper/apis/core/v1alpha1/health
 github.com/gardener/landscaper/apis/core/v1alpha1/helper
 github.com/gardener/landscaper/apis/core/validation
 github.com/gardener/landscaper/apis/deployer/manifest
+github.com/gardener/landscaper/apis/deployer/utils/managedresource
 github.com/gardener/landscaper/apis/deployer/utils/readinesschecks
 github.com/gardener/landscaper/apis/errors
 github.com/gardener/landscaper/apis/mediatype
@@ -181,7 +186,7 @@ github.com/google/go-containerregistry/pkg/name
 github.com/google/go-containerregistry/pkg/v1/remote/transport
 # github.com/google/gofuzz v1.1.0
 github.com/google/gofuzz
-# github.com/google/uuid v1.1.2
+# github.com/google/uuid v1.2.0
 github.com/google/uuid
 # github.com/googleapis/gnostic v0.5.5 => github.com/googleapis/gnostic v0.4.1
 github.com/googleapis/gnostic/compiler
@@ -204,6 +209,12 @@ github.com/imdario/mergo
 github.com/inconshreveable/mousetrap
 # github.com/json-iterator/go v1.1.11
 github.com/json-iterator/go
+# github.com/klauspost/compress v1.11.13
+github.com/klauspost/compress/fse
+github.com/klauspost/compress/huff0
+github.com/klauspost/compress/snappy
+github.com/klauspost/compress/zstd
+github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/mandelsoft/filepath v0.0.0-20200909114706-3df73d378d55
 github.com/mandelsoft/filepath/pkg/filepath
 # github.com/mandelsoft/spiff v1.5.0 => github.com/mandelsoft/spiff v1.3.0-beta-7.0.20200909122641-3393af1d3804
@@ -218,7 +229,6 @@ github.com/mandelsoft/spiff/spiffing
 github.com/mandelsoft/spiff/yaml
 # github.com/mandelsoft/vfs v0.0.0-20210530103237-5249dc39ce91
 ## explicit
-github.com/mandelsoft/vfs/pkg/composefs
 github.com/mandelsoft/vfs/pkg/layerfs
 github.com/mandelsoft/vfs/pkg/memoryfs
 github.com/mandelsoft/vfs/pkg/osfs
@@ -233,6 +243,8 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/mitchellh/copystructure
 # github.com/mitchellh/reflectwalk v1.0.1
 github.com/mitchellh/reflectwalk
+# github.com/moby/locker v1.0.1
+github.com/moby/locker
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
@@ -267,7 +279,7 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.1
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v0.1.1
+# github.com/opencontainers/runc v1.0.1
 github.com/opencontainers/runc/libcontainer/user
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
@@ -328,7 +340,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
+# golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
