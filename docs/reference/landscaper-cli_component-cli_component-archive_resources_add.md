@@ -48,7 +48,8 @@ input:
   excludeFiles: # optional; list of shell file patterns
   - "*.txt"
   mediaType: "application/gzip" # optional, defaulted to "application/x-tar" or "application/gzip" if compress=true 
-  preserveDir: true # optional, defaulted to false; if true, the top level folder "my/path" is included 
+  preserveDir: true # optional, defaulted to false; if true, the top level folder "my/path" is included
+  followSymlinks: true # optional, defaulted to false; if true, symlinks are resolved and the content is included in the tar
 ...
 
 </pre>

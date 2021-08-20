@@ -137,7 +137,7 @@ func (o *Options) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) e
 	for _, src := range sources {
 		if src.Input != nil {
 			log.Info(fmt.Sprintf("add input blob from %q", src.Input.Path))
-			if err := o.addInputBlob(fs, archive, src); err != nil {
+			if err := o.addInputBlob(ctx, fs, archive, src); err != nil {
 				return err
 			}
 		} else {
@@ -288,8 +288,8 @@ func generateSourcesFromReader(reader io.Reader) ([]SourceOptions, error) {
 	return sources, nil
 }
 
-func (o *Options) addInputBlob(fs vfs.FileSystem, archive *ctf.ComponentArchive, src InternalSourceOptions) error {
-	blob, err := src.Input.Read(fs, src.Path)
+func (o *Options) addInputBlob(ctx context.Context, fs vfs.FileSystem, archive *ctf.ComponentArchive, src InternalSourceOptions) error {
+	blob, err := src.Input.Read(ctx, fs, src.Path)
 	if err != nil {
 		return err
 	}

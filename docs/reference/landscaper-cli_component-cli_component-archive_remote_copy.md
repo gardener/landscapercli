@@ -19,16 +19,20 @@ landscaper-cli component-cli component-archive remote copy COMPONENT_NAME VERSIO
 ### Options
 
 ```
-      --allow-plain-http           allows the fallback to http if the oci registry does not support https
-      --cc-config string           path to the local concourse config file
-      --copy-by-value              [EXPERIMENTAL] copies all references oci images and artifacts by value and not by reference.
-      --force                      Forces the tool to overwrite already existing component descriptors.
-      --from string                source repository base url.
-  -h, --help                       help for copy
-      --insecure-skip-tls-verify   If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
-      --recursive                  Recursively copy the component descriptor and its references. (default true)
-      --registry-config string     path to the dockerconfig.json with the oci registry authentication information
-      --to string                  target repository where the components are copied to.
+      --allow-plain-http                    allows the fallback to http if the oci registry does not support https
+      --cc-config string                    path to the local concourse config file
+      --copy-by-value                       [EXPERIMENTAL] copies all referenced oci images and artifacts by value and not by reference.
+      --force                               Forces the tool to overwrite already existing component descriptors.
+      --from string                         source repository base url.
+  -h, --help                                help for copy
+      --insecure-skip-tls-verify            If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
+      --keep-source-repository              Keep the original source repository when copying resources.
+      --recursive                           Recursively copy the component descriptor and its references. (default true)
+      --registry-config string              path to the dockerconfig.json with the oci registry authentication information
+      --relative-urls                       converts all copied oci artifacts to relative urls
+      --source-artifact-repository string   source repository where realtiove oci artifacts are copied from. This is only relevant if artifacts are copied by value and it will be defaulted to the source component repository
+      --target-artifact-repository string   target repository where the artifacts are copied to. This is only relevant if artifacts are copied by value and it will be defaulted to the target component repository
+      --to string                           target repository where the components are copied to.
 ```
 
 ### Options inherited from parent commands

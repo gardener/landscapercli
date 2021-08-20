@@ -17,7 +17,7 @@ import (
 	"github.com/gardener/landscapercli/pkg/components"
 
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
-	"github.com/gardener/landscaper/apis/deployer/manifest"
+	"github.com/gardener/landscaper/apis/deployer/utils/managedresource"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -332,7 +332,7 @@ func (o *addManifestDeployItemOptions) getManifestsYaml() ([]byte, error) {
 		return nil, err
 	}
 
-	m := map[string][]manifest.Manifest{
+	m := map[string][]managedresource.Manifest{
 		"manifests": manifests,
 	}
 
@@ -346,8 +346,8 @@ func (o *addManifestDeployItemOptions) getManifestsYaml() ([]byte, error) {
 	return data, nil
 }
 
-func (o *addManifestDeployItemOptions) readManifests() ([]manifest.Manifest, error) {
-	manifests := []manifest.Manifest{}
+func (o *addManifestDeployItemOptions) readManifests() ([]managedresource.Manifest, error) {
+	manifests := []managedresource.Manifest{}
 
 	if o.files == nil {
 		return manifests, nil
@@ -365,7 +365,7 @@ func (o *addManifestDeployItemOptions) readManifests() ([]manifest.Manifest, err
 	return manifests, nil
 }
 
-func (o *addManifestDeployItemOptions) readManifest(filename string) (*manifest.Manifest, error) {
+func (o *addManifestDeployItemOptions) readManifest(filename string) (*managedresource.Manifest, error) {
 	yamlData, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -385,8 +385,8 @@ func (o *addManifestDeployItemOptions) readManifest(filename string) (*manifest.
 		return nil, err
 	}
 
-	m2 := &manifest.Manifest{
-		Policy: manifest.ManifestPolicy(o.policy),
+	m2 := &managedresource.Manifest{
+		Policy: managedresource.ManifestPolicy(o.policy),
 		Manifest: &runtime.RawExtension{
 			Raw: uuidData,
 		},

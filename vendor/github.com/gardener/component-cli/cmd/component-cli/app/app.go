@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 
+	cachecmd "github.com/gardener/component-cli/pkg/commands/cache"
 	"github.com/gardener/component-cli/pkg/commands/componentarchive"
 	"github.com/gardener/component-cli/pkg/commands/ctf"
 	"github.com/gardener/component-cli/pkg/commands/imagevector"
@@ -46,6 +47,7 @@ func NewComponentsCliCommand(ctx context.Context) *cobra.Command {
 	cmd.AddCommand(componentarchive.NewComponentArchiveCommand(ctx))
 	cmd.AddCommand(imagevector.NewImageVectorCommand(ctx))
 	cmd.AddCommand(oci.NewOCICommand(ctx))
+	cmd.AddCommand(cachecmd.NewCacheCommand(ctx))
 
 	return cmd
 }
