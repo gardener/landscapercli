@@ -1,8 +1,5 @@
-import kube.ctx
-from util import ctx
 import os
 import tempfile
-import yaml
 
 
 class TempFileAuto(object):
