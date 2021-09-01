@@ -36,7 +36,7 @@ landscaper-cli:
     pull-request:
       steps:
         run_integration_test:
-          image: 'golang:1.16.6-alpine3.13'
+          image: 'golang:1.16.7-alpine3.14'
           execute:
           - "dev_integration_test"
           - "--target-clustername=int-test-pr"
@@ -56,7 +56,7 @@ landscaper-cli:
           suppress_parallel_execution: true
       steps:
         run_integration_test:
-          image: 'golang:1.16.6-alpine3.13'
+          image: 'golang:1.16.7-alpine3.14'
           execute:
           - "dev_integration_test"
           - "--target-clustername=int-test-cron"
@@ -64,7 +64,7 @@ landscaper-cli:
     release:
       steps:
         run_integration_test:
-          image: 'golang:1.16.6-alpine3.13'
+          image: 'golang:1.16.7-alpine3.14'
           execute:
           - "dev_integration_test"
           - "--target-clustername=int-test"
