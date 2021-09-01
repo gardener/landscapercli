@@ -55,7 +55,11 @@ then
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 fi
 
+echo "Running pip3 install --upgrade pip"
 pip3 install --upgrade pip
+
+echo "Running pip3 install gardener-cicd-libs"
 pip3 install gardener-cicd-libs
 
+echo "Running starting .../.ci/integration_test.py"
 ${PROJECT_ROOT}/.ci/integration_test.py
