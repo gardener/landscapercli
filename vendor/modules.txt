@@ -106,7 +106,7 @@ github.com/gardener/component-spec/bindings-go/oci
 github.com/gardener/component-spec/bindings-go/utils/selector
 # github.com/gardener/image-vector v0.5.0
 github.com/gardener/image-vector/pkg
-# github.com/gardener/landscaper v0.12.0
+# github.com/gardener/landscaper v0.13.0
 ## explicit
 github.com/gardener/landscaper/pkg/api
 github.com/gardener/landscaper/pkg/landscaper/blueprints
@@ -129,7 +129,7 @@ github.com/gardener/landscaper/pkg/utils/kubernetes/mock
 github.com/gardener/landscaper/pkg/utils/landscaper
 github.com/gardener/landscaper/pkg/utils/tar
 github.com/gardener/landscaper/test/utils/envtest
-# github.com/gardener/landscaper/apis v0.12.0
+# github.com/gardener/landscaper/apis v0.13.0
 ## explicit
 github.com/gardener/landscaper/apis/config
 github.com/gardener/landscaper/apis/config/install
@@ -140,9 +140,7 @@ github.com/gardener/landscaper/apis/core/v1alpha1
 github.com/gardener/landscaper/apis/core/v1alpha1/health
 github.com/gardener/landscaper/apis/core/v1alpha1/helper
 github.com/gardener/landscaper/apis/core/validation
-github.com/gardener/landscaper/apis/deployer/manifest
 github.com/gardener/landscaper/apis/deployer/utils/managedresource
-github.com/gardener/landscaper/apis/deployer/utils/readinesschecks
 github.com/gardener/landscaper/apis/errors
 github.com/gardener/landscaper/apis/mediatype
 github.com/gardener/landscaper/apis/schema
