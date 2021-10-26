@@ -12,9 +12,11 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	kutil "github.com/gardener/landscaper/pkg/utils/kubernetes"
@@ -23,6 +25,7 @@ import (
 // State contains the state of initialized fake client
 type State struct {
 	mux           sync.Mutex
+	Client        client.Client
 	Namespace     string
 	Installations map[string]*lsv1alpha1.Installation
 	Executions    map[string]*lsv1alpha1.Execution
@@ -44,8 +47,20 @@ func NewState() *State {
 		Targets:       make(map[string]*lsv1alpha1.Target),
 		Secrets:       make(map[string]*corev1.Secret),
 		ConfigMaps:    make(map[string]*corev1.ConfigMap),
-		Generic:       map[string]client.Object{},
+		Generic:       make(map[string]client.Object),
 	}
+}
+
+// NewStateWithClient initializes a new state with a client.
+func NewStateWithClient(kubeClient client.Client) *State {
+	s := NewState()
+	s.Client = kubeClient
+	return s
+}
+
+// HasClient returns whether a client is configured or not
+func (s *State) HasClient() bool {
+	return s.Client != nil
 }
 
 // AddResources to the current state
@@ -109,50 +124,155 @@ func (s UpdateStatus) ApplyOption(options *CreateOptions) error {
 	return nil
 }
 
-// Create creates or updates a kubernetes resources and adds it to the current state
-func (s *State) Create(ctx context.Context, c client.Client, obj client.Object, opts ...CreateOption) error {
+// CreateWithClient creates or updates a kubernetes resources and adds it to the current state
+func (s *State) CreateWithClient(ctx context.Context, c client.Client, obj client.Object, opts ...CreateOption) error {
 	options := &CreateOptions{}
 	if err := options.ApplyOptions(opts...); err != nil {
 		return err
 	}
+	tmp := obj.DeepCopyObject().(client.Object)
 	if err := c.Create(ctx, obj); err != nil {
 		return err
 	}
 
+	tmp.SetName(obj.GetName())
+	tmp.SetNamespace(obj.GetNamespace())
+	tmp.SetResourceVersion(obj.GetResourceVersion())
+	tmp.SetGeneration(obj.GetGeneration())
+	tmp.SetUID(obj.GetUID())
+	tmp.SetCreationTimestamp(obj.GetCreationTimestamp())
 	if options.UpdateStatus {
-		if err := c.Status().Update(ctx, obj); err != nil {
+		if err := c.Status().Update(ctx, tmp); err != nil {
 			if !apierrors.IsNotFound(err) {
 				return err
 			}
 		}
 	}
-	return s.AddResources(obj)
+	return s.AddResources(tmp)
 }
 
-// InitResources creates a new isolated environment with its own namespace.
-func (s *State) InitResources(ctx context.Context, c client.Client, resourcesPath string) error {
+// Create creates or updates a kubernetes resources and adds it to the current state
+func (s *State) Create(ctx context.Context, obj client.Object, opts ...CreateOption) error {
+	return s.CreateWithClient(ctx, s.Client, obj, opts...)
+}
+
+// InitResourcesWithClient creates a new isolated environment with its own namespace.
+func (s *State) InitResourcesWithClient(ctx context.Context, c client.Client, resourcesPath string) error {
 	// parse state and create resources in cluster
 	resources, err := parseResources(resourcesPath, s)
 	if err != nil {
 		return err
 	}
 
+	resourcesChan := make(chan client.Object, len(resources))
+
 	for _, obj := range resources {
-		if err := s.Create(ctx, c, obj, UpdateStatus(true)); err != nil {
-			return err
+		select {
+		case resourcesChan <- obj:
+		default:
+		}
+	}
+
+	injectOwnerUUIDs := func(obj client.Object) error {
+		refs := obj.GetOwnerReferences()
+		for i, ownerRef := range obj.GetOwnerReferences() {
+			uObj := &unstructured.Unstructured{}
+			uObj.SetAPIVersion(ownerRef.APIVersion)
+			uObj.SetKind(ownerRef.Kind)
+			uObj.SetName(ownerRef.Name)
+			uObj.SetNamespace(obj.GetNamespace())
+			if err := c.Get(ctx, kutil.ObjectKeyFromObject(uObj), uObj); err != nil {
+				return fmt.Errorf("no owner found for %s\n", kutil.ObjectKeyFromObject(obj).String())
+			}
+			refs[i].UID = uObj.GetUID()
+		}
+		obj.SetOwnerReferences(refs)
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+	for obj := range resourcesChan {
+		if ctx.Err() != nil {
+			return fmt.Errorf("context canceled; check resources as there might be a cyclic dependency")
+		}
+		objName := kutil.ObjectKeyFromObject(obj).String()
+		// create namespaces if not exist before
+		if len(obj.GetNamespace()) != 0 {
+			ns := &corev1.Namespace{}
+			ns.Name = obj.GetNamespace()
+			if _, err := controllerutil.CreateOrUpdate(ctx, c, ns, func() error {
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		// inject real uuids if possible
+		if len(obj.GetOwnerReferences()) != 0 {
+			if err := injectOwnerUUIDs(obj); err != nil {
+				// try to requeue
+				// todo: somehow detect cyclic dependencies (maybe just use a context with an timeout)
+				resourcesChan <- obj
+				continue
+			}
+		}
+		if err := s.CreateWithClient(ctx, c, obj, UpdateStatus(true)); err != nil {
+			return fmt.Errorf("unable to create %s %s: %w", objName, obj.GetObjectKind().GroupVersionKind().String(), err)
+		}
+		if len(resourcesChan) == 0 {
+			close(resourcesChan)
 		}
 	}
 
 	return nil
 }
 
-// CleanupState cleans up a test environment.
+// InitResources creates a new isolated environment with its own namespace.
+func (s *State) InitResources(ctx context.Context, resourcesPath string) error {
+	return s.InitResourcesWithClient(ctx, s.Client, resourcesPath)
+}
+
+type CleanupOptions struct {
+	// Timeout defines the timout to wait the cleanup of an object.
+	Timeout *time.Duration
+}
+
+// ApplyOptions applies all options from create options to the object
+func (o *CleanupOptions) ApplyOptions(options ...CleanupOption) error {
+	for _, obj := range options {
+		if err := obj.ApplyOption(o); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type CleanupOption interface {
+	ApplyOption(options *CleanupOptions) error
+}
+
+// WithCleanupTimeout configures the cleanup timeout
+type WithCleanupTimeout time.Duration
+
+func (s WithCleanupTimeout) ApplyOption(options *CleanupOptions) error {
+	t := time.Duration(s)
+	options.Timeout = &t
+	return nil
+}
+
+// CleanupStateWithClient cleans up a test environment.
 // todo: remove finalizers of all objects in state
-func (s *State) CleanupState(ctx context.Context, c client.Client, timeout *time.Duration) error {
+func (s *State) CleanupStateWithClient(ctx context.Context, c client.Client, opts ...CleanupOption) error {
+	options := &CleanupOptions{}
+	if err := options.ApplyOptions(opts...); err != nil {
+		return err
+	}
+	timeout := options.Timeout
 	if timeout == nil {
 		t := 30 * time.Second
 		timeout = &t
 	}
+
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	for _, obj := range s.DeployItems {
@@ -211,6 +331,12 @@ func (s *State) CleanupState(ctx context.Context, c client.Client, timeout *time
 	ns := &corev1.Namespace{}
 	ns.Name = s.Namespace
 	return c.Delete(ctx, ns)
+}
+
+// CleanupState cleans up a test environment.
+// todo: remove finalizers of all objects in state
+func (s *State) CleanupState(ctx context.Context, opts ...CleanupOption) error {
+	return s.CleanupStateWithClient(ctx, s.Client, opts...)
 }
 
 // CleanupForObject cleans up a object from a cluster

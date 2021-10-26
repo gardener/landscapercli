@@ -13,7 +13,7 @@ import (
 	"github.com/gardener/landscaper/pkg/landscaper/blueprints"
 )
 
-// Installation is the internal representation of an installation without resolved blueprint.
+// InstallationBase is the internal representation of an installation without resolved blueprint.
 type InstallationBase struct {
 	Imports map[string]interface{}
 	Info    *lsv1alpha1.Installation
@@ -144,7 +144,7 @@ func (i *Installation) GetExportDefinition(key string) (lsv1alpha1.ExportDefinit
 	return lsv1alpha1.ExportDefinition{}, fmt.Errorf("export with key %s not found", key)
 }
 
-// GetImportDefinition return the import for a given key
+// GetCDImport return the import for a given key
 func (i *Installation) GetCDImport(key string) (lsv1alpha1.ComponentDescriptorImport, error) {
 	for _, elem := range i.Info.Spec.Imports.ComponentDescriptors {
 		if elem.Name == key {

@@ -15,26 +15,116 @@ import (
 
 // LandscaperConfiguration contains all configuration for the landscaper controllers
 type LandscaperConfiguration struct {
-	metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta
+	// Controllers contains all controller specific configuration.
+	Controllers Controllers
 	// RepositoryContext defines the default repository context that should be used to resolve component descriptors.
+	// DEPRECATED: use controllers.context.config.default.repositoryContext instead.
 	// +optional
-	RepositoryContext *cdv2.UnstructuredTypedObject `json:"repositoryContext,omitempty"`
+	RepositoryContext *cdv2.UnstructuredTypedObject
 	// Registry configures the landscaper registry to resolve component descriptors, blueprints and other artifacts.
-	Registry RegistryConfiguration `json:"registry"`
+	Registry RegistryConfiguration
 	// BlueprintStore contains the configuration for the blueprint cache.
-	BlueprintStore BlueprintStore `json:"blueprintStore"`
+	BlueprintStore BlueprintStore
 	// Metrics allows to configure how metrics are exposed
 	//+optional
-	Metrics *MetricsConfiguration `json:"metrics,omitempty"`
+	Metrics *MetricsConfiguration
 	// CrdManagement configures whether the landscaper controller should deploy the CRDs it needs into the cluster
 	// +optional
-	CrdManagement CrdManagementConfiguration `json:"crdManagement,omitempty"`
+	CrdManagement CrdManagementConfiguration
 	// DeployerManagement configures the deployer management of the landscaper.
 	// +optional
-	DeployerManagement DeployerManagementConfiguration `json:"deployerManagement,omitempty"`
+	DeployerManagement DeployerManagementConfiguration
 	// DeployItemTimeouts contains configuration for multiple deploy item timeouts
 	// +optional
-	DeployItemTimeouts *DeployItemTimeouts `json:"deployItemTimeouts,omitempty"`
+	DeployItemTimeouts *DeployItemTimeouts
+}
+
+// CommonControllerConfig describes common controller configuration that can be included in
+// the specific controller configurations.
+type CommonControllerConfig struct {
+	// Workers is the maximum number of concurrent Reconciles which can be run.
+	// Defaults to 1.
+	Workers int
+
+	// CacheSyncTimeout refers to the time limit set to wait for syncing the kubernetes resource caches.
+	// Defaults to 2 minutes if not set.
+	CacheSyncTimeout *metav1.Duration
+}
+
+// Controllers contains all configuration for the specific controllers
+type Controllers struct {
+	// SyncPeriod determines the minimum frequency at which watched resources are
+	// reconciled. A lower period will correct entropy more quickly, but reduce
+	// responsiveness to change if there are many watched resources. Change this
+	// value only if you know what you are doing. Defaults to 10 hours if unset.
+	// there will a 10 percent jitter between the SyncPeriod of all controllers
+	// so that all controllers will not send list requests simultaneously.
+	//
+	// This applies to all controllers.
+	//
+	// A period sync happens for two reasons:
+	// 1. To insure against a bug in the controller that causes an object to not
+	// be requeued, when it otherwise should be requeued.
+	// 2. To insure against an unknown bug in controller-runtime, or its dependencies,
+	// that causes an object to not be requeued, when it otherwise should be
+	// requeued, or to be removed from the queue, when it otherwise should not
+	// be removed.
+	SyncPeriod *metav1.Duration
+	// Installations contains the controller config that reconciles installations.
+	Installations InstallationsController
+	// Installations contains the controller config that reconciles executions.
+	Executions ExecutionsController
+	// DeployItems contains the controller config that reconciles deploy items.
+	DeployItems DeployItemsController
+	// ComponentOverwrites contains the controller config that reconciles component overwrite configuration objects.
+	ComponentOverwrites ComponentOverwritesController
+	// Contexts contains the controller config that reconciles context objects.
+	Contexts ContextsController
+}
+
+// InstallationsController contains the controller config that reconciles installations.
+type InstallationsController struct {
+	CommonControllerConfig
+}
+
+// ExecutionsController contains the controller config that reconciles executions.
+type ExecutionsController struct {
+	CommonControllerConfig
+}
+
+// DeployItemsController contains the controller config that reconciles deploy items.
+type DeployItemsController struct {
+	CommonControllerConfig
+}
+
+// ComponentOverwritesController contains the controller config that reconciles component overwrite configuration objects.
+type ComponentOverwritesController struct {
+	CommonControllerConfig
+}
+
+// ContextsController contains all configuration for the context controller.
+type ContextsController struct {
+	CommonControllerConfig
+	Config ContextControllerConfig
+}
+
+// ContextControllerConfig contains the context specific configuration.
+type ContextControllerConfig struct {
+	Default ContextControllerDefaultConfig
+}
+
+// ContextControllerDefaultConfig contains the configuration for the context defaults.
+type ContextControllerDefaultConfig struct {
+	// Disable disables the default controller.
+	// If disabled no default contexts are created.
+	Disable bool
+	// ExcludedNamespaces defines a list of namespaces where no default context should be created.
+	// +optional
+	ExcludedNamespaces []string
+	// RepositoryContext defines the default repository context that should be used to resolve component descriptors.
+	// +optional
+	RepositoryContext *cdv2.UnstructuredTypedObject
 }
 
 // DeployItemTimeouts contains multiple timeout configurations for deploy items
@@ -43,17 +133,17 @@ type DeployItemTimeouts struct {
 	// Allowed values are 'none' (to disable pickup timeout detection) and anything that is understood by golang's time.ParseDuration method.
 	// Defaults to five minutes if not specified.
 	// +optional
-	Pickup *lscore.Duration `json:"pickup,omitempty"`
+	Pickup *lscore.Duration
 	// Abort specifies how long the deployer may take to abort handling a deploy item after getting the abort annotation.
 	// Allowed values are 'none' (to disable abort timeout detection) and anything that is understood by golang's time.ParseDuration method.
 	// Defaults to five minutes if not specified.
 	// +optional
-	Abort *lscore.Duration `json:"abort,omitempty"`
+	Abort *lscore.Duration
 	// ProgressingDefault specifies how long the deployer may take to apply a deploy item by default. The value can be overwritten per deploy item in 'spec.timeout'.
 	// Allowed values are 'none' (to disable abort timeout detection) and anything that is understood by golang's time.ParseDuration method.
 	// Defaults to ten minutes if not specified.
 	// +optional
-	ProgressingDefault *lscore.Duration `json:"progressingDefault,omitempty"`
+	ProgressingDefault *lscore.Duration
 }
 
 // RegistryConfiguration contains the configuration for the used definition registry
@@ -136,13 +226,32 @@ type LandscaperAgentConfiguration struct {
 	AgentConfiguration `json:",inline"`
 }
 
+// IndexMethod describes the blueprint store index method
+type IndexMethod string
+
+const (
+	// BlueprintDigestIndex describes a IndexMethod that uses the digest of the blueprint.
+	// This is useful if blueprints and component descriptors are not immutable (e.g. during development)
+	BlueprintDigestIndex IndexMethod = "BlueprintDigestIndex"
+	// ComponentDescriptorIdentityMethod describes a IndexMethod that uses the component descriptor identity.
+	// This means that the blueprint is uniquely identified using the component-descriptors repository, name and version
+	// with the blueprint resource identity.
+	ComponentDescriptorIdentityMethod IndexMethod = "ComponentDescriptorIdentityMethod"
+)
+
 // BlueprintStore contains the configuration for the blueprint store.
 type BlueprintStore struct {
 	// Path defines the root path where the blueprints are cached.
-	Path string `json:"path"`
+	Path string
 	// DisableCache disables the cache and always fetches the blob from the registry.
 	// The blueprint is still stored on the filesystem.
-	DisableCache bool `json:"disableCache"`
+	DisableCache bool
+	// IndexMethod describes the method that should be used to index blueprints in the store.
+	// If component descriptors and blueprint are immutable (blueprints cannot be updated) use ComponentDescriptorIdentityMethod
+	// otherwise use the BlueprintDigestIndex to index by the content hash.
+	// Defaults to ComponentDescriptorIdentityMethod
+	// +optional
+	IndexMethod IndexMethod
 	GarbageCollectionConfiguration
 }
 

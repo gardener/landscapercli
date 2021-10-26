@@ -97,14 +97,16 @@ func TestCheckConfiguration(t *testing.T) {
 				instRegistryIngress: true,
 				registryIngressHost: "registry.ingress.my-cluster.com",
 				landscaperValues: landscaperValues{
-					Landscaper: landscaper{
-						RegistryConfig: registryConfig{
-							AllowPlainHttpRegistries: false,
-							Secrets: secrets{
-								Defaults: defaults{
-									Auths: map[string]interface{}{
-										"some-other-registry-url.com": map[string]interface{}{
-											"auth": "dummy",
+					Landscaper: landscaperconfig{
+						Landscaper: landscaper{
+							RegistryConfig: registryConfig{
+								AllowPlainHttpRegistries: false,
+								Secrets: secrets{
+									Defaults: defaults{
+										Auths: map[string]interface{}{
+											"some-other-registry-url.com": map[string]interface{}{
+												"auth": "dummy",
+											},
 										},
 									},
 								},
@@ -120,12 +122,14 @@ func TestCheckConfiguration(t *testing.T) {
 				instOCIRegistry:     true,
 				instRegistryIngress: false,
 				landscaperValues: landscaperValues{
-					Landscaper: landscaper{
-						RegistryConfig: registryConfig{
-							AllowPlainHttpRegistries: true,
-							Secrets: secrets{
-								Defaults: defaults{
-									Auths: map[string]interface{}{},
+					Landscaper: landscaperconfig{
+						Landscaper: landscaper{
+							RegistryConfig: registryConfig{
+								AllowPlainHttpRegistries: true,
+								Secrets: secrets{
+									Defaults: defaults{
+										Auths: map[string]interface{}{},
+									},
 								},
 							},
 						},
@@ -139,12 +143,14 @@ func TestCheckConfiguration(t *testing.T) {
 				instOCIRegistry:     true,
 				instRegistryIngress: false,
 				landscaperValues: landscaperValues{
-					Landscaper: landscaper{
-						RegistryConfig: registryConfig{
-							AllowPlainHttpRegistries: false,
-							Secrets: secrets{
-								Defaults: defaults{
-									Auths: map[string]interface{}{},
+					Landscaper: landscaperconfig{
+						Landscaper: landscaper{
+							RegistryConfig: registryConfig{
+								AllowPlainHttpRegistries: false,
+								Secrets: secrets{
+									Defaults: defaults{
+										Auths: map[string]interface{}{},
+									},
 								},
 							},
 						},
@@ -160,12 +166,14 @@ func TestCheckConfiguration(t *testing.T) {
 				instRegistryIngress: true,
 				registryIngressHost: "registry.ingress.my-cluster.com",
 				landscaperValues: landscaperValues{
-					Landscaper: landscaper{
-						RegistryConfig: registryConfig{
-							AllowPlainHttpRegistries: true,
-							Secrets: secrets{
-								Defaults: defaults{
-									Auths: map[string]interface{}{},
+					Landscaper: landscaperconfig{
+						Landscaper: landscaper{
+							RegistryConfig: registryConfig{
+								AllowPlainHttpRegistries: true,
+								Secrets: secrets{
+									Defaults: defaults{
+										Auths: map[string]interface{}{},
+									},
 								},
 							},
 						},
@@ -181,14 +189,16 @@ func TestCheckConfiguration(t *testing.T) {
 				instRegistryIngress: true,
 				registryIngressHost: "registry.ingress.my-cluster.com",
 				landscaperValues: landscaperValues{
-					Landscaper: landscaper{
-						RegistryConfig: registryConfig{
-							AllowPlainHttpRegistries: false,
-							Secrets: secrets{
-								Defaults: defaults{
-									Auths: map[string]interface{}{
-										"registry.ingress.my-cluster.com": map[string]interface{}{
-											"auth": "dummy",
+					Landscaper: landscaperconfig{
+						Landscaper: landscaper{
+							RegistryConfig: registryConfig{
+								AllowPlainHttpRegistries: false,
+								Secrets: secrets{
+									Defaults: defaults{
+										Auths: map[string]interface{}{
+											"registry.ingress.my-cluster.com": map[string]interface{}{
+												"auth": "dummy",
+											},
 										},
 									},
 								},

@@ -24,6 +24,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/gardener/landscaper/pkg/landscaper/registry/componentoverwrites"
+
 	lserrors "github.com/gardener/landscaper/apis/errors"
 
 	"github.com/gardener/landscaper/pkg/api"
@@ -43,40 +45,37 @@ type Operation struct {
 
 	Inst                            *Installation
 	ComponentDescriptor             *cdv2.ComponentDescriptor
+	Overwriter                      componentoverwrites.Overwriter
 	BlobResolver                    ctf.BlobResolver
 	ResolvedComponentDescriptorList *cdv2.ComponentDescriptorList
 	context                         Context
 
 	// CurrentOperation is the name of the current operation that is used for the error erporting
 	CurrentOperation string
-
-	// default repo context
-	DefaultRepoContext *cdv2.UnstructuredTypedObject
 }
 
-// NewInstallationOperation creates a new installation operation
+// NewInstallationOperation creates a new installation operation.
+// DEPRECATED: use the builder instead.
 func NewInstallationOperation(ctx context.Context, log logr.Logger, c client.Client, scheme *runtime.Scheme, recorder record.EventRecorder, cRegistry ctf.ComponentResolver, inst *Installation) (*Operation, error) {
-	return NewInstallationOperationFromOperation(ctx, lsoperation.NewOperation(log, c, scheme, recorder).SetComponentsRegistry(cRegistry), inst, nil)
+	return NewOperationBuilder(inst).
+		WithLogger(log).
+		Client(c).
+		Scheme(scheme).
+		WithEventRecorder(recorder).
+		ComponentRegistry(cRegistry).
+		Build(ctx)
 }
 
-// NewInstallationOperationFromOperation creates a new installation operation from an existing common operation
-func NewInstallationOperationFromOperation(ctx context.Context, op *lsoperation.Operation, inst *Installation, defaultRepoContext *cdv2.UnstructuredTypedObject) (*Operation, error) {
-	instOp := &Operation{
-		Operation:          op,
-		Inst:               inst,
-		DefaultRepoContext: defaultRepoContext,
-	}
-
-	if err := instOp.ResolveComponentDescriptors(ctx); err != nil {
-		return nil, err
-	}
-	if err := instOp.SetInstallationContext(ctx); err != nil {
-		return nil, err
-	}
-	return instOp, nil
+// NewInstallationOperationFromOperation creates a new installation operation from an existing common operation.
+// DEPRECATED: use the builder instead.
+func NewInstallationOperationFromOperation(ctx context.Context, op *lsoperation.Operation, inst *Installation, _ *cdv2.UnstructuredTypedObject) (*Operation, error) {
+	return NewOperationBuilder(inst).
+		WithOperation(op).
+		Build(ctx)
 }
 
 // ResolveComponentDescriptors resolves the effective component descriptors for the installation.
+// DEPRECATED: only used for tests. use the builder methods instead.
 func (o *Operation) ResolveComponentDescriptors(ctx context.Context) error {
 	cd, blobResolver, err := ResolveComponentDescriptor(ctx, o.ComponentsRegistry(), o.Inst.Info)
 	if err != nil {
@@ -126,28 +125,52 @@ func (o *Operation) JSONSchemaValidator() *jsonschema.Validator {
 	}
 }
 
-// ListSubinstallations returns a list of all subinstallations of the given installation.
-// Returns nil if no installations can be found
-func (o *Operation) ListSubinstallations(ctx context.Context) ([]*lsv1alpha1.Installation, error) {
-	return listSubinstallations(ctx, o.Client(), o.Inst.Info)
+// SetOverwriter sets the component overwriter.
+func (o *Operation) SetOverwriter(ow componentoverwrites.Overwriter) {
+	o.Overwriter = ow
 }
 
-// listSubinstallations is a helper function which doesn't require an operation
-func listSubinstallations(ctx context.Context, kubeClient client.Client, inst *lsv1alpha1.Installation) ([]*lsv1alpha1.Installation, error) {
+// ListSubinstallations returns a list of all subinstallations of the given installation.
+// Returns nil if no installations can be found
+func (o *Operation) ListSubinstallations(ctx context.Context, filter ...FilterInstallationFunc) ([]*lsv1alpha1.Installation, error) {
+	return ListSubinstallations(ctx, o.Client(), o.Inst.Info, filter...)
+}
+
+type FilterInstallationFunc func(inst *lsv1alpha1.Installation) bool
+
+// ListSubinstallations returns a list of all subinstallations of the given installation.
+// The returned subinstallations can be filtered
+// Returns nil if no installations can be found.
+func ListSubinstallations(ctx context.Context, kubeClient client.Client, inst *lsv1alpha1.Installation, filter ...FilterInstallationFunc) ([]*lsv1alpha1.Installation, error) {
 	installationList := &lsv1alpha1.InstallationList{}
 
-	err := kubeClient.List(ctx, installationList, client.InNamespace(inst.Namespace), client.MatchingLabels{
-		lsv1alpha1.EncompassedByLabel: inst.Name,
-	})
+	// the controller-runtime cache does currently not support field selectors (except a simple equal matcher).
+	// Therefore, we have to use our own filtering.
+	err := kubeClient.List(ctx, installationList, client.InNamespace(inst.Namespace),
+		client.MatchingLabels{
+			lsv1alpha1.EncompassedByLabel: inst.Name,
+		})
 	if err != nil {
 		return nil, err
 	}
 	if len(installationList.Items) == 0 {
 		return nil, nil
 	}
-	installations := make([]*lsv1alpha1.Installation, len(installationList.Items))
-	for i, inst := range installationList.Items {
-		installations[i] = inst.DeepCopy()
+
+	filterInst := func(inst *lsv1alpha1.Installation) bool {
+		for _, f := range filter {
+			if f(inst) {
+				return true
+			}
+		}
+		return false
+	}
+	installations := make([]*lsv1alpha1.Installation, 0)
+	for _, inst := range installationList.Items {
+		if len(filter) != 0 && filterInst(&inst) {
+			continue
+		}
+		installations = append(installations, inst.DeepCopy())
 	}
 	return installations, nil
 }
@@ -222,7 +245,7 @@ func (o *Operation) GetImportedTargets(ctx context.Context) (map[string]*dataobj
 			// It's a target list, skip it
 			continue
 		}
-		target, err := GetTargetImport(ctx, o.Client(), o.Context().Name, o.Inst, def.Target)
+		target, err := GetTargetImport(ctx, o.Client(), o.Context().Name, o.Inst.Info, def.Target)
 		if err != nil {
 			return nil, err
 		}
@@ -271,10 +294,10 @@ func (o *Operation) GetImportedTargetLists(ctx context.Context) (map[string]*dat
 		)
 		if def.Targets != nil {
 			// List of target names
-			tl, err = GetTargetListImportByNames(ctx, o.Client(), o.Context().Name, o.Inst, def.Targets)
+			tl, err = GetTargetListImportByNames(ctx, o.Client(), o.Context().Name, o.Inst.Info, def.Targets)
 		} else if len(def.TargetListReference) != 0 {
 			// TargetListReference is converted to a label selector internally
-			tl, err = GetTargetListImportBySelector(ctx, o.Client(), o.Context().Name, o.Inst, map[string]string{lsv1alpha1.DataObjectKeyLabel: def.TargetListReference}, true)
+			tl, err = GetTargetListImportBySelector(ctx, o.Client(), o.Context().Name, o.Inst.Info, map[string]string{lsv1alpha1.DataObjectKeyLabel: def.TargetListReference}, true)
 		} else {
 			// Invalid target
 			err = fmt.Errorf("invalid target definition '%s': none of target, targets and targetListRef is defined", def.Name)
@@ -445,8 +468,9 @@ func (o *Operation) CreateEventFromCondition(ctx context.Context, inst *lsv1alph
 	return nil
 }
 
-// GetRootInstallations returns all root installations in the system
-func (o *Operation) GetRootInstallations(ctx context.Context, filter func(lsv1alpha1.Installation) bool, opts ...client.ListOption) ([]*lsv1alpha1.Installation, error) {
+// GetRootInstallations returns all root installations in the system.
+// Keep in mind that root installation might not set a component repository context.
+func GetRootInstallations(ctx context.Context, kubeClient client.Client, filter func(lsv1alpha1.Installation) bool, opts ...client.ListOption) ([]*lsv1alpha1.Installation, error) {
 	r, err := labels.NewRequirement(lsv1alpha1.EncompassedByLabel, selection.DoesNotExist, nil)
 	if err != nil {
 		return nil, err
@@ -454,7 +478,7 @@ func (o *Operation) GetRootInstallations(ctx context.Context, filter func(lsv1al
 	opts = append(opts, client.MatchingLabelsSelector{Selector: labels.NewSelector().Add(*r)})
 
 	installationList := &lsv1alpha1.InstallationList{}
-	if err := o.Client().List(ctx, installationList, opts...); err != nil {
+	if err := kubeClient.List(ctx, installationList, opts...); err != nil {
 		return nil, err
 	}
 
@@ -464,61 +488,10 @@ func (o *Operation) GetRootInstallations(ctx context.Context, filter func(lsv1al
 			continue
 		}
 		inst := obj
-
-		if inst.Spec.ComponentDescriptor != nil && inst.Spec.ComponentDescriptor.Reference != nil &&
-			inst.Spec.ComponentDescriptor.Reference.RepositoryContext == nil {
-			inst.Spec.ComponentDescriptor.Reference.RepositoryContext = o.DefaultRepoContext
-		}
-
 		installations = append(installations, &inst)
 	}
 	return installations, nil
 }
-
-//// GetStaticData constructs the static data from the installation.
-//func (o *Operation) GetStaticData(ctx context.Context) (map[string]interface{}, error) {
-//	if o.staticData != nil {
-//		return o.staticData, nil
-//	}
-//
-//	if len(o.Inst.Info.Spec.StaticData) == 0 {
-//		return nil, nil
-//	}
-//
-//	data := make(map[string]interface{})
-//	for _, source := range o.Inst.Info.Spec.StaticData {
-//		if source.Value != nil {
-//			var values map[string]interface{}
-//			if err := yaml.Unmarshal(source.Value, &values); err != nil {
-//				return nil, errors.Wrap(err, "unable to parse value into map")
-//			}
-//			data = utils.MergeMaps(data, values)
-//			continue
-//		}
-//
-//		if source.ValueFrom == nil {
-//			continue
-//		}
-//
-//		if source.ValueFrom.SecretKeyRef != nil {
-//			values, err := GetDataFromSecretKeyRef(ctx, o.Client(), source.ValueFrom.SecretKeyRef, o.Inst.Info.Namespace)
-//			if err != nil {
-//				return nil, err
-//			}
-//			data = utils.MergeMaps(data, values)
-//			continue
-//		}
-//		if source.ValueFrom.SecretLabelSelector != nil {
-//			values, err := GetDataFromSecretLabelSelectorRef(ctx, o.Client(), source.ValueFrom.SecretLabelSelector, o.Inst.Info.Namespace)
-//			if err != nil {
-//				return nil, err
-//			}
-//			data = utils.MergeMaps(data, values)
-//		}
-//	}
-//	o.staticData = data
-//	return data, nil
-//}
 
 // TriggerDependants triggers all installations that depend on the current installation.
 // These are most likely all installation that import a key which is exported by the current installation.

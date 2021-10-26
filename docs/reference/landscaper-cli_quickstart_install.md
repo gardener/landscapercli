@@ -25,7 +25,7 @@ landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-val
                                            - a nginx ingress controller must be deployed in the target cluster
                                            - the command "htpasswd" must be installed on your local machine
       --kubeconfig string                 path to the kubeconfig of the target cluster
-      --landscaper-chart-version string   use a custom Landscaper chart version (corresponds to Landscaper Github release with the same version number) (default "v0.13.0")
+      --landscaper-chart-version string   use a custom Landscaper chart version (corresponds to Landscaper Github release with the same version number) (default "v0.14.0")
       --landscaper-values string          path to values.yaml for the Landscaper Helm installation
       --namespace string                  namespace where Landscaper and the OCI registry will get installed (default "landscaper")
       --registry-password string          password for authenticating at the OCI registry

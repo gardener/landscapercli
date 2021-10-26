@@ -28,6 +28,13 @@ func SetDefaults_LandscaperConfiguration(obj *LandscaperConfiguration) {
 			UseInMemoryOverlay: false,
 		}
 	}
+
+	SetDefaults_CommonControllerConfig(&obj.Controllers.Installations.CommonControllerConfig)
+	SetDefaults_CommonControllerConfig(&obj.Controllers.Executions.CommonControllerConfig)
+	SetDefaults_CommonControllerConfig(&obj.Controllers.DeployItems.CommonControllerConfig)
+	SetDefaults_CommonControllerConfig(&obj.Controllers.ComponentOverwrites.CommonControllerConfig)
+	SetDefaults_CommonControllerConfig(&obj.Controllers.Contexts.CommonControllerConfig)
+
 	if len(obj.DeployerManagement.Namespace) == 0 {
 		obj.DeployerManagement.Namespace = "ls-system"
 	}
@@ -46,6 +53,12 @@ func SetDefaults_LandscaperConfiguration(obj *LandscaperConfiguration) {
 
 	SetDefaults_BlueprintStore(&obj.BlueprintStore)
 	SetDefaults_CrdManagementConfiguration(&obj.CrdManagement)
+
+	if obj.RepositoryContext != nil && obj.Controllers.Contexts.Config.Default.RepositoryContext == nil {
+		// migrate the repository context to the new structure.
+		// The old location is ignored if a repository context is defined in the new location.
+		obj.Controllers.Contexts.Config.Default.RepositoryContext = obj.RepositoryContext
+	}
 
 	if obj.DeployerManagement.Disable {
 		obj.DeployerManagement.Agent.Disable = true
@@ -71,6 +84,18 @@ func SetDefaults_CrdManagementConfiguration(obj *CrdManagementConfiguration) {
 	}
 }
 
+// SetDefaults_CommonControllerConfig sets the defaults for the CommonControllerConfig.
+func SetDefaults_CommonControllerConfig(obj *CommonControllerConfig) {
+	if obj.Workers == 0 {
+		obj.Workers = 1
+	}
+	if obj.CacheSyncTimeout == nil {
+		obj.CacheSyncTimeout = &metav1.Duration{
+			Duration: 2 * time.Minute,
+		}
+	}
+}
+
 // SetDefaults_AgentConfiguration sets the defaults for the landscaper configuration.
 func SetDefaults_AgentConfiguration(obj *AgentConfiguration) {
 	if len(obj.Namespace) == 0 {
@@ -91,6 +116,10 @@ func SetDefaults_BlueprintStore(obj *BlueprintStore) {
 
 	// PreservedHitsProportion defines the default percent of hits that should be preserved.
 	const PreservedHitsProportion = 0.5
+
+	if len(obj.IndexMethod) == 0 {
+		obj.IndexMethod = BlueprintDigestIndex
+	}
 
 	if obj.Size == "0" {
 		// no garbage collection configured ignore all other values

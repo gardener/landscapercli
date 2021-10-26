@@ -22,6 +22,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
+	"github.com/gardener/landscaper/pkg/landscaper/registry/componentoverwrites"
+
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	lsv1alpha1helper "github.com/gardener/landscaper/apis/core/v1alpha1/helper"
 	lscheme "github.com/gardener/landscaper/pkg/api"
@@ -50,27 +52,17 @@ func GetParentInstallationName(inst *lsv1alpha1.Installation) string {
 	return name
 }
 
-// CreateInternalInstallations creates internal installations for a list of ComponentInstallations
-func CreateInternalInstallations(ctx context.Context, compResolver ctf.ComponentResolver, installations ...*lsv1alpha1.Installation) ([]*Installation, error) {
-	internalInstallations := make([]*Installation, len(installations))
-	for i, inst := range installations {
-		inInst, err := CreateInternalInstallation(ctx, compResolver, inst)
-		if err != nil {
-			return nil, err
-		}
-		internalInstallations[i] = inInst
-	}
-	return internalInstallations, nil
-}
-
 // CreateInternalInstallationBases creates internal installation bases for a list of ComponentInstallations
-func CreateInternalInstallationBases(installations ...*lsv1alpha1.Installation) ([]*InstallationBase, error) {
+func CreateInternalInstallationBases(installations ...*lsv1alpha1.Installation) []*InstallationBase {
+	if len(installations) == 0 {
+		return nil
+	}
 	internalInstallations := make([]*InstallationBase, len(installations))
 	for i, inst := range installations {
 		inInst := CreateInternalInstallationBase(inst)
 		internalInstallations[i] = inInst
 	}
-	return internalInstallations, nil
+	return internalInstallations
 }
 
 // ResolveComponentDescriptor resolves the component descriptor of a installation.
@@ -97,7 +89,11 @@ func ResolveComponentDescriptor(ctx context.Context, compRepo ctf.ComponentResol
 }
 
 // CreateInternalInstallation creates an internal installation for an Installation
+// DEPRECATED: use CreateInternalInstallationWithContext instead
 func CreateInternalInstallation(ctx context.Context, compResolver ctf.ComponentResolver, inst *lsv1alpha1.Installation) (*Installation, error) {
+	if inst == nil {
+		return nil, nil
+	}
 	cdRef := GetReferenceFromComponentDescriptorDefinition(inst.Spec.ComponentDescriptor)
 	blue, err := blueprints.Resolve(ctx, compResolver, cdRef, inst.Spec.Blueprint)
 	if err != nil {
@@ -106,8 +102,32 @@ func CreateInternalInstallation(ctx context.Context, compResolver ctf.ComponentR
 	return New(inst, blue)
 }
 
+// CreateInternalInstallationWithContext creates an internal installation for an Installation
+func CreateInternalInstallationWithContext(ctx context.Context,
+	inst *lsv1alpha1.Installation,
+	kubeClient client.Client,
+	compResolver ctf.ComponentResolver,
+	overwriter componentoverwrites.Overwriter,
+) (*Installation, error) {
+	if inst == nil {
+		return nil, nil
+	}
+	lsCtx, err := GetExternalContext(ctx, kubeClient, inst, overwriter)
+	if err != nil {
+		return nil, err
+	}
+	blue, err := blueprints.Resolve(ctx, compResolver, lsCtx.ComponentDescriptorRef(), inst.Spec.Blueprint)
+	if err != nil {
+		return nil, fmt.Errorf("unable to resolve blueprint for %s/%s: %w", inst.Namespace, inst.Name, err)
+	}
+	return New(inst, blue)
+}
+
 // CreateInternalInstallationBase creates an internal installation base for an Installation
 func CreateInternalInstallationBase(inst *lsv1alpha1.Installation) *InstallationBase {
+	if inst == nil {
+		return nil
+	}
 	return NewInstallationBase(inst)
 }
 
@@ -157,12 +177,51 @@ func GetDataImport(ctx context.Context,
 	return do, owner, nil
 }
 
+// GetTargets returns all targets and import references defined by a target import.
+func GetTargets(ctx context.Context,
+	kubeClient client.Client,
+	contextName string,
+	inst *lsv1alpha1.Installation,
+	targetImport lsv1alpha1.TargetImport) ([]*dataobjects.Target, []string, error) {
+	// get deploy item from current context
+	var targets []*dataobjects.Target
+	var targetImportReferences []string
+	if len(targetImport.Target) != 0 {
+		target, err := GetTargetImport(ctx, kubeClient, contextName, inst, targetImport.Target)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: unable to get target for '%s': %w", targetImport.Name, targetImport.Name, err)
+		}
+		targets = []*dataobjects.Target{target}
+		targetImportReferences = []string{targetImport.Target}
+	} else if targetImport.Targets != nil {
+		tl, err := GetTargetListImportByNames(ctx, kubeClient, contextName, inst, targetImport.Targets)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: unable to get targetlist for '%s': %w", targetImport.Name, targetImport.Name, err)
+		}
+		if len(tl.Targets) != len(targetImport.Targets) {
+			return nil, nil, fmt.Errorf("%s: targetlist size mismatch: %d targets were expected but %d were fetched from the cluster", targetImport.Name, len(targetImport.Targets), len(tl.Targets))
+		}
+		targets = tl.Targets
+		targetImportReferences = targetImport.Targets
+	} else if len(targetImport.TargetListReference) != 0 {
+		tl, err := GetTargetListImportBySelector(ctx, kubeClient, contextName, inst, map[string]string{lsv1alpha1.DataObjectKeyLabel: targetImport.TargetListReference}, true)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: unable to get targetlist for '%s': %w", targetImport.Name, targetImport.Name, err)
+		}
+		targets = tl.Targets
+		targetImportReferences = []string{targetImport.TargetListReference}
+	} else {
+		return nil, nil, fmt.Errorf("invalid target import '%s': one of target, targets, or targetListRef must be specified", targetImport.Name)
+	}
+	return targets, targetImportReferences, nil
+}
+
 // GetTargetImport fetches the target import from the cluster.
-func GetTargetImport(ctx context.Context, kubeClient client.Client, contextName string, inst *Installation, targetName string) (*dataobjects.Target, error) {
+func GetTargetImport(ctx context.Context, kubeClient client.Client, contextName string, inst *lsv1alpha1.Installation, targetName string) (*dataobjects.Target, error) {
 	// get deploy item from current context
 	raw := &lsv1alpha1.Target{}
 	targetName = lsv1alpha1helper.GenerateDataObjectName(contextName, targetName)
-	if err := kubeClient.Get(ctx, kubernetes.ObjectKey(targetName, inst.Info.Namespace), raw); err != nil {
+	if err := kubeClient.Get(ctx, kubernetes.ObjectKey(targetName, inst.Namespace), raw); err != nil {
 		return nil, err
 	}
 
@@ -170,17 +229,23 @@ func GetTargetImport(ctx context.Context, kubeClient client.Client, contextName 
 	if err != nil {
 		return nil, fmt.Errorf("unable to create internal target for %s: %w", targetName, err)
 	}
+
 	return target, nil
 }
 
 // GetTargetListImportByNames fetches the target imports from the cluster, based on a list of target names.
-func GetTargetListImportByNames(ctx context.Context, kubeClient client.Client, contextName string, inst *Installation, targetNames []string) (*dataobjects.TargetList, error) {
+func GetTargetListImportByNames(
+	ctx context.Context,
+	kubeClient client.Client,
+	contextName string,
+	inst *lsv1alpha1.Installation,
+	targetNames []string) (*dataobjects.TargetList, error) {
 	targets := make([]lsv1alpha1.Target, len(targetNames))
 	for i, targetName := range targetNames {
 		// get deploy item from current context
 		raw := &lsv1alpha1.Target{}
 		targetName = lsv1alpha1helper.GenerateDataObjectName(contextName, targetName)
-		if err := kubeClient.Get(ctx, kubernetes.ObjectKey(targetName, inst.Info.Namespace), raw); err != nil {
+		if err := kubeClient.Get(ctx, kubernetes.ObjectKey(targetName, inst.Namespace), raw); err != nil {
 			return nil, err
 		}
 		targets[i] = *raw
@@ -195,7 +260,13 @@ func GetTargetListImportByNames(ctx context.Context, kubeClient client.Client, c
 
 // GetTargetListImportBySelector fetches the target imports from the cluster, based on a label selector.
 // If restrictToImport is true, a label selector will be added which fetches only targets that are marked as import.
-func GetTargetListImportBySelector(ctx context.Context, kubeClient client.Client, contextName string, inst *Installation, selector map[string]string, restrictToImport bool) (*dataobjects.TargetList, error) {
+func GetTargetListImportBySelector(
+	ctx context.Context,
+	kubeClient client.Client,
+	contextName string,
+	inst *lsv1alpha1.Installation,
+	selector map[string]string,
+	restrictToImport bool) (*dataobjects.TargetList, error) {
 	targets := &lsv1alpha1.TargetList{}
 	// construct label selector
 	contextSelector := labels.NewSelector()
@@ -230,7 +301,7 @@ func GetTargetListImportBySelector(ctx context.Context, kubeClient client.Client
 		}
 		contextSelector = contextSelector.Add(*r)
 	}
-	if err := kubeClient.List(ctx, targets, client.InNamespace(inst.Info.Namespace), &client.ListOptions{LabelSelector: contextSelector}); err != nil {
+	if err := kubeClient.List(ctx, targets, client.InNamespace(inst.Namespace), &client.ListOptions{LabelSelector: contextSelector}); err != nil {
 		return nil, err
 	}
 	targetList, err := dataobjects.NewFromTargetList(targets.Items)
@@ -470,12 +541,16 @@ func HandleSubComponentPhaseChanges(
 		}
 		phases = append(phases, lsv1alpha1.ComponentInstallationPhase(exec.Status.Phase))
 	}
-	subinsts, err := listSubinstallations(ctx, kubeClient, inst)
+	subinsts, err := ListSubinstallations(ctx, kubeClient, inst)
 	if err != nil {
 		return fmt.Errorf("error fetching subinstallations for installation %s/%s: %w", inst.Namespace, inst.Name, err)
 	}
 	for _, sub := range subinsts {
 		phases = append(phases, sub.Status.Phase)
+	}
+	if len(phases) == 0 {
+		// Installation contains neither an execution nor subinstallations, so the phase can't be out of sync.
+		return nil
 	}
 	cp := lsv1alpha1helper.CombinedInstallationPhase(phases...)
 	if inst.Status.Phase != cp {
