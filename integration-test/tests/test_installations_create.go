@@ -434,7 +434,7 @@ version: v0.1.0
 relation: local
 access:
   type: ociRegistry
-  imageReference: %s/echo-server-chart:v1.1.0
+  imageReference: %s/echo-server:1.1.0
 ---
 `, t.blueprintName, t.componentVersion, t.config.RegistryBaseURL)
 

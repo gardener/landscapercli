@@ -157,7 +157,7 @@ func TestCheckConfiguration(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "landscaper.registryConfig.allowPlainHttpRegistries must be set to true when installing Landscaper together with the OCI registry without ingress access",
+			expectedErr: "landscaper.landscaper.registryConfig.allowPlainHttpRegistries must be set to true when installing Landscaper together with the OCI registry without ingress access",
 		},
 		{
 			name: "install OCI registry with ingress and allowPlainHttpRegistries = true",
@@ -180,7 +180,7 @@ func TestCheckConfiguration(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "landscaper.registryConfig.allowPlainHttpRegistries must be set to false when installing Landscaper together with the OCI registry with ingress access",
+			expectedErr: "landscaper.landscaper.registryConfig.allowPlainHttpRegistries must be set to false when installing Landscaper together with the OCI registry with ingress access",
 		},
 		{
 			name: "include registry credentials already in user defined Landscaper values",

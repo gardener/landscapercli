@@ -27,9 +27,6 @@ The command reference is located [here](docs/reference/landscaper-cli.md).
 The Landscaper CLI support the installation of the [Docker OCI registry](https://hub.docker.com/_/registry/) 
 with the [quickstart command](docs/commands/quickstart).
 
-If you want to use the [Harbor OCI registry](https://github.com/goharbor/harbor-helm) as an alternative OCI registry, 
-see the [Landscaper documentation](https://github.com/gardener/landscaper/blob/master/docs/tutorials/00-local-setup.md).
-
 A description how to access an OCI registry which requires authentication with the Landscaper CLI can be found [here](docs/login-to-oci-registry.md). 
 
 Other examples:
