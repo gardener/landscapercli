@@ -4,13 +4,16 @@ metadata:
   name: echo-server-cd-example
 spec:
 
-  blueprint:
+  componentDescriptor:
     ref:
       repositoryContext:
         type: ociRegistry
-        baseUrl: <base url oci registry>:5000/components
+        baseUrl: oci-registry.landscaper.svc.cluster.local:5000/components
       componentName: github.com/gardener/echo-server-cd
       version: v0.1.0
+
+  blueprint:
+    ref:
       resourceName: echo-server-blueprint
 
   imports:

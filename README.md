@@ -14,6 +14,9 @@ The Landscaper CLI adds commands for the following use cases:
 - Support for testing components on a kubernetes cluster  
 - Support for accessing and maintaining components with a blueprint in OCI registry
 
+**Remark: This version of the Landscaper CLI requires that you have installed helm version 3.7 or higher
+due to some fundamental API changes especially with respect to the handling of helm charts stored as OCI resources.**
+
 ## Installation
 
 Installation instructions can be found [here](docs/installation.md).

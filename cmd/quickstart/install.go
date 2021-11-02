@@ -303,6 +303,10 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 
 		credentials := fmt.Sprintf("%s:%s", o.registryUsername, o.registryPassword)
 		encodedCredentials := base64.StdEncoding.EncodeToString([]byte(credentials))
+
+		if o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths == nil {
+			o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths = map[string]interface{}{}
+		}
 		registryAuths := o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths
 		registryAuths[o.registryIngressHost] = map[string]interface{}{
 			"auth": encodedCredentials,
