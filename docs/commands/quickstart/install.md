@@ -4,7 +4,7 @@ The quickstart install command allows to install the landscaper (and optionally 
 
 ## Prerequisites
 - K8s cluster
-- [Helm 3](https://helm.sh/docs/intro/install/)
+- [Helm >=3.7.0](https://helm.sh/docs/intro/install/)
 
 ## Usage
 The simple use case would be to install Landscaper without the internal OCI registry, e.g. if you already have an external OCI registry (GCR, Harbor, ...) for usage. This can be achieved by executing the following command:

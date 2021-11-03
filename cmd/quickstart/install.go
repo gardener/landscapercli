@@ -49,6 +49,10 @@ type installOptions struct {
 }
 
 type landscaperValues struct {
+	Landscaper landscaperconfig `json:"landscaper"`
+}
+
+type landscaperconfig struct {
 	Landscaper landscaper `json:"landscaper"`
 }
 
@@ -124,8 +128,8 @@ func (o *installOptions) ReadLandscaperValues() error {
 		return fmt.Errorf("cannot unmarshall file content: %w", err)
 	}
 
-	if unmarshaledContent.Landscaper.RegistryConfig.Secrets.Defaults.Auths == nil {
-		unmarshaledContent.Landscaper.RegistryConfig.Secrets.Defaults.Auths = map[string]interface{}{}
+	if unmarshaledContent.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths == nil {
+		unmarshaledContent.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths = map[string]interface{}{}
 	}
 
 	o.landscaperValues = unmarshaledContent
@@ -218,15 +222,15 @@ func (o *installOptions) createNamespace(ctx context.Context, k8sClient client.C
 func (o *installOptions) checkConfiguration() error {
 	// check that the credentials for the OCI registry we will create are not set in the values from the user
 	if o.instOCIRegistry && o.instRegistryIngress {
-		registryAuths := o.landscaperValues.Landscaper.RegistryConfig.Secrets.Defaults.Auths
+		registryAuths := o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths
 		_, ok := registryAuths[o.registryIngressHost]
 		if ok {
 			return fmt.Errorf("registry credentials for %s are already set in the provided Landscaper values. please remove them from your configuration as they will get configured automatically", o.registryIngressHost)
 		}
 	}
 
-	allowHttpRegistries := o.landscaperValues.Landscaper.RegistryConfig.AllowPlainHttpRegistries
-	allowHttpRegistriesPath := "landscaper.registryConfig.allowPlainHttpRegistries"
+	allowHttpRegistries := o.landscaperValues.Landscaper.Landscaper.RegistryConfig.AllowPlainHttpRegistries
+	allowHttpRegistriesPath := "landscaper.landscaper.registryConfig.allowPlainHttpRegistries"
 
 	// if OCI registry is exposed via ingress, allowHttpRegistries must be false
 	if o.instOCIRegistry && o.instRegistryIngress && allowHttpRegistries {
@@ -262,13 +266,6 @@ func (o *installOptions) Complete(args []string) error {
 func (o *installOptions) installLandscaper(ctx context.Context) error {
 	fmt.Println("Installing Landscaper...")
 
-	landscaperChartURI := fmt.Sprintf("eu.gcr.io/gardener-project/landscaper/charts/landscaper-controller:%s", o.landscaperChartVersion)
-	pullCmd := fmt.Sprintf("helm chart pull %s", landscaperChartURI)
-	err := util.ExecCommandBlocking(pullCmd)
-	if err != nil {
-		return err
-	}
-
 	tempDir, err := ioutil.TempDir(".", "landscaper-chart-tmp-*")
 	if err != nil {
 		return err
@@ -280,8 +277,9 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 		}
 	}()
 
-	exportCmd := fmt.Sprintf("helm chart export %s -d %s", landscaperChartURI, tempDir)
-	err = util.ExecCommandBlocking(exportCmd)
+	landscaperChartURI := fmt.Sprintf("oci://eu.gcr.io/gardener-project/landscaper/charts/landscaper --untar --version %s", o.landscaperChartVersion)
+	pullCmd := fmt.Sprintf("helm pull %s -d %s", landscaperChartURI, tempDir)
+	err = util.ExecCommandBlocking(pullCmd)
 	if err != nil {
 		return err
 	}
@@ -305,7 +303,11 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 
 		credentials := fmt.Sprintf("%s:%s", o.registryUsername, o.registryPassword)
 		encodedCredentials := base64.StdEncoding.EncodeToString([]byte(credentials))
-		registryAuths := o.landscaperValues.Landscaper.RegistryConfig.Secrets.Defaults.Auths
+
+		if o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths == nil {
+			o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths = map[string]interface{}{}
+		}
+		registryAuths := o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths
 		registryAuths[o.registryIngressHost] = map[string]interface{}{
 			"auth": encodedCredentials,
 		}
@@ -317,11 +319,12 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 
 		landscaperValuesOverride := fmt.Sprintf(`
 landscaper:
-  registryConfig:
-    secrets: 
-      default: {
-        "auths": %s        
-      }
+  landscaper:
+    registryConfig:
+      secrets: 
+        default: {
+          "auths": %s        
+        }
 `, string(marshaledRegistryAuths))
 
 		tmpFile, err := ioutil.TempFile(".", "landscaper-values-override-")

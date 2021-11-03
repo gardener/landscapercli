@@ -27,4 +27,4 @@ component:
     relation: local
     access:
       type: ociRegistry
-      imageReference: <base url oci registry>:5000/echo-server-chart:v1.1.0
+      imageReference: <base url oci registry>:5000/echo-server:1.1.0

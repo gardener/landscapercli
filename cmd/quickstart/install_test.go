@@ -97,14 +97,16 @@ func TestCheckConfiguration(t *testing.T) {
 				instRegistryIngress: true,
 				registryIngressHost: "registry.ingress.my-cluster.com",
 				landscaperValues: landscaperValues{
-					Landscaper: landscaper{
-						RegistryConfig: registryConfig{
-							AllowPlainHttpRegistries: false,
-							Secrets: secrets{
-								Defaults: defaults{
-									Auths: map[string]interface{}{
-										"some-other-registry-url.com": map[string]interface{}{
-											"auth": "dummy",
+					Landscaper: landscaperconfig{
+						Landscaper: landscaper{
+							RegistryConfig: registryConfig{
+								AllowPlainHttpRegistries: false,
+								Secrets: secrets{
+									Defaults: defaults{
+										Auths: map[string]interface{}{
+											"some-other-registry-url.com": map[string]interface{}{
+												"auth": "dummy",
+											},
 										},
 									},
 								},
@@ -120,12 +122,14 @@ func TestCheckConfiguration(t *testing.T) {
 				instOCIRegistry:     true,
 				instRegistryIngress: false,
 				landscaperValues: landscaperValues{
-					Landscaper: landscaper{
-						RegistryConfig: registryConfig{
-							AllowPlainHttpRegistries: true,
-							Secrets: secrets{
-								Defaults: defaults{
-									Auths: map[string]interface{}{},
+					Landscaper: landscaperconfig{
+						Landscaper: landscaper{
+							RegistryConfig: registryConfig{
+								AllowPlainHttpRegistries: true,
+								Secrets: secrets{
+									Defaults: defaults{
+										Auths: map[string]interface{}{},
+									},
 								},
 							},
 						},
@@ -139,19 +143,21 @@ func TestCheckConfiguration(t *testing.T) {
 				instOCIRegistry:     true,
 				instRegistryIngress: false,
 				landscaperValues: landscaperValues{
-					Landscaper: landscaper{
-						RegistryConfig: registryConfig{
-							AllowPlainHttpRegistries: false,
-							Secrets: secrets{
-								Defaults: defaults{
-									Auths: map[string]interface{}{},
+					Landscaper: landscaperconfig{
+						Landscaper: landscaper{
+							RegistryConfig: registryConfig{
+								AllowPlainHttpRegistries: false,
+								Secrets: secrets{
+									Defaults: defaults{
+										Auths: map[string]interface{}{},
+									},
 								},
 							},
 						},
 					},
 				},
 			},
-			expectedErr: "landscaper.registryConfig.allowPlainHttpRegistries must be set to true when installing Landscaper together with the OCI registry without ingress access",
+			expectedErr: "landscaper.landscaper.registryConfig.allowPlainHttpRegistries must be set to true when installing Landscaper together with the OCI registry without ingress access",
 		},
 		{
 			name: "install OCI registry with ingress and allowPlainHttpRegistries = true",
@@ -160,19 +166,21 @@ func TestCheckConfiguration(t *testing.T) {
 				instRegistryIngress: true,
 				registryIngressHost: "registry.ingress.my-cluster.com",
 				landscaperValues: landscaperValues{
-					Landscaper: landscaper{
-						RegistryConfig: registryConfig{
-							AllowPlainHttpRegistries: true,
-							Secrets: secrets{
-								Defaults: defaults{
-									Auths: map[string]interface{}{},
+					Landscaper: landscaperconfig{
+						Landscaper: landscaper{
+							RegistryConfig: registryConfig{
+								AllowPlainHttpRegistries: true,
+								Secrets: secrets{
+									Defaults: defaults{
+										Auths: map[string]interface{}{},
+									},
 								},
 							},
 						},
 					},
 				},
 			},
-			expectedErr: "landscaper.registryConfig.allowPlainHttpRegistries must be set to false when installing Landscaper together with the OCI registry with ingress access",
+			expectedErr: "landscaper.landscaper.registryConfig.allowPlainHttpRegistries must be set to false when installing Landscaper together with the OCI registry with ingress access",
 		},
 		{
 			name: "include registry credentials already in user defined Landscaper values",
@@ -181,14 +189,16 @@ func TestCheckConfiguration(t *testing.T) {
 				instRegistryIngress: true,
 				registryIngressHost: "registry.ingress.my-cluster.com",
 				landscaperValues: landscaperValues{
-					Landscaper: landscaper{
-						RegistryConfig: registryConfig{
-							AllowPlainHttpRegistries: false,
-							Secrets: secrets{
-								Defaults: defaults{
-									Auths: map[string]interface{}{
-										"registry.ingress.my-cluster.com": map[string]interface{}{
-											"auth": "dummy",
+					Landscaper: landscaperconfig{
+						Landscaper: landscaper{
+							RegistryConfig: registryConfig{
+								AllowPlainHttpRegistries: false,
+								Secrets: secrets{
+									Defaults: defaults{
+										Auths: map[string]interface{}{
+											"registry.ingress.my-cluster.com": map[string]interface{}{
+												"auth": "dummy",
+											},
 										},
 									},
 								},

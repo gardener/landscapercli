@@ -9,14 +9,14 @@ helm pull --untar https://storage.googleapis.com/sap-hub-test/echo-server-1.1.0.
 2. Create a Port Forwarding to the OCI registry
 (not required if a publicly exposed OCI registry is used)
 ```
-kubectl port-forward oci-registry-<pod-id> 5000:5000
+kubectl port-forward -n <namespace> oci-registry-<pod-id> 5000:5000
 ```
 
-3. Save and upload the helm chart to the OCI registry
+3. Package and upload the helm chart to the OCI registry
 ```
 export HELM_EXPERIMENTAL_OCI=1
-helm chart save echo-server localhost:5000/echo-server-chart:v1.1.0
-helm chart push localhost:5000/echo-server-chart:v1.1.0
+helm package echo-server -d tmp-echo-server
+helm push tmp-echo-server/echo-server-1.1.0.tgz oci://localhost:5000
 ```
 4. Upload Blueprint to the OCI registry
 ```
@@ -24,8 +24,13 @@ landscaper-cli blueprints push localhost:5000/echo-server-blueprint:v0.1.0 ./com
 ```
 
 5. Upload Component Descriptor to the OCI registry
+
+Exchange the <base url oci registry> placeholder in the component-descriptor.yaml file. If you use the OCI registry 
+installed with the quickstart install, the url is in the console output and follows the schema 
+oci-registry.<namespace>.svc.cluster.local (here namespace is the one where the oci registry runs).
+
 ```
-landscaper-cli component-cli remote push localhost:5000/components github.com/gardener/echo-server-cd v0.1.0 ./component-descriptor-blueprint
+landscaper-cli component-cli component-archive remote push localhost:5000/components github.com/gardener/echo-server-cd v0.1.0 ./component-descriptor-blueprint
 ```
 
 6. Apply the target to your cluster

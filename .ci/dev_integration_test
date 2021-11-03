@@ -40,7 +40,7 @@ if ! command -v helm &> /dev/null
 then
     echo "Helm could not be found"
     echo "Try installing it..."
-    export DESIRED_VERSION="v3.3.4"
+    export DESIRED_VERSION="v3.7.1"
     apk add --no-cache --no-progress bash
     curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
     # symlink to /bin/helm3 as it is required by the integration test script

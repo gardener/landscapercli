@@ -14,6 +14,9 @@ The Landscaper CLI adds commands for the following use cases:
 - Support for testing components on a kubernetes cluster  
 - Support for accessing and maintaining components with a blueprint in OCI registry
 
+**Remark: This version of the Landscaper CLI requires that you have installed helm version 3.7 or higher
+due to some fundamental API changes especially with respect to the handling of helm charts stored as OCI resources.**
+
 ## Installation
 
 Installation instructions can be found [here](docs/installation.md).
@@ -26,9 +29,6 @@ The command reference is located [here](docs/reference/landscaper-cli.md).
 
 The Landscaper CLI support the installation of the [Docker OCI registry](https://hub.docker.com/_/registry/) 
 with the [quickstart command](docs/commands/quickstart).
-
-If you want to use the [Harbor OCI registry](https://github.com/goharbor/harbor-helm) as an alternative OCI registry, 
-see the [Landscaper documentation](https://github.com/gardener/landscaper/blob/master/docs/tutorials/00-local-setup.md).
 
 A description how to access an OCI registry which requires authentication with the Landscaper CLI can be found [here](docs/login-to-oci-registry.md). 
 

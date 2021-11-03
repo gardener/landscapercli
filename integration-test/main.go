@@ -238,7 +238,18 @@ func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigP
 }
 
 func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
-	err := util.ExecCommandBlocking("helm pull https://storage.googleapis.com/sap-hub-test/echo-server-1.1.0.tgz")
+	tempDir1, err := ioutil.TempDir(".", "landscaper-chart-tmp1-*")
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		err := os.RemoveAll(tempDir1)
+		if err != nil {
+			fmt.Printf("cannot remove temporary directory %s: %s", tempDir1, err.Error())
+		}
+	}()
+
+	err = util.ExecCommandBlocking(fmt.Sprintf("helm pull https://storage.googleapis.com/sap-hub-test/echo-server-1.1.0.tgz --untar -d %s", tempDir1))
 	if err != nil {
 		return "", fmt.Errorf("helm pull failed: %w", err)
 	}
@@ -249,17 +260,28 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 		}
 	}()
 
-	err = util.ExecCommandBlocking("helm chart save echo-server-1.1.0.tgz localhost:5000/echo-server-chart:v1.1.0")
+	tempDir2, err := ioutil.TempDir(".", "landscaper-chart-tmp2-*")
 	if err != nil {
-		return "", fmt.Errorf("helm chart save failed: %w", err)
+		return "", err
+	}
+	defer func() {
+		err := os.RemoveAll(tempDir2)
+		if err != nil {
+			fmt.Printf("cannot remove temporary directory %s: %s", tempDir2, err.Error())
+		}
+	}()
+
+	err = util.ExecCommandBlocking(fmt.Sprintf("helm package %s/echo-server -d %s", tempDir1, tempDir2))
+	if err != nil {
+		return "", fmt.Errorf("helm package failed: %w", err)
 	}
 
-	err = util.ExecCommandBlocking("helm chart push localhost:5000/echo-server-chart:v1.1.0")
+	err = util.ExecCommandBlocking(fmt.Sprintf("helm push %s/echo-server-1.1.0.tgz oci://localhost:5000", tempDir2))
 	if err != nil {
-		return "", fmt.Errorf("helm chart push failed: %w", err)
+		return "", fmt.Errorf("helm push failed: %w", err)
 	}
 
-	helmChartRef := fmt.Sprintf("oci-registry.%s.svc.cluster.local:5000/echo-server-chart:v1.1.0", landscaperNamespace)
+	helmChartRef := fmt.Sprintf("oci-registry.%s.svc.cluster.local:5000/echo-server:1.1.0", landscaperNamespace)
 	return helmChartRef, nil
 }
 
@@ -326,17 +348,18 @@ func runQuickstartInstall(config *inttestutil.Config) error {
 func buildLandscaperValues(namespace string) ([]byte, error) {
 	const valuesTemplate = `
 landscaper:
-  registryConfig: # contains optional oci secrets
-    allowPlainHttpRegistries: true
-    secrets: {}
-  deployers:
-  - container
-  - helm
-  - manifest
-  deployerManagement:
-    namespace: {{ .Namespace }}
-    agent:
+  landscaper:
+    registryConfig: # contains optional oci secrets
+      allowPlainHttpRegistries: true
+      secrets: {}
+    deployers:
+    - container
+    - helm
+    - manifest
+    deployerManagement:
       namespace: {{ .Namespace }}
+      agent:
+        namespace: {{ .Namespace }}
 `
 
 	t, err := template.New("valuesTemplate").Parse(valuesTemplate)
