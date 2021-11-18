@@ -66,6 +66,9 @@ type CopyOptions struct {
 	// ConvertToRelativeOCIReferences configures the cli to write copied artifacts back with a relative reference
 	ConvertToRelativeOCIReferences bool
 
+	// ReplaceOCIRefs contains replace expressions for manipulating upload refs of resources with accessType == ociRegistry
+	ReplaceOCIRefs []string
+
 	// OciOptions contains all exposed options to configure the oci client.
 	OciOptions ociopts.Options
 }
@@ -110,6 +113,15 @@ func (o *CopyOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSyste
 	}
 	defer cache.Close()
 
+	replaceOCIRefs := map[string]string{}
+	for _, replace := range o.ReplaceOCIRefs {
+		splittedReplace := strings.Split(replace, ":")
+		if len(splittedReplace) != 2 {
+			return fmt.Errorf("invalid replace expression %s: must have the format left:right", replace)
+		}
+		replaceOCIRefs[splittedReplace[0]] = splittedReplace[1]
+	}
+
 	c := Copier{
 		SrcRepoCtx:                     cdv2.NewOCIRegistryRepository(o.SourceRepository, ""),
 		TargetRepoCtx:                  cdv2.NewOCIRegistryRepository(o.TargetRepository, ""),
@@ -123,6 +135,7 @@ func (o *CopyOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSyste
 		SourceArtifactRepository:       o.SourceArtifactRepository,
 		TargetArtifactRepository:       o.TargetArtifactRepository,
 		ConvertToRelativeOCIReferences: o.ConvertToRelativeOCIReferences,
+		ReplaceOCIRefs:                 replaceOCIRefs,
 	}
 
 	if err := c.Copy(ctx, o.ComponentName, o.ComponentVersion); err != nil {
@@ -178,6 +191,7 @@ func (o *CopyOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.SourceArtifactRepository, "source-artifact-repository", "",
 		"source repository where realtiove oci artifacts are copied from. This is only relevant if artifacts are copied by value and it will be defaulted to the source component repository")
 	fs.BoolVar(&o.ConvertToRelativeOCIReferences, "relative-urls", false, "converts all copied oci artifacts to relative urls")
+	fs.StringSliceVar(&o.ReplaceOCIRefs, "replace-oci-ref", []string{}, "list of replace expressions in the format left:right. For every resource with accessType == "+cdv2.OCIRegistryType+", all occurences of 'left' in the target ref are replaced with 'right' before the upload")
 	o.OciOptions.AddFlags(fs)
 }
 
@@ -206,6 +220,8 @@ type Copier struct {
 	TargetArtifactRepository string
 	// ConvertToRelativeOCIReferences configures the cli to write copied artifacts back with a relative reference
 	ConvertToRelativeOCIReferences bool
+	// ReplaceOCIRefs contains replace expressions for manipulating upload refs of resources with accessType == ociRegistry
+	ReplaceOCIRefs map[string]string
 }
 
 func (c *Copier) Copy(ctx context.Context, name, version string) error {
@@ -281,6 +297,11 @@ func (c *Copier) Copy(ctx context.Context, name, version string) error {
 			if err != nil {
 				return fmt.Errorf("unable to create target oci artifact reference for resource %s: %w", res.Name, err)
 			}
+
+			for old, new := range c.ReplaceOCIRefs {
+				target = strings.ReplaceAll(target, old, new)
+			}
+
 			log.V(4).Info(fmt.Sprintf("copy oci artifact %s to %s", ociRegistryAcc.ImageReference, target))
 			if err := ociclient.Copy(ctx, c.OciClient, ociRegistryAcc.ImageReference, target); err != nil {
 				return fmt.Errorf("unable to copy oci artifact %s from %s to %s: %w", res.Name, ociRegistryAcc.ImageReference, target, err)
@@ -316,6 +337,11 @@ func (c *Copier) Copy(ctx context.Context, name, version string) error {
 			if err != nil {
 				return fmt.Errorf("unable to create target oci artifact reference for resource %s: %w", res.Name, err)
 			}
+
+			for old, new := range c.ReplaceOCIRefs {
+				target = strings.ReplaceAll(target, old, new)
+			}
+
 			log.V(4).Info(fmt.Sprintf("copy oci artifact %s to %s", src, target))
 			if err := ociclient.Copy(ctx, c.OciClient, src, target); err != nil {
 				return fmt.Errorf("unable to copy oci artifact %s from %s to %s: %w", res.Name, src, target, err)
