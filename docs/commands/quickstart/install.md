@@ -101,17 +101,17 @@ chart can be specified. For more options see also [here](https://github.com/gard
 A minimum working example goes as follows:
 ```yaml
 landscaper:
+  landscaper: 
+    registryConfig: # contains optional oci secrets
+      allowPlainHttpRegistries: false
+      secrets: {}
+#       <name>: <docker config json>
 
-  registryConfig: # contains optional oci secrets
-    allowPlainHttpRegistries: false
-    secrets: {}
-#     <name>: <docker config json>
-
-  deployers:
-  - container
-  - helm
-  - manifest
-#  - mock
+    deployers:
+    - container
+    - helm
+    - manifest
+#   - mock
 
 ```
 
