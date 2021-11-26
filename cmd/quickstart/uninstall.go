@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -28,7 +29,7 @@ func NewUninstallCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "uninstall --kubeconfig [kubconfig.yaml]",
 		Aliases: []string{"u"},
-		Short:   "command to uninstall Landscaper and OCI registry (from the install command) in a target cluster",
+		Short:   "command to uninstall Landscaper and OCI registry (from the install command) in a target cluster. also deletes all Landscaper installations from the namespace.",
 		Example: "landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace landscaper",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -82,7 +83,7 @@ func (o *uninstallOptions) run(ctx context.Context, log logr.Logger) error {
 	fmt.Print("OCI registry uninstall succeeded!\n\n")
 
 	fmt.Println("Uninstall Landscaper...")
-	err = o.uninstallLandscaper(ctx)
+	err = o.uninstallLandscaper(ctx, k8sClient)
 	if err != nil {
 		return fmt.Errorf("Cannot uninstall landscaper: %w", err)
 	}
@@ -108,10 +109,17 @@ func (o *uninstallOptions) uninstallOCIRegistry(ctx context.Context, k8sClient c
 	return ociRegistry.uninstall(ctx)
 }
 
-func (o *uninstallOptions) uninstallLandscaper(ctx context.Context) error {
-	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", o.namespace, o.kubeconfigPath))
+func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient client.Client) error {
+	timeout, err := util.DeleteLandscaperCRsFromNamespace(ctx, k8sClient, o.namespace, 5*time.Second, 5)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		return fmt.Errorf("cannot delete landscaper crs from namespace %s: %w", o.namespace, err)
+	}
+	if timeout {
+		return fmt.Errorf("timeout while deleting landscaper crs from namespace %s", o.namespace)
+	}
+
+	if err := util.ExecCommandBlocking(fmt.Sprintf("helm uninstall landscaper --namespace %s --kubeconfig %s", o.namespace, o.kubeconfigPath)); err != nil {
+		if strings.Contains(err.Error(), "release") && strings.Contains(err.Error(), "not found") {
 			// Ignore error if the release that should be deleted was not found ;)
 			fmt.Println("Release not found...Skipping")
 			return nil
