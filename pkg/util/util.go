@@ -259,11 +259,11 @@ func removeFinalizersFromLandscaperCRs(k8sClient client.Client, namespace string
 	}
 
 	deployItemList := &lsv1alpha1.DeployItemList{}
-	if err := k8sClient.List(ctx, deployItemList, &client.ListOptions{Namespace: namespace});err != nil {
+	if err := k8sClient.List(ctx, deployItemList, &client.ListOptions{Namespace: namespace}); err != nil {
 		return fmt.Errorf("cannot list deployitems: %w", err)
 	}
 	for _, deployItem := range deployItemList.Items {
-		if err := removeFinalizers(ctx, k8sClient, &deployItem);err != nil {
+		if err := removeFinalizers(ctx, k8sClient, &deployItem); err != nil {
 			return fmt.Errorf("cannot remove finalizers for deployitem: %w", err)
 		}
 	}
