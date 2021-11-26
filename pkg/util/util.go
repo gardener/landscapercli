@@ -51,7 +51,7 @@ func CheckAndWaitUntilAllPodsAreReady(k8sClient client.Client, namespace string,
 		podList := corev1.PodList{}
 		err := k8sClient.List(context.TODO(), &podList, client.InNamespace(namespace))
 		if err != nil {
-			return false, fmt.Errorf("Cannot list pods: %w", err)
+			return false, fmt.Errorf("cannot list pods: %w", err)
 		}
 
 		numberOfRunningPods := 0
@@ -241,37 +241,31 @@ func removeFinalizersFromLandscaperCRs(k8sClient client.Client, namespace string
 	ctx := context.TODO()
 
 	installationList := lsv1alpha1.InstallationList{}
-	err := k8sClient.List(ctx, &installationList, &client.ListOptions{Namespace: namespace})
-	if err != nil {
+	if err := k8sClient.List(ctx, &installationList, &client.ListOptions{Namespace: namespace}); err != nil {
 		return fmt.Errorf("cannot list installations: %w", err)
 	}
 	for _, installation := range installationList.Items {
-		err = removeFinalizers(ctx, k8sClient, &installation)
-		if err != nil {
+		if err := removeFinalizers(ctx, k8sClient, &installation); err != nil {
 			return fmt.Errorf("cannot remove finalizers for installation: %w", err)
 		}
 	}
 
 	executionList := &lsv1alpha1.ExecutionList{}
-	err = k8sClient.List(ctx, executionList, &client.ListOptions{Namespace: namespace})
-	if err != nil {
+	if err := k8sClient.List(ctx, executionList, &client.ListOptions{Namespace: namespace}); err != nil {
 		return fmt.Errorf("cannot list executions: %w", err)
 	}
 	for _, execution := range executionList.Items {
-		err = removeFinalizers(ctx, k8sClient, &execution)
-		if err != nil {
+		if err := removeFinalizers(ctx, k8sClient, &execution); err != nil {
 			return fmt.Errorf("cannot remove finalizers for execution: %w", err)
 		}
 	}
 
 	deployItemList := &lsv1alpha1.DeployItemList{}
-	err = k8sClient.List(ctx, deployItemList, &client.ListOptions{Namespace: namespace})
-	if err != nil {
+	if err := k8sClient.List(ctx, deployItemList, &client.ListOptions{Namespace: namespace});err != nil {
 		return fmt.Errorf("cannot list deployitems: %w", err)
 	}
 	for _, deployItem := range deployItemList.Items {
-		err = removeFinalizers(ctx, k8sClient, &deployItem)
-		if err != nil {
+		if err := removeFinalizers(ctx, k8sClient, &deployItem);err != nil {
 			return fmt.Errorf("cannot remove finalizers for deployitem: %w", err)
 		}
 	}

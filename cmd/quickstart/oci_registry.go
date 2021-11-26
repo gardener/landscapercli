@@ -52,8 +52,7 @@ func (r *ociRegistry) install(ctx context.Context) error {
 	deployment, pvc, service, authSecret, ingress, _ := r.createK8sObjects()
 
 	fmt.Printf("Creating deployment %s in namespace %s\n", deployment.Name, r.opts.namespace)
-	err := r.k8sClient.Create(ctx, deployment, &client.CreateOptions{})
-	if err != nil {
+	if err := r.k8sClient.Create(ctx, deployment, &client.CreateOptions{}); err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
 			fmt.Println("Deployment already exists...Skipping")
 		} else {
@@ -62,8 +61,7 @@ func (r *ociRegistry) install(ctx context.Context) error {
 	}
 
 	fmt.Printf("Creating persitent volume claim %s in namespace %s\n", pvc.Name, r.opts.namespace)
-	err = r.k8sClient.Create(ctx, pvc, &client.CreateOptions{})
-	if err != nil {
+	if err := r.k8sClient.Create(ctx, pvc, &client.CreateOptions{}); err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
 			fmt.Println("Persitent Volume Claim already exists...Skipping")
 		} else {
@@ -72,8 +70,7 @@ func (r *ociRegistry) install(ctx context.Context) error {
 	}
 
 	fmt.Printf("Creating service %s in namespace %s\n", service.Name, r.opts.namespace)
-	err = r.k8sClient.Create(ctx, service, &client.CreateOptions{})
-	if err != nil {
+	if err := r.k8sClient.Create(ctx, service, &client.CreateOptions{}); err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
 			fmt.Println("Service already exists...Skipping")
 		} else {
@@ -83,8 +80,7 @@ func (r *ociRegistry) install(ctx context.Context) error {
 
 	if r.opts.installIngress {
 		fmt.Printf("Creating ingress authentication secret %s in namespace %s\n", authSecret.Name, r.opts.namespace)
-		err = r.k8sClient.Create(ctx, authSecret, &client.CreateOptions{})
-		if err != nil {
+		if err := r.k8sClient.Create(ctx, authSecret, &client.CreateOptions{}); err != nil {
 			if k8sErrors.IsAlreadyExists(err) {
 				fmt.Println("Secret already exists...Skipping")
 			} else {
@@ -93,8 +89,7 @@ func (r *ociRegistry) install(ctx context.Context) error {
 		}
 
 		fmt.Printf("Creating ingress %s in namespace %s\n", ingress.Name, r.opts.namespace)
-		err = r.k8sClient.Create(ctx, ingress, &client.CreateOptions{})
-		if err != nil {
+		if err := r.k8sClient.Create(ctx, ingress, &client.CreateOptions{}); err != nil {
 			if k8sErrors.IsAlreadyExists(err) {
 				fmt.Println("Ingress already exists...Skipping")
 			} else {
@@ -110,8 +105,7 @@ func (r *ociRegistry) uninstall(ctx context.Context) error {
 	deployment, pvc, service, authSecret, ingress, oldIngress := r.createK8sObjects()
 
 	fmt.Printf("Deleting deployment %s in namespace %s\n", deployment.Name, r.opts.namespace)
-	err := r.k8sClient.Delete(ctx, deployment, &client.DeleteOptions{})
-	if err != nil {
+	if err := r.k8sClient.Delete(ctx, deployment, &client.DeleteOptions{}); err != nil {
 		if k8sErrors.IsNotFound(err) {
 			fmt.Println("Deployment not found...Skipping")
 		} else {
@@ -120,8 +114,7 @@ func (r *ociRegistry) uninstall(ctx context.Context) error {
 	}
 
 	fmt.Printf("Deleting persitent volume claim %s in namespace %s\n", pvc.Name, r.opts.namespace)
-	err = r.k8sClient.Delete(ctx, pvc, &client.DeleteOptions{})
-	if err != nil {
+	if err := r.k8sClient.Delete(ctx, pvc, &client.DeleteOptions{}); err != nil {
 		if k8sErrors.IsNotFound(err) {
 			fmt.Println("PersistentVolumeClaim not found...Skipping")
 		} else {
@@ -130,8 +123,7 @@ func (r *ociRegistry) uninstall(ctx context.Context) error {
 	}
 
 	fmt.Printf("Deleting service %s in namespace %s\n", service.Name, r.opts.namespace)
-	err = r.k8sClient.Delete(ctx, service, &client.DeleteOptions{})
-	if err != nil {
+	if err := r.k8sClient.Delete(ctx, service, &client.DeleteOptions{}); err != nil {
 		if k8sErrors.IsNotFound(err) {
 			fmt.Println("Service not found...Skipping")
 		} else {
@@ -140,8 +132,7 @@ func (r *ociRegistry) uninstall(ctx context.Context) error {
 	}
 
 	fmt.Printf("Deleting ingress %s in namespace %s\n", ingress.Name, r.opts.namespace)
-	err = r.k8sClient.Delete(ctx, ingress, &client.DeleteOptions{})
-	if err != nil {
+	if err := r.k8sClient.Delete(ctx, ingress, &client.DeleteOptions{}); err != nil {
 		if k8sErrors.IsNotFound(err) {
 			fmt.Println("Ingress not found...Skipping")
 		} else {
@@ -156,8 +147,7 @@ func (r *ociRegistry) uninstall(ctx context.Context) error {
 	}
 
 	fmt.Printf("Deleting ingress authentication secret %s in namespace %s\n", authSecret.Name, r.opts.namespace)
-	err = r.k8sClient.Delete(ctx, authSecret, &client.DeleteOptions{})
-	if err != nil {
+	if err := r.k8sClient.Delete(ctx, authSecret, &client.DeleteOptions{}); err != nil {
 		if k8sErrors.IsNotFound(err) {
 			fmt.Println("Ingress authentication secret not found...Skipping")
 		} else {
@@ -173,8 +163,7 @@ func (r *ociRegistry) uninstall(ctx context.Context) error {
 			Namespace: r.opts.namespace,
 		},
 	}
-	err = r.k8sClient.Delete(ctx, tlsSecret, &client.DeleteOptions{})
-	if err != nil {
+	if err := r.k8sClient.Delete(ctx, tlsSecret, &client.DeleteOptions{}); err != nil {
 		if k8sErrors.IsNotFound(err) {
 			fmt.Println("Ingress tls secret not found...Skipping")
 		} else {

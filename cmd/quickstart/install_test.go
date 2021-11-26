@@ -74,8 +74,7 @@ func TestComplete(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.opts.Complete([]string{})
-			if tt.expectedErr == "" {
+			if err := tt.opts.Complete([]string{}); tt.expectedErr == "" {
 				assert.NoError(t, err)
 			} else {
 				assert.EqualError(t, err, tt.expectedErr)
@@ -214,8 +213,7 @@ func TestCheckConfiguration(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.opts.checkConfiguration()
-			if tt.expectedErr == "" {
+			if err := tt.opts.checkConfiguration(); tt.expectedErr == "" {
 				assert.NoError(t, err)
 			} else {
 				assert.EqualError(t, err, tt.expectedErr)
