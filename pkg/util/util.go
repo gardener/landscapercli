@@ -165,14 +165,12 @@ func gracefullyDeleteNamespace(k8sClient client.Client, namespace string, sleepT
 	ctx := context.TODO()
 
 	installationList := lsv1alpha1.InstallationList{}
-	err := k8sClient.List(ctx, &installationList, &client.ListOptions{Namespace: namespace})
-	if err != nil {
+	if err := k8sClient.List(ctx, &installationList, &client.ListOptions{Namespace: namespace}); err != nil {
 		return false, err
 	}
 	for _, installation := range installationList.Items {
 		fmt.Println("Deleting installation:", installation.Name)
-		err = k8sClient.Delete(ctx, &installation, &client.DeleteOptions{})
-		if err != nil {
+		if err := k8sClient.Delete(ctx, &installation, &client.DeleteOptions{}); err != nil {
 			return false, fmt.Errorf("cannot delete installation: %w", err)
 		}
 	}

@@ -51,7 +51,7 @@ func NewUninstallCommand(ctx context.Context) *cobra.Command {
 func (o *uninstallOptions) run(ctx context.Context, log logr.Logger) error {
 	cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfigPath)
 	if err != nil {
-		return fmt.Errorf("Cannot parse K8s config: %w", err)
+		return fmt.Errorf("cannot parse K8s config: %w", err)
 	}
 
 	k8sClient, err := client.New(cfg, client.Options{
@@ -65,26 +65,23 @@ func (o *uninstallOptions) run(ctx context.Context, log logr.Logger) error {
 		Name: o.namespace,
 	}
 	ns := corev1.Namespace{}
-	err = k8sClient.Get(ctx, key, &ns)
-	if err != nil {
+	if err := k8sClient.Get(ctx, key, &ns); err != nil {
 		if k8sErrors.IsNotFound(err) {
 			fmt.Printf("Cannot find namespace %s\n", o.namespace)
 			return nil
 		}
-		return fmt.Errorf("Cannot get namespace: %w", err)
+		return fmt.Errorf("cannot get namespace: %w", err)
 	}
 
-	fmt.Println("Uninstall OCI Registry...")
-	err = o.uninstallOCIRegistry(ctx, k8sClient)
-	if err != nil {
-		return fmt.Errorf("Cannot uninstall OCI registry: %w", err)
+	fmt.Println("Uninstall OCI Registry")
+	if err := o.uninstallOCIRegistry(ctx, k8sClient); err != nil {
+		return fmt.Errorf("cannot uninstall OCI registry: %w", err)
 	}
 	fmt.Print("OCI registry uninstall succeeded!\n\n")
 
-	fmt.Println("Uninstall Landscaper...")
-	err = o.uninstallLandscaper(ctx)
-	if err != nil {
-		return fmt.Errorf("Cannot uninstall landscaper: %w", err)
+	fmt.Println("Uninstall Landscaper")
+	if err := o.uninstallLandscaper(ctx, k8sClient); err != nil {
+		return fmt.Errorf("cannot uninstall landscaper: %w", err)
 	}
 	fmt.Println("Landscaper uninstall succeeded!")
 
@@ -97,7 +94,7 @@ func (o *uninstallOptions) Complete(args []string) error {
 
 func (o *uninstallOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
-	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where the landscaper and the OCI registry are installed")
+	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where Landscaper and the OCI registry are installed")
 }
 
 func (o *uninstallOptions) uninstallOCIRegistry(ctx context.Context, k8sClient client.Client) error {
