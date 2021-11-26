@@ -78,7 +78,7 @@ func NewInstallCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "install --kubeconfig [kubconfig.yaml] --landscaper-values [landscaper-values.yaml] --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw",
 		Aliases: []string{"i"},
-		Short:   "command to install Landscaper and optionally an OCI registry in a target cluster",
+		Short:   "command to install Landscaper (including Container, Helm, and Manifest deployers) in a target cluster. An OCI registry for testing can be optionally installed",
 		Example: "landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -318,6 +318,10 @@ landscaper:
         default: {
           "auths": %s
         }
+    deployers:
+    - container
+    - helm
+    - manifest
 `, string(marshaledRegistryAuths))
 
 		tmpFile, err := ioutil.TempFile(".", "landscaper-values-override-")
