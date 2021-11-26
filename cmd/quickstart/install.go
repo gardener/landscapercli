@@ -207,9 +207,9 @@ func (o *installOptions) createNamespace(ctx context.Context, k8sClient client.C
 		} else {
 			return fmt.Errorf("cannot create namespace: %w", err)
 		}
+	} else {
+		fmt.Printf("Namespace creation succeeded!\n\n")
 	}
-
-	fmt.Printf("Namespace creation succeeded!\n\n")
 
 	return nil
 }
