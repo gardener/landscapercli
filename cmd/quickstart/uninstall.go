@@ -80,7 +80,7 @@ func (o *uninstallOptions) run(ctx context.Context, log logr.Logger) error {
 	fmt.Print("OCI registry uninstall succeeded!\n\n")
 
 	fmt.Println("Uninstall Landscaper")
-	if err := o.uninstallLandscaper(ctx, k8sClient); err != nil {
+	if err := o.uninstallLandscaper(ctx); err != nil {
 		return fmt.Errorf("cannot uninstall landscaper: %w", err)
 	}
 	fmt.Println("Landscaper uninstall succeeded!")
