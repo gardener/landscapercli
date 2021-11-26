@@ -123,8 +123,7 @@ func (o *installOptions) ReadLandscaperValues() error {
 	}
 
 	unmarshaledContent := landscaperValues{}
-	err = yaml.Unmarshal(content, &unmarshaledContent)
-	if err != nil {
+	if err := yaml.Unmarshal(content, &unmarshaledContent); err != nil {
 		return fmt.Errorf("cannot unmarshall file content: %w", err)
 	}
 
@@ -159,31 +158,26 @@ func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 	}
 
 	if o.landscaperValuesPath != "" {
-		err = o.ReadLandscaperValues()
-		if err != nil {
+		if err := o.ReadLandscaperValues(); err != nil {
 			return fmt.Errorf("cannot read landscaper values: %w", err)
 		}
 	}
 
-	err = o.checkConfiguration()
-	if err != nil {
+	if err := o.checkConfiguration(); err != nil {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	err = o.createNamespace(ctx, k8sClient)
-	if err != nil {
+	if err := o.createNamespace(ctx, k8sClient); err != nil {
 		return err
 	}
 
 	if o.instOCIRegistry {
-		err = o.installOCIRegistry(ctx, k8sClient)
-		if err != nil {
+		if err := o.installOCIRegistry(ctx, k8sClient); err != nil {
 			return fmt.Errorf("cannot install OCI registry: %w", err)
 		}
 	}
 
-	err = o.installLandscaper(ctx)
-	if err != nil {
+	if err := o.installLandscaper(ctx); err != nil {
 		return fmt.Errorf("cannot install landscaper: %w", err)
 	}
 
@@ -207,13 +201,14 @@ func (o *installOptions) createNamespace(ctx context.Context, k8sClient client.C
 			Name: o.namespace,
 		},
 	}
-	err := k8sClient.Create(ctx, ns, &client.CreateOptions{})
-	if err != nil {
+	if err := k8sClient.Create(ctx, ns, &client.CreateOptions{}); err != nil {
 		if k8sErrors.IsAlreadyExists(err) {
 			fmt.Printf("Namespace %s already exists...Skipping\n\n", o.namespace)
 		} else {
 			return fmt.Errorf("cannot create namespace: %w", err)
 		}
+	} else {
+		fmt.Printf("Namespace creation succeeded!\n\n")
 	}
 
 	return nil
@@ -264,23 +259,21 @@ func (o *installOptions) Complete(args []string) error {
 }
 
 func (o *installOptions) installLandscaper(ctx context.Context) error {
-	fmt.Println("Installing Landscaper...")
+	fmt.Println("Installing Landscaper")
 
 	tempDir, err := ioutil.TempDir(".", "landscaper-chart-tmp-*")
 	if err != nil {
 		return err
 	}
 	defer func() {
-		err := os.RemoveAll(tempDir)
-		if err != nil {
+		if err := os.RemoveAll(tempDir); err != nil {
 			fmt.Printf("cannot remove temporary directory %s: %s", tempDir, err.Error())
 		}
 	}()
 
 	landscaperChartURI := fmt.Sprintf("oci://eu.gcr.io/gardener-project/landscaper/charts/landscaper --untar --version %s", o.landscaperChartVersion)
 	pullCmd := fmt.Sprintf("helm pull %s -d %s", landscaperChartURI, tempDir)
-	err = util.ExecCommandBlocking(pullCmd)
-	if err != nil {
+	if err := util.ExecCommandBlocking(pullCmd); err != nil {
 		return err
 	}
 
@@ -323,7 +316,7 @@ landscaper:
     registryConfig:
       secrets: 
         default: {
-          "auths": %s        
+          "auths": %s
         }
     deployers:
     - container
@@ -336,22 +329,19 @@ landscaper:
 			return fmt.Errorf("cannot create temporary file: %w", err)
 		}
 		defer func() {
-			err := os.Remove(tmpFile.Name())
-			if err != nil {
+			if err := os.Remove(tmpFile.Name()); err != nil {
 				fmt.Printf("cannot remove temporary file %s: %s\n", tmpFile.Name(), err.Error())
 			}
 		}()
 
-		err = ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValuesOverride), os.ModePerm)
-		if err != nil {
+		if err := ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValuesOverride), os.ModePerm); err != nil {
 			return fmt.Errorf("cannot write to file: %w", err)
 		}
 
 		installCommand = fmt.Sprintf("%s -f %s", installCommand, tmpFile.Name())
 	}
 
-	err = util.ExecCommandBlocking(installCommand)
-	if err != nil {
+	if err := util.ExecCommandBlocking(installCommand); err != nil {
 		return err
 	}
 
@@ -360,7 +350,7 @@ landscaper:
 }
 
 func (o *installOptions) installOCIRegistry(ctx context.Context, k8sClient client.Client) error {
-	fmt.Println("Installing OCI registry...")
+	fmt.Println("Installing OCI registry")
 
 	ociRegistryOpts := &ociRegistryOpts{
 		namespace:      o.namespace,
@@ -371,8 +361,7 @@ func (o *installOptions) installOCIRegistry(ctx context.Context, k8sClient clien
 	}
 	ociRegistry := NewOCIRegistry(ociRegistryOpts, k8sClient)
 
-	err := ociRegistry.install(ctx)
-	if err != nil {
+	if err := ociRegistry.install(ctx); err != nil {
 		return err
 	}
 

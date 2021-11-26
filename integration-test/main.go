@@ -100,12 +100,10 @@ func run() error {
 
 	fmt.Println("========== Cleaning up before test ==========")
 
-	err = util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries)
-	if err != nil {
-		return fmt.Errorf("cannot delete namespace %s: %w", config.TestNamespace, err)
+	if err := util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries); err != nil {
+		return fmt.Errorf("cannot delete test namespace %s: %w", config.TestNamespace, err)
 	}
-	err = runQuickstartUninstall(config)
-	if err != nil {
+	if err := runQuickstartUninstall(config); err != nil {
 		return fmt.Errorf("landscaper-cli quickstart uninstall failed: %w", err)
 	}
 
@@ -113,8 +111,7 @@ func run() error {
 	time.Sleep(10 * time.Second)
 
 	fmt.Println("========== Running landscaper-cli quickstart install ==========")
-	err = runQuickstartInstall(config)
-	if err != nil {
+	if err := runQuickstartInstall(config); err != nil {
 		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
 	}
 
@@ -166,15 +163,13 @@ func run() error {
 	}
 
 	fmt.Println("========== Starting test suite ==========")
-	err = runTestSuite(k8sClient, config, target, helmChartRef)
-	if err != nil {
+	if err := runTestSuite(k8sClient, config, target, helmChartRef); err != nil {
 		return fmt.Errorf("runTestSuite() failed: %w", err)
 	}
 	fmt.Println("========== Test suite finished successfully ==========")
 
 	fmt.Println("========== Cleaning up after test ==========")
-	err = runQuickstartUninstall(config)
-	if err != nil {
+	if err := runQuickstartUninstall(config); err != nil {
 		return fmt.Errorf("landscaper-cli quickstart uninstall failed: %w", err)
 	}
 
@@ -243,19 +238,16 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 		return "", err
 	}
 	defer func() {
-		err := os.RemoveAll(tempDir1)
-		if err != nil {
+		if err := os.RemoveAll(tempDir1); err != nil {
 			fmt.Printf("cannot remove temporary directory %s: %s", tempDir1, err.Error())
 		}
 	}()
 
-	err = util.ExecCommandBlocking(fmt.Sprintf("helm pull https://storage.googleapis.com/sap-hub-test/echo-server-1.1.0.tgz --untar -d %s", tempDir1))
-	if err != nil {
+	if err := util.ExecCommandBlocking(fmt.Sprintf("helm pull https://storage.googleapis.com/sap-hub-test/echo-server-1.1.0.tgz --untar -d %s", tempDir1)); err != nil {
 		return "", fmt.Errorf("helm pull failed: %w", err)
 	}
 	defer func() {
-		err = os.Remove("echo-server-1.1.0.tgz")
-		if err != nil {
+		if err := os.Remove("echo-server-1.1.0.tgz"); err != nil {
 			fmt.Printf("Cannot remove file echo-server-1.1.0.tgz: %s\n", err.Error())
 		}
 	}()
@@ -265,8 +257,7 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 		return "", err
 	}
 	defer func() {
-		err := os.RemoveAll(tempDir2)
-		if err != nil {
+		if err := os.RemoveAll(tempDir2); err != nil {
 			fmt.Printf("cannot remove temporary directory %s: %s", tempDir2, err.Error())
 		}
 	}()
@@ -276,8 +267,7 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 		return "", fmt.Errorf("helm package failed: %w", err)
 	}
 
-	err = util.ExecCommandBlocking(fmt.Sprintf("helm push %s/echo-server-1.1.0.tgz oci://localhost:5000", tempDir2))
-	if err != nil {
+	if err := util.ExecCommandBlocking(fmt.Sprintf("helm push %s/echo-server-1.1.0.tgz oci://localhost:5000", tempDir2)); err != nil {
 		return "", fmt.Errorf("helm push failed: %w", err)
 	}
 
@@ -295,8 +285,7 @@ func runQuickstartUninstall(config *inttestutil.Config) error {
 	uninstallCmd := quickstart.NewUninstallCommand(context.TODO())
 	uninstallCmd.SetArgs(uninstallArgs)
 
-	err := uninstallCmd.Execute()
-	if err != nil {
+	if err := uninstallCmd.Execute(); err != nil {
 		return fmt.Errorf("uninstall command failed: %w", err)
 	}
 
@@ -314,14 +303,12 @@ func runQuickstartInstall(config *inttestutil.Config) error {
 		return fmt.Errorf("cannot create temporary file: %w", err)
 	}
 	defer func() {
-		err := os.Remove(tmpFile.Name())
-		if err != nil {
+		if err := os.Remove(tmpFile.Name()); err != nil {
 			fmt.Printf("Cannot remove temporary file %s: %s", tmpFile.Name(), err.Error())
 		}
 	}()
 
-	err = ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValues), os.ModePerm)
-	if err != nil {
+	if err := ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValues), os.ModePerm); err != nil {
 		return fmt.Errorf("cannot write to file: %w", err)
 	}
 
@@ -337,8 +324,7 @@ func runQuickstartInstall(config *inttestutil.Config) error {
 	installCmd := quickstart.NewInstallCommand(context.TODO())
 	installCmd.SetArgs(installArgs)
 
-	err = installCmd.Execute()
-	if err != nil {
+	if err := installCmd.Execute(); err != nil {
 		return fmt.Errorf("install command failed: %w", err)
 	}
 
@@ -374,8 +360,7 @@ landscaper:
 	}
 
 	b := &bytes.Buffer{}
-	err = t.Execute(b, data)
-	if err != nil {
+	if err := t.Execute(b, data); err != nil {
 		return nil, fmt.Errorf("could not template helm values: %w", err)
 	}
 

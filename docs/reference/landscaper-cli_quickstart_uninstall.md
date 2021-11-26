@@ -17,7 +17,7 @@ landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace la
 ```
   -h, --help                help for uninstall
       --kubeconfig string   path to the kubeconfig of the target cluster
-      --namespace string    namespace where the landscaper and the OCI registry are installed (default "landscaper")
+      --namespace string    namespace where Landscaper and the OCI registry are installed (default "landscaper")
 ```
 
 ### Options inherited from parent commands
