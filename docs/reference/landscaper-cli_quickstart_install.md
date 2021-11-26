@@ -1,6 +1,6 @@
 ## landscaper-cli quickstart install
 
-command to install Landscaper (including Container, Helm, and Manifest deployers) in a target cluster. an OCI registry for testing can be optionally installed
+command to install Landscaper (including Container, Helm, and Manifest deployers) in a target cluster. An OCI registry for testing can be optionally installed
 
 ```
 landscaper-cli quickstart install --kubeconfig [kubconfig.yaml] --landscaper-values [landscaper-values.yaml] --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw [flags]

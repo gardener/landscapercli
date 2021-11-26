@@ -22,6 +22,6 @@ useful commands for getting quickly up and running with Landscaper
 ### SEE ALSO
 
 * [landscaper-cli](landscaper-cli.md)	 - landscaper cli
-* [landscaper-cli quickstart install](landscaper-cli_quickstart_install.md)	 - command to install Landscaper (including Container, Helm, and Manifest deployers) in a target cluster. an OCI registry for testing can be optionally installed
+* [landscaper-cli quickstart install](landscaper-cli_quickstart_install.md)	 - command to install Landscaper (including Container, Helm, and Manifest deployers) in a target cluster. An OCI registry for testing can be optionally installed
 * [landscaper-cli quickstart uninstall](landscaper-cli_quickstart_uninstall.md)	 - command to uninstall Landscaper and OCI registry (from the install command) in a target cluster
 
