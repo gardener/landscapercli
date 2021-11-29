@@ -285,10 +285,16 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 	if len(fileInfos) != 1 {
 		return errors.New("found more than 1 item in temp directory for Helm Chart export")
 	}
-
 	chartPath := path.Join(tempDir, fileInfos[0].Name())
 
-	installCommand := fmt.Sprintf("helm upgrade --install --namespace %s landscaper %s --kubeconfig %s -f %s", o.namespace, chartPath, o.kubeconfigPath, o.landscaperValuesPath)
+	landscaperValuesOverride := `
+landscaper:
+  landscaper:
+    deployers:
+    - container
+    - helm
+    - manifest
+`
 
 	if o.instRegistryIngress {
 		// when installing the ingress, we must add the registry credentials to the Landscaper values file
@@ -310,36 +316,37 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 			return fmt.Errorf("cannot marshal registry auths: %w", err)
 		}
 
-		landscaperValuesOverride := fmt.Sprintf(`
-landscaper:
-  landscaper:
+		landscaperValuesOverride = fmt.Sprintf(`%s
     registryConfig:
-      secrets: 
+      secrets:
         default: {
           "auths": %s
         }
-    deployers:
-    - container
-    - helm
-    - manifest
-`, string(marshaledRegistryAuths))
-
-		tmpFile, err := ioutil.TempFile(".", "landscaper-values-override-")
-		if err != nil {
-			return fmt.Errorf("cannot create temporary file: %w", err)
-		}
-		defer func() {
-			if err := os.Remove(tmpFile.Name()); err != nil {
-				fmt.Printf("cannot remove temporary file %s: %s\n", tmpFile.Name(), err.Error())
-			}
-		}()
-
-		if err := ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValuesOverride), os.ModePerm); err != nil {
-			return fmt.Errorf("cannot write to file: %w", err)
-		}
-
-		installCommand = fmt.Sprintf("%s -f %s", installCommand, tmpFile.Name())
+`, landscaperValuesOverride, string(marshaledRegistryAuths))
 	}
+
+	tmpFile, err := ioutil.TempFile(".", "landscaper-values-override-")
+	if err != nil {
+		return fmt.Errorf("cannot create temporary file: %w", err)
+	}
+	defer func() {
+		if err := os.Remove(tmpFile.Name()); err != nil {
+			fmt.Printf("cannot remove temporary file %s: %s\n", tmpFile.Name(), err.Error())
+		}
+	}()
+
+	if err := ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValuesOverride), os.ModePerm); err != nil {
+		return fmt.Errorf("cannot write to file: %w", err)
+	}
+
+	installCommand := fmt.Sprintf(
+		"helm upgrade --install --namespace %s landscaper %s --kubeconfig %s -f %s -f %s",
+		o.namespace,
+		chartPath,
+		o.kubeconfigPath,
+		o.landscaperValuesPath,
+		tmpFile.Name(),
+	)
 
 	if err := util.ExecCommandBlocking(installCommand); err != nil {
 		return err
