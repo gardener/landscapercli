@@ -287,14 +287,18 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 	}
 	chartPath := path.Join(tempDir, fileInfos[0].Name())
 
-	landscaperValuesOverride := `
+	landscaperValuesOverride := fmt.Sprintf(`
 landscaper:
   landscaper:
     deployers:
     - container
     - helm
     - manifest
-`
+    deployerManagement:
+      namespace: %s
+      agent:
+        namespace: %s
+`, o.namespace, o.namespace)
 
 	if o.instRegistryIngress {
 		// when installing the ingress, we must add the registry credentials to the Landscaper values file
