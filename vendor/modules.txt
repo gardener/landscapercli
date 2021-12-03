@@ -8,7 +8,7 @@ github.com/Masterminds/sprig/v3
 # github.com/Microsoft/go-winio v0.5.0
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
-# github.com/Microsoft/hcsshim v0.8.22
+# github.com/Microsoft/hcsshim v0.8.23
 github.com/Microsoft/hcsshim/osversion
 # github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 ## explicit
@@ -17,7 +17,7 @@ github.com/ahmetb/gen-crd-api-reference-docs
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/containerd/containerd v1.5.7
+# github.com/containerd/containerd v1.5.8
 github.com/containerd/containerd/archive/compression
 github.com/containerd/containerd/content
 github.com/containerd/containerd/errdefs
@@ -106,7 +106,7 @@ github.com/gardener/component-spec/bindings-go/oci
 github.com/gardener/component-spec/bindings-go/utils/selector
 # github.com/gardener/image-vector v0.6.0
 github.com/gardener/image-vector/pkg
-# github.com/gardener/landscaper v0.15.2
+# github.com/gardener/landscaper v0.17.0
 ## explicit
 github.com/gardener/landscaper/pkg/api
 github.com/gardener/landscaper/pkg/landscaper/blueprints
@@ -125,12 +125,10 @@ github.com/gardener/landscaper/pkg/landscaper/registry/componentoverwrites
 github.com/gardener/landscaper/pkg/landscaper/registry/components
 github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils
 github.com/gardener/landscaper/pkg/utils
-github.com/gardener/landscaper/pkg/utils/kubernetes
-github.com/gardener/landscaper/pkg/utils/kubernetes/mock
 github.com/gardener/landscaper/pkg/utils/landscaper
 github.com/gardener/landscaper/pkg/utils/tar
 github.com/gardener/landscaper/test/utils/envtest
-# github.com/gardener/landscaper/apis v0.15.2
+# github.com/gardener/landscaper/apis v0.17.0
 ## explicit
 github.com/gardener/landscaper/apis/config
 github.com/gardener/landscaper/apis/config/install
@@ -145,6 +143,9 @@ github.com/gardener/landscaper/apis/deployer/utils/managedresource
 github.com/gardener/landscaper/apis/errors
 github.com/gardener/landscaper/apis/mediatype
 github.com/gardener/landscaper/apis/schema
+# github.com/gardener/landscaper/controller-utils v0.17.0
+github.com/gardener/landscaper/controller-utils/pkg/kubernetes
+github.com/gardener/landscaper/controller-utils/pkg/kubernetes/mock
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
 # github.com/go-logr/logr v0.4.0
@@ -273,7 +274,7 @@ github.com/onsi/ginkgo/types
 github.com/opencontainers/distribution-spec/specs-go/v1
 # github.com/opencontainers/go-digest v1.0.0
 github.com/opencontainers/go-digest
-# github.com/opencontainers/image-spec v1.0.1
+# github.com/opencontainers/image-spec v1.0.2
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
 # github.com/opencontainers/runc v1.0.2

@@ -2,7 +2,7 @@ package version
 
 var (
 	LandscaperCliVersion   = ""
-	LandscaperGitVersion   = "v0.15.2"
-	LandscaperChartVersion = "v0.15.2"
+	LandscaperGitVersion   = "v0.17.0"
+	LandscaperChartVersion = "v0.17.0"
 	ComponentCliVersion    = ""
 )
