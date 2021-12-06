@@ -130,7 +130,6 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 		return err
 	}
 
-	fmt.Println("helm delete")
 	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", o.namespace, o.kubeconfigPath))
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -156,7 +155,7 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 }
 
 func waitForRegistrationsRemoved(ctx context.Context, k8sClient client.Client) error {
-	timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	timeoutCtx, cancel := context.WithTimeout(ctx, 4*time.Minute)
 	defer cancel()
 
 	err := wait.PollImmediateUntil(10*time.Second, func() (done bool, err error) {
