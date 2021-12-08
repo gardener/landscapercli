@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -14,22 +18,25 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/gardener/landscaper/apis/core/v1alpha1"
+
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
 )
 
 type uninstallOptions struct {
-	kubeconfigPath string
-	namespace      string
+	kubeconfigPath  string
+	namespace       string
+	deleteNamespace bool
 }
 
 func NewUninstallCommand(ctx context.Context) *cobra.Command {
 	opts := &uninstallOptions{}
 	cmd := &cobra.Command{
-		Use:     "uninstall --kubeconfig [kubconfig.yaml]",
+		Use:     "uninstall --kubeconfig [kubconfig.yaml] --delete-namespace",
 		Aliases: []string{"u"},
 		Short:   "command to uninstall Landscaper and OCI registry (from the install command) in a target cluster",
-		Example: "landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace landscaper",
+		Example: "landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace landscaper --delete-namespace",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
@@ -80,7 +87,7 @@ func (o *uninstallOptions) run(ctx context.Context, log logr.Logger) error {
 	fmt.Print("OCI registry uninstall succeeded!\n\n")
 
 	fmt.Println("Uninstall Landscaper")
-	if err := o.uninstallLandscaper(ctx); err != nil {
+	if err := o.uninstallLandscaper(ctx, k8sClient); err != nil {
 		return fmt.Errorf("cannot uninstall landscaper: %w", err)
 	}
 	fmt.Println("Landscaper uninstall succeeded!")
@@ -95,6 +102,7 @@ func (o *uninstallOptions) Complete(args []string) error {
 func (o *uninstallOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
 	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where Landscaper and the OCI registry are installed")
+	fs.BoolVar(&o.deleteNamespace, "delete-namespace", false, "deletes the namespace (otherwise secrets, service accounts etc. of the landscaper installation in the namespace are not removed)")
 }
 
 func (o *uninstallOptions) uninstallOCIRegistry(ctx context.Context, k8sClient client.Client) error {
@@ -105,15 +113,68 @@ func (o *uninstallOptions) uninstallOCIRegistry(ctx context.Context, k8sClient c
 	return ociRegistry.uninstall(ctx)
 }
 
-func (o *uninstallOptions) uninstallLandscaper(ctx context.Context) error {
+func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient client.Client) error {
+	fmt.Println("Removing deployer registrations")
+	deployerRegistrations := v1alpha1.DeployerRegistrationList{}
+	if err := k8sClient.List(ctx, &deployerRegistrations); err != nil {
+		return err
+	}
+
+	for _, registration := range deployerRegistrations.Items {
+		if err := k8sClient.Delete(ctx, &registration); err != nil {
+			return err
+		}
+	}
+
+	if err := waitForRegistrationsRemoved(ctx, k8sClient); err != nil {
+		return err
+	}
+
 	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", o.namespace, o.kubeconfigPath))
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			// Ignore error if the release that should be deleted was not found ;)
 			fmt.Println("Release not found...Skipping")
-			return nil
+		} else {
+			return err
 		}
-		return err
+	}
+
+	if o.deleteNamespace {
+		fmt.Println("Removing namespace")
+		namespace := corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{Name: o.namespace},
+		}
+
+		if err := k8sClient.Delete(ctx, &namespace); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func waitForRegistrationsRemoved(ctx context.Context, k8sClient client.Client) error {
+	timeoutCtx, cancel := context.WithTimeout(ctx, 4*time.Minute)
+	defer cancel()
+
+	err := wait.PollImmediateUntil(10*time.Second, func() (done bool, err error) {
+		fmt.Println("waiting for deployer registrations removed")
+
+		deployerRegistrations := v1alpha1.DeployerRegistrationList{}
+		if err := k8sClient.List(ctx, &deployerRegistrations); err != nil {
+			return false, err
+		}
+
+		if len(deployerRegistrations.Items) == 0 {
+			return true, nil
+		}
+
+		return false, nil
+	}, timeoutCtx.Done())
+
+	if err != nil {
+		return fmt.Errorf("error while waiting for deployer registrations being removed: %w", err)
 	}
 
 	return nil
