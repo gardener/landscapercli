@@ -281,6 +281,7 @@ func runQuickstartUninstall(config *inttestutil.Config) error {
 		config.Kubeconfig,
 		"--namespace",
 		config.LandscaperNamespace,
+		"--delete-namespace",
 	}
 	uninstallCmd := quickstart.NewUninstallCommand(context.TODO())
 	uninstallCmd.SetArgs(uninstallArgs)
