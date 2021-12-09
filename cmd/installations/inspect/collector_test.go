@@ -57,8 +57,19 @@ func TestCollector(t *testing.T) {
 		},
 	}
 
-	t.Run("Collection of landscaper CR (installations, executions, deployitems", func(t *testing.T) {
+	t.Run("Collection of landscaper CR (installations, executions, deployitems)", func(t *testing.T) {
 		assert.Equal(t, expectedStructure, actualStructure)
+	})
+
+	actualStructure, err = collector.CollectInstallationsInCluster("", "*")
+	assert.NoError(t, err)
+	expectedFakeInstallation := state.Installations["default/fakeinst"]
+	// verify that all of the previous installations as well as the fakeinst from the default namespace are contained in the actual structure
+	t.Run("Collection of landscaper CR (installations, executions, deployitems) across all namespaces", func(t *testing.T) {
+		assert.Contains(t, actualStructure, &InstallationTree{Installation: expectedFakeInstallation})
+		for _, it := range expectedStructure {
+			assert.Contains(t, actualStructure, it)
+		}
 	})
 
 }

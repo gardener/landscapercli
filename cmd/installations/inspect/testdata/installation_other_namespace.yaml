@@ -1,0 +1,36 @@
+apiVersion: landscaper.gardener.cloud/v1alpha1
+kind: Installation
+metadata:
+  creationTimestamp: "2021-03-11T14:09:41Z"
+  finalizers:
+  - finalizer.landscaper.gardener.cloud
+  generation: 1
+  name: fakeinst
+  namespace: default
+  resourceVersion: "12748309"
+  selfLink: /apis/landscaper.gardener.cloud/v1alpha1/namespaces/default/installations/fakeinst
+  uid: 2c18cc26-67b6-4eeb-9479-14302c9edf88
+spec:
+  blueprint:
+    ref:
+      resourceName: echo-server-blueprint
+  componentDescriptor:
+    ref:
+      componentName: github.com/gardener/landscaper/echo-server
+      repositoryContext:
+        baseUrl: eu.gcr.io/gardener-project/landscaper/tutorials/components
+        type: ociRegistry
+      version: v0.2.0
+  exports: {}
+  imports:
+    data:
+    - dataRef: aggNamespace
+      name: namespace
+    - dataRef: myIngressClass
+      name: ingressClass
+    targets:
+    - name: cluster
+      target: aggCluster
+status:
+  observedGeneration: 1
+  phase: Failed

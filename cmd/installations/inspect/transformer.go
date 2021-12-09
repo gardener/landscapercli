@@ -12,6 +12,7 @@ type Transformer struct {
 	DetailedMode   bool
 	ShowExecutions bool
 	ShowOnlyFailed bool
+	ShowNamespaces bool
 }
 
 //TransformToPrintableTrees transform a []*InstallationTree to []PrintableTreeNodes for the Printer.
@@ -23,12 +24,12 @@ func (t Transformer) TransformToPrintableTrees(installationTrees []*Installation
 			installationTree = installationTree.filterForFailedInstallation()
 		}
 
-		transformedInstalaltion, err := t.transformInstallation(installationTree)
+		transformedInstallaltion, err := t.transformInstallation(installationTree)
 		if err != nil {
 			return nil, fmt.Errorf("error in installation %s: %w", installationTree.Installation.Name, err)
 		}
 
-		printableTrees = append(printableTrees, *transformedInstalaltion)
+		printableTrees = append(printableTrees, *transformedInstallaltion)
 	}
 	return printableTrees, nil
 }
@@ -41,8 +42,13 @@ func (t Transformer) transformInstallation(installationTree *InstallationTree) (
 
 	installationTree.Installation.SetManagedFields(nil)
 
-	printableNode.Headline = fmt.Sprintf("[%s] Installation %s",
-		formatStatus(string(installationTree.Installation.Status.Phase)), installationTree.Installation.Name)
+	namespaceInfo := ""
+	if t.ShowNamespaces {
+		namespaceInfo = fmt.Sprintf("%s/", installationTree.Installation.Namespace)
+	}
+
+	printableNode.Headline = fmt.Sprintf("[%s] Installation %s%s",
+		formatStatus(string(installationTree.Installation.Status.Phase)), namespaceInfo, installationTree.Installation.Name)
 
 	if t.DetailedMode {
 		marshaledInstallation, err := yaml.Marshal(installationTree.Installation)

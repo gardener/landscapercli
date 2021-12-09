@@ -25,6 +25,7 @@ type statusOptions struct {
 	installationName string
 	namespace        string
 
+	allNamespaces  bool
 	detailMode     bool
 	showExecutions bool
 	showOnlyFailed bool
@@ -71,6 +72,12 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 		o.namespace = namespace
 	}
 
+	if o.allNamespaces {
+		if len(o.installationName) != 0 {
+			return fmt.Errorf("the --all-namespaces option cannot be used when an installation name is provided")
+		}
+		o.namespace = "*"
+	}
 	if o.namespace == "" {
 		return fmt.Errorf("namespace was not defined. Use --namespace to specify a namespace")
 	}
@@ -105,6 +112,7 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 		DetailedMode:   o.detailMode,
 		ShowExecutions: o.showExecutions,
 		ShowOnlyFailed: o.showOnlyFailed,
+		ShowNamespaces: o.allNamespaces,
 	}
 
 	transformedTrees, err := transformer.TransformToPrintableTrees(installationTrees)
@@ -153,6 +161,7 @@ func (o *statusOptions) validateArgs(args []string) error {
 func (o *statusOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfig, "kubeconfig", "", "path to the kubeconfig for the cluster. Required if the cluster is not the same as the current-context of kubectl.")
 	fs.StringVarP(&o.namespace, "namespace", "n", "", "namespace of the installation. Required if --kubeconfig is used.")
+	fs.BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "if present, lists installations across all namespaces. No installation name may be given and any given namespace will be ignored.")
 	fs.BoolVarP(&o.detailMode, "show-details", "d", false, "show detailed information about installations, executions and deployitems. Similar to kubectl describe installation installation-name.")
 	fs.BoolVarP(&o.showExecutions, "show-executions", "e", false, "show the executions in the tree. By default, the executions are not shown.")
 	fs.BoolVarP(&o.showOnlyFailed, "show-failed", "f", false, "show only items that are in phase 'Failed'. It also prints parent elements to the failed items.")
