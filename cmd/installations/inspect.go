@@ -98,6 +98,9 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 	case OUTPUT_WIDE:
 		o.owide = true
 	case "":
+		// this case occurs if the '-o' flag is not set at all
+		// We don't need to do anything here, but it shouldn't go into the default
+		// case, since that one is used to detect invalid arguments and throws an error.
 	default:
 		return fmt.Errorf("invalid option for '--output'/'-o' flag: %q", o.omode)
 	}
