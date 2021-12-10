@@ -27,9 +27,14 @@ func (c *Collector) CollectInstallationsInCluster(name string, namespace string)
 	instList := lsv1alpha1.InstallationList{}
 	installationTreeList := []*InstallationTree{}
 
-	err := c.K8sClient.List(context.TODO(), &instList, client.InNamespace(namespace))
-	if err != nil {
-		return nil, fmt.Errorf("cannot list installations for namespace %s: %w", namespace, err)
+	if namespace == "*" {
+		if err := c.K8sClient.List(context.TODO(), &instList); err != nil {
+			return nil, fmt.Errorf("cannot list installations across all namespaces: %w", err)
+		}
+	} else {
+		if err := c.K8sClient.List(context.TODO(), &instList, client.InNamespace(namespace)); err != nil {
+			return nil, fmt.Errorf("cannot list installations for namespace %s: %w", namespace, err)
+		}
 	}
 	for _, inst := range instList.Items {
 		if inst.OwnerReferences == nil { //filters for root installations (since subInstallations have a owner reference)

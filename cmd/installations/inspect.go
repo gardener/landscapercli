@@ -24,14 +24,23 @@ type statusOptions struct {
 	kubeconfig       string
 	installationName string
 	namespace        string
+	omode            string
 
+	allNamespaces  bool
 	detailMode     bool
 	showExecutions bool
 	showOnlyFailed bool
 
 	oyaml bool
 	ojson bool
+	owide bool
 }
+
+const (
+	OUTPUT_YAML = "yaml"
+	OUTPUT_JSON = "json"
+	OUTPUT_WIDE = "wide"
+)
 
 func NewInspectCommand(ctx context.Context) *cobra.Command {
 	opts := &statusOptions{}
@@ -71,8 +80,34 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 		o.namespace = namespace
 	}
 
+	if o.allNamespaces {
+		if len(o.installationName) != 0 {
+			return fmt.Errorf("the --all-namespaces option cannot be used when an installation name is provided")
+		}
+		o.namespace = "*"
+	}
 	if o.namespace == "" {
 		return fmt.Errorf("namespace was not defined. Use --namespace to specify a namespace")
+	}
+
+	switch o.omode {
+	case OUTPUT_YAML:
+		o.oyaml = true
+	case OUTPUT_JSON:
+		o.ojson = true
+	case OUTPUT_WIDE:
+		o.owide = true
+	case "":
+		// this case occurs if the '-o' flag is not set at all
+		// We don't need to do anything here, but it shouldn't go into the default
+		// case, since that one is used to detect invalid arguments and throws an error.
+	default:
+		return fmt.Errorf("invalid option for '--output'/'-o' flag: %q", o.omode)
+	}
+
+	// verify mode
+	if (o.oyaml || o.ojson || o.owide) && !xor(o.oyaml, o.ojson, o.owide) {
+		return fmt.Errorf("no more than one output mode may be set: yaml=%v, json=%v, wide=%v", o.oyaml, o.ojson, o.owide)
 	}
 
 	collector := inspect.Collector{
@@ -105,6 +140,8 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 		DetailedMode:   o.detailMode,
 		ShowExecutions: o.showExecutions,
 		ShowOnlyFailed: o.showOnlyFailed,
+		ShowNamespaces: o.allNamespaces,
+		WideMode:       o.owide,
 	}
 
 	transformedTrees, err := transformer.TransformToPrintableTrees(installationTrees)
@@ -153,9 +190,27 @@ func (o *statusOptions) validateArgs(args []string) error {
 func (o *statusOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfig, "kubeconfig", "", "path to the kubeconfig for the cluster. Required if the cluster is not the same as the current-context of kubectl.")
 	fs.StringVarP(&o.namespace, "namespace", "n", "", "namespace of the installation. Required if --kubeconfig is used.")
+	fs.BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "if present, lists installations across all namespaces. No installation name may be given and any given namespace will be ignored.")
 	fs.BoolVarP(&o.detailMode, "show-details", "d", false, "show detailed information about installations, executions and deployitems. Similar to kubectl describe installation installation-name.")
 	fs.BoolVarP(&o.showExecutions, "show-executions", "e", false, "show the executions in the tree. By default, the executions are not shown.")
 	fs.BoolVarP(&o.showOnlyFailed, "show-failed", "f", false, "show only items that are in phase 'Failed'. It also prints parent elements to the failed items.")
-	fs.BoolVarP(&o.oyaml, "oyaml", "y", false, "output in yaml format.")
-	fs.BoolVarP(&o.ojson, "ojson", "j", false, "output in json format.")
+	fs.BoolVarP(&o.oyaml, "oyaml", "y", false, "output in yaml format. Equivalent to '-o yaml'.")
+	fs.BoolVarP(&o.ojson, "ojson", "j", false, "output in json format. Equivalent to '-o json'.")
+	fs.BoolVarP(&o.owide, "owide", "w", false, "output some additional information. Equivalent to '-o wide'.")
+	fs.StringVarP(&o.omode, "output", "o", "", fmt.Sprintf("how the output is formatted. Valid values are %s, %s, and %s.", OUTPUT_YAML, OUTPUT_JSON, OUTPUT_WIDE))
+}
+
+// xor returns true if exactly one of the given booleans is true
+func xor(bools ...bool) bool {
+	isTrue := false
+	for _, b := range bools {
+		if b {
+			if isTrue {
+				// more than one boolean is true
+				return false
+			}
+			isTrue = true
+		}
+	}
+	return isTrue
 }
