@@ -151,10 +151,11 @@ func (t Transformer) transformDeployItem(deployItem *DeployItemLeaf) (*Printable
 	if t.WideMode {
 		wide := strings.Builder{}
 		diType := deployItem.DeployItem.Spec.Type
-		wide.WriteString(fmt.Sprintf("Type: %s\n", diType))
+		wide.WriteString(fmt.Sprintf("Type: %s", diType))
 		switch diType {
 		case "landscaper.gardener.cloud/helm":
 			// print helm chart location
+			wide.WriteString("\n")
 			config := &helmv1alpha1.ProviderConfiguration{}
 			err := json.Unmarshal(deployItem.DeployItem.Spec.Configuration.Raw, config)
 			if err != nil {
@@ -184,6 +185,7 @@ func (t Transformer) transformDeployItem(deployItem *DeployItemLeaf) (*Printable
 			}
 		case "landscaper.gardener.cloud/container":
 			// print container image and command
+			wide.WriteString("\n")
 			config := &containerv1alpha1.ProviderConfiguration{}
 			err := json.Unmarshal(deployItem.DeployItem.Spec.Configuration.Raw, config)
 			if err != nil {

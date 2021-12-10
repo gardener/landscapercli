@@ -38,7 +38,12 @@ func (node *PrintableTreeNode) print(output *strings.Builder, preFix string, isL
 	if node.Headline != "" {
 		fmt.Fprintf(output, "%s%s%s\n", preFix, itemFormatHeading, node.Headline)
 		if node.WideData != "" {
-			fmt.Fprintf(output, "%s", formatDescription(preFix, itemFormatDescription, node.WideData, isLast, true))
+			wData := node.WideData
+			if node.Description != "" {
+				// add separator if -d flag is set
+				wData = fmt.Sprintf("%s%s", wData, "\n----------")
+			}
+			fmt.Fprintf(output, "%s", formatDescription(preFix, itemFormatDescription, wData, isLast, true))
 		}
 		if node.Description != "" {
 			fmt.Fprintf(output, "%s", formatDescription(preFix, itemFormatDescription, node.Description, isLast, false))
