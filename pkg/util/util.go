@@ -176,6 +176,15 @@ func gracefullyDeleteNamespace(k8sClient client.Client, namespace string, sleepT
 		return timeout, nil
 	}
 
+	podList := corev1.PodList{}
+	if err := k8sClient.List(ctx, &podList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return false, err
+	}
+
+	if len(podList.Items) > 0 {
+		return false, fmt.Errorf("there still exists pods in the namespace though all installations were deleted: %w", err)
+	}
+
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
