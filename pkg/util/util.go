@@ -182,7 +182,13 @@ func gracefullyDeleteNamespace(k8sClient client.Client, namespace string, sleepT
 	}
 
 	if len(podList.Items) > 0 {
-		return false, fmt.Errorf("there still exists pods in the namespace though all installations were deleted: %w", err)
+		for i := range podList.Items {
+			next := &podList.Items[i]
+
+			if len(next.GetFinalizers()) > 0 {
+				return false, fmt.Errorf("there still exists pods with finalizer in namespace %s though all installations were deleted: %w", namespace, err)
+			}
+		}
 	}
 
 	ns := &corev1.Namespace{
