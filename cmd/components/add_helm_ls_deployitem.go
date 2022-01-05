@@ -229,7 +229,8 @@ func (o *addHelmLsDeployItemOptions) run(ctx context.Context, log logr.Logger) e
 }
 
 func (o *addHelmLsDeployItemOptions) addResource() error {
-	resourceReader := components.NewResourceReader(o.componentPath)
+	componentDescriptorFilePath := util.ResourcesFilePath(o.componentPath)
+	resourceReader := components.NewResourceReader(componentDescriptorFilePath)
 
 	resources, err := resourceReader.Read()
 	if err != nil {
