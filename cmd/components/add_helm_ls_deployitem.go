@@ -108,6 +108,8 @@ func NewAddHelmLSDeployItemCommand(ctx context.Context) *cobra.Command {
 func (o *addHelmLsDeployItemOptions) Complete(args []string) error {
 	o.deployItemName = args[0]
 
+	o.chartDirectoryPath = filepath.Clean(o.chartDirectoryPath)
+
 	err := o.validate()
 	if err != nil {
 		return err
