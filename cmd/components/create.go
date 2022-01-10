@@ -8,9 +8,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/gardener/component-cli/ociclient/oci"
 	"github.com/gardener/landscaper/apis/mediatype"
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
@@ -28,8 +28,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
-
-var componentNameValidationRegexp = regexp.MustCompile("^[a-z0-9.\\-]+[.][a-z]{2,4}/[-a-z0-9/_.]*$") // nolint
 
 type createOptions struct {
 	// componentPath is the path to the directory containing the componentDescriptor.yaml
@@ -81,11 +79,12 @@ func (o *createOptions) Complete(args []string) error {
 }
 
 func (o *createOptions) validate() error {
-	if !componentNameValidationRegexp.Match([]byte(o.componentName)) {
-		return fmt.Errorf("the component name does not match pattern '^[a-z0-9.\\-]+[.][a-z]{2,4}/[-a-z0-9/_.]*$'")
+	_, err := oci.ParseRef("dummybasepath.com/" + o.componentName)
+	if err != nil {
+		return fmt.Errorf("the component name is invalid: %w. Valid component names are for example \"test.com/my/component\" or \"test.com/my-component\". For details see https://gardener.github.io/component-spec/format.html#component-names", err)
 	}
 
-	_, err := semver.NewVersion(o.componentVersion)
+	_, err = semver.NewVersion(o.componentVersion)
 	if err != nil {
 		return fmt.Errorf("component version %s is not semver compatible", o.componentVersion)
 	}
