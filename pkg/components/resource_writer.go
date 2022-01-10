@@ -48,6 +48,10 @@ func (w *ResourceWriter) Write(resourceOptions []cdresources.ResourceOptions) er
 				infoString += "  mediaType: " + resourceOptions[i].Input.MediaType + "\n"
 			}
 
+			if resourceOptions[i].Input.PreserveDir {
+				infoString += "  preserveDir: true\n"
+			}
+
 			infoString += "  compress: " + strconv.FormatBool(resourceOptions[i].Input.Compress()) + "\n"
 
 		} else if resourceOptions[i].Access != nil {

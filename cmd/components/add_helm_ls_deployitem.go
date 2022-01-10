@@ -7,7 +7,6 @@ package components
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -108,15 +107,13 @@ func NewAddHelmLSDeployItemCommand(ctx context.Context) *cobra.Command {
 func (o *addHelmLsDeployItemOptions) Complete(args []string) error {
 	o.deployItemName = args[0]
 
-	o.chartDirectoryPath = filepath.Clean(o.chartDirectoryPath)
+	if o.chartDirectoryPath != "" {
+		o.chartDirectoryPath = filepath.Clean(o.chartDirectoryPath)
+	}
 
 	err := o.validate()
 	if err != nil {
 		return err
-	}
-
-	if o.chartDirectoryPath != "" {
-		o.chartDirectoryPath = filepath.Dir(o.chartDirectoryPath)
 	}
 
 	return nil
@@ -190,12 +187,6 @@ func (o *addHelmLsDeployItemOptions) validate() error {
 		}
 		if !fileInfo.IsDir() {
 			return fmt.Errorf("chart-directory is not a directory")
-		}
-
-		parentPath := filepath.Dir(o.chartDirectoryPath)
-		files, _ := ioutil.ReadDir(parentPath)
-		if len(files) > 1 {
-			return fmt.Errorf("the parent of the chart-directory does not contain only the chart-directory")
 		}
 	}
 
@@ -405,6 +396,7 @@ func (o *addHelmLsDeployItemOptions) createDirectoryResource() (*cdresources.Res
 			Type:             input.DirInputType,
 			Path:             o.chartDirectoryPath,
 			CompressWithGzip: &compress,
+			PreserveDir:      true,
 		},
 	}
 
