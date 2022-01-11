@@ -7,6 +7,7 @@ replace (
 	github.com/mandelsoft/spiff => github.com/mandelsoft/spiff v1.3.0-beta-7.0.20200909122641-3393af1d3804
 	github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.8.0
 	golang.org/x/text => golang.org/x/text v0.3.5
+	github.com/containerd/containerd => github.com/containerd/containerd v1.5.9
 )
 
 require (
