@@ -3,6 +3,7 @@ package installations
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -30,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/yaml"
 
-	"github.com/gardener/landscapercli/pkg/jsonschema"
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
 )
@@ -134,13 +134,13 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 			return fmt.Errorf("cannot build oci registry: %w", err)
 		}
 
-		loaderConfig := lsjsonschema.LoaderConfig{
+		referenceContext := lsjsonschema.ReferenceContext{
 			LocalTypes:          blueprint.LocalTypes,
 			BlueprintFs:         memFS,
 			ComponentDescriptor: cd,
 			ComponentResolver:   ociRegistry,
 		}
-		jsonschemaResolver := jsonschema.NewJSONSchemaResolver(&loaderConfig, 10)
+		jsonschemaResolver := lsjsonschema.NewReferenceResolver(&referenceContext)
 
 		commentedYaml, err := annotateInstallationWithSchemaComments(installation, blueprint, jsonschemaResolver)
 		if err != nil {
@@ -165,8 +165,7 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		if err != nil {
 			return fmt.Errorf("error creating file %s: %w", o.outputPath, err)
 		}
-		_, err = f.Write(marshaledYaml)
-		if err != nil {
+		if _, err = f.Write(marshaledYaml); err != nil {
 			return fmt.Errorf("error writing file %s: %w", o.outputPath, err)
 		}
 		cmd.Printf("Wrote installation to %s", o.outputPath)
@@ -201,25 +200,22 @@ func (o *createOpts) Complete(args []string) error {
 	return nil
 }
 
-func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installation, blueprint *lsv1alpha1.Blueprint, schemaResolver *jsonschema.JSONSchemaResolver) (*yamlv3.Node, error) {
+func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installation, blueprint *lsv1alpha1.Blueprint, referenceResolver *lsjsonschema.ReferenceResolver) (*yamlv3.Node, error) {
 	out, err := yaml.Marshal(installation)
 	if err != nil {
 		return nil, fmt.Errorf("cannot marshal installation yaml: %w", err)
 	}
 
 	commentedInstallationYaml := &yamlv3.Node{}
-	err = yamlv3.Unmarshal(out, commentedInstallationYaml)
-	if err != nil {
+	if err := yamlv3.Unmarshal(out, commentedInstallationYaml); err != nil {
 		return nil, fmt.Errorf("cannot unmarshal installation yaml: %w", err)
 	}
 
-	err = addImportSchemaComments(commentedInstallationYaml, blueprint, schemaResolver)
-	if err != nil {
+	if err := addImportSchemaComments(commentedInstallationYaml, blueprint, referenceResolver); err != nil {
 		return nil, fmt.Errorf("cannot add schema comments for imports: %w", err)
 	}
 
-	err = addExportSchemaComments(commentedInstallationYaml, blueprint, schemaResolver)
-	if err != nil {
+	if err := addExportSchemaComments(commentedInstallationYaml, blueprint, referenceResolver); err != nil {
 		return nil, fmt.Errorf("cannot add schema comments for exports: %w", err)
 	}
 
@@ -239,13 +235,11 @@ func resolveBlueprint(ctx context.Context, blueprintRes cdv2.Resource, ociClient
 			return nil, fmt.Errorf("cannot get manifest: %w", err)
 		}
 
-		err = ociClient.Fetch(ctx, ref, manifest.Layers[0], &data)
-		if err != nil {
+		if err := ociClient.Fetch(ctx, ref, manifest.Layers[0], &data); err != nil {
 			return nil, fmt.Errorf("cannot get manifest layer: %w", err)
 		}
 	} else {
-		_, err := blobResolver.Resolve(ctx, blueprintRes, &data)
-		if err != nil {
+		if _, err := blobResolver.Resolve(ctx, blueprintRes, &data); err != nil {
 			return nil, fmt.Errorf("unable to to resolve blob of blueprint resource: %w", err)
 		}
 	}
@@ -253,7 +247,7 @@ func resolveBlueprint(ctx context.Context, blueprintRes cdv2.Resource, ociClient
 	return &data, nil
 }
 
-func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaResolver *jsonschema.JSONSchemaResolver) error {
+func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaResolver *lsjsonschema.ReferenceResolver) error {
 	_, exportsDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.exports.data")
 	if exportsDataValueNode != nil {
 
@@ -269,16 +263,17 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 				}
 			}
 
-			schemas, err := schemaResolver.Resolve(expdef.Schema)
+			schema, err := schemaResolver.Resolve(expdef.Schema.RawMessage)
 			if err != nil {
-				return fmt.Errorf("cannot resolve jsonschema for export definition %s: %w", expdef.Name, err)
+				return fmt.Errorf("unable to resolve jsonschema for export definition %s: %w", expdef.Name, err)
 			}
 
-			schemasStr, err := schemas.ToString()
+			marshaledShema, err := json.MarshalIndent(schema, "", "  ")
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to marshal json schema: %w", err)
 			}
-			n1.HeadComment = schemasStr
+
+			n1.HeadComment = "JSON schema\n" + string(marshaledShema)
 		}
 	}
 
@@ -302,7 +297,7 @@ func addExportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 	return nil
 }
 
-func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaResolver *jsonschema.JSONSchemaResolver) error {
+func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *lsv1alpha1.Blueprint, schemaResolver *lsjsonschema.ReferenceResolver) error {
 	_, importDataValueNode := util.FindNodeByPath(commentedInstallationYaml, "spec.imports.data")
 	if importDataValueNode != nil {
 		for _, dataImportNode := range importDataValueNode.Content {
@@ -317,16 +312,16 @@ func addImportSchemaComments(commentedInstallationYaml *yamlv3.Node, blueprint *
 				}
 			}
 
-			schemas, err := schemaResolver.Resolve(impdef.Schema)
+			schema, err := schemaResolver.Resolve(impdef.Schema.RawMessage)
 			if err != nil {
-				return fmt.Errorf("cannot resolve jsonschema for import definition %s: %w", impdef.Name, err)
+				return fmt.Errorf("unable to resolve jsonschema for import definition %s: %w", impdef.Name, err)
 			}
 
-			schemasStr, err := schemas.ToString()
+			marshaledShema, err := json.MarshalIndent(schema, "", "  ")
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to marshal json schema: %w", err)
 			}
-			n1.HeadComment = schemasStr
+			n1.HeadComment = "JSON schema\n" + string(marshaledShema)
 		}
 	}
 

@@ -17,7 +17,7 @@ github.com/ahmetb/gen-crd-api-reference-docs
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/containerd/containerd v1.5.8 => github.com/containerd/containerd v1.5.9
+# github.com/containerd/containerd v1.5.9 => github.com/containerd/containerd v1.5.9
 github.com/containerd/containerd/archive/compression
 github.com/containerd/containerd/content
 github.com/containerd/containerd/errdefs
@@ -65,7 +65,7 @@ github.com/drone/envsubst/path
 github.com/evanphx/json-patch
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
-# github.com/gardener/component-cli v0.31.0
+# github.com/gardener/component-cli v0.32.0
 ## explicit
 github.com/gardener/component-cli/cmd/component-cli/app
 github.com/gardener/component-cli/ociclient
@@ -106,7 +106,7 @@ github.com/gardener/component-spec/bindings-go/oci
 github.com/gardener/component-spec/bindings-go/utils/selector
 # github.com/gardener/image-vector v0.6.0
 github.com/gardener/image-vector/pkg
-# github.com/gardener/landscaper v0.17.0
+# github.com/gardener/landscaper v0.19.0
 ## explicit
 github.com/gardener/landscaper/pkg/api
 github.com/gardener/landscaper/pkg/landscaper/blueprints
@@ -128,7 +128,7 @@ github.com/gardener/landscaper/pkg/utils
 github.com/gardener/landscaper/pkg/utils/landscaper
 github.com/gardener/landscaper/pkg/utils/tar
 github.com/gardener/landscaper/test/utils/envtest
-# github.com/gardener/landscaper/apis v0.17.0
+# github.com/gardener/landscaper/apis v0.19.0
 ## explicit
 github.com/gardener/landscaper/apis/config
 github.com/gardener/landscaper/apis/config/install
@@ -149,7 +149,7 @@ github.com/gardener/landscaper/apis/deployer/utils/readinesschecks
 github.com/gardener/landscaper/apis/errors
 github.com/gardener/landscaper/apis/mediatype
 github.com/gardener/landscaper/apis/schema
-# github.com/gardener/landscaper/controller-utils v0.17.0
+# github.com/gardener/landscaper/controller-utils v0.19.0
 github.com/gardener/landscaper/controller-utils/pkg/kubernetes
 github.com/gardener/landscaper/controller-utils/pkg/kubernetes/mock
 # github.com/ghodss/yaml v1.0.0
@@ -327,10 +327,8 @@ github.com/stretchr/testify/assert
 # github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f
 github.com/xeipuuv/gojsonpointer
 # github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415
-## explicit
 github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.2.0
-## explicit
 github.com/xeipuuv/gojsonschema
 # go.uber.org/atomic v1.7.0
 go.uber.org/atomic
