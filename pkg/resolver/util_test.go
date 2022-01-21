@@ -1,11 +1,12 @@
 package resolver
 
 import (
+	"testing"
+
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
 	"github.com/gardener/landscaper/apis/mediatype"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/utils/pointer"
-	"testing"
 )
 
 func TestConversion(t *testing.T) {
