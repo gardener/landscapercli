@@ -39,6 +39,7 @@ landscaper-cli blueprints render BLUEPRINT_DIR [all,deployitems,subinstallations
       --insecure-skip-tls-verify                      If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
   -o, --output string                                 The format of the output. Can be json or yaml. (default "yaml")
       --registry-config string                        path to the dockerconfig.json with the oci registry authentication information
+  -r, --resources string                              Path to the resources yaml file
   -w, --write string                                  The output directory where the rendered files should be written to
 ```
 
