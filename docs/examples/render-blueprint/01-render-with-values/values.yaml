@@ -1,0 +1,11 @@
+imports:
+  myFirstImport: "this is a import"
+  mySecondImport:
+    metadata:
+      name: my-target
+      namespace: default
+    spec:
+      type: landscaper.gardener.cloud/kubernetes-cluster
+      config:
+        kubeconfig: |
+          apiVersion: ...
