@@ -7,25 +7,21 @@ import (
 
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
-
-	"github.com/gardener/landscapercli/pkg/util"
 )
 
 type ResourceReader struct {
 	// path of the component directory, which contains the component-descriptor.yaml file
-	componentPath string
+	resourcesFilePath string
 }
 
-func NewResourceReader(componentPath string) *ResourceReader {
+func NewResourceReader(resourcesFilePath string) *ResourceReader {
 	return &ResourceReader{
-		componentPath: componentPath,
+		resourcesFilePath: resourcesFilePath,
 	}
 }
 
 func (r *ResourceReader) Read() ([]cdresources.ResourceOptions, error) {
-	componentDescriptorFilePath := util.ResourcesFilePath(r.componentPath)
-
-	file, err := os.Open(componentDescriptorFilePath)
+	file, err := os.Open(r.resourcesFilePath)
 	if err != nil {
 		return nil, err
 	}

@@ -257,7 +257,8 @@ func (o *addContainerDeployItemOptions) run(ctx context.Context, log logr.Logger
 }
 
 func (o *addContainerDeployItemOptions) addResource() error {
-	resourceReader := components.NewResourceReader(o.componentPath)
+	componentDescriptorFilePath := util.ResourcesFilePath(o.componentPath)
+	resourceReader := components.NewResourceReader(componentDescriptorFilePath)
 
 	resources, err := resourceReader.Read()
 	if err != nil {

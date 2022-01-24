@@ -106,7 +106,7 @@ github.com/gardener/component-spec/bindings-go/oci
 github.com/gardener/component-spec/bindings-go/utils/selector
 # github.com/gardener/image-vector v0.6.0
 github.com/gardener/image-vector/pkg
-# github.com/gardener/landscaper v0.19.0
+# github.com/gardener/landscaper v0.20.0
 ## explicit
 github.com/gardener/landscaper/pkg/api
 github.com/gardener/landscaper/pkg/landscaper/blueprints
@@ -128,7 +128,7 @@ github.com/gardener/landscaper/pkg/utils
 github.com/gardener/landscaper/pkg/utils/landscaper
 github.com/gardener/landscaper/pkg/utils/tar
 github.com/gardener/landscaper/test/utils/envtest
-# github.com/gardener/landscaper/apis v0.19.0
+# github.com/gardener/landscaper/apis v0.20.0
 ## explicit
 github.com/gardener/landscaper/apis/config
 github.com/gardener/landscaper/apis/config/install
@@ -149,7 +149,7 @@ github.com/gardener/landscaper/apis/deployer/utils/readinesschecks
 github.com/gardener/landscaper/apis/errors
 github.com/gardener/landscaper/apis/mediatype
 github.com/gardener/landscaper/apis/schema
-# github.com/gardener/landscaper/controller-utils v0.19.0
+# github.com/gardener/landscaper/controller-utils v0.20.0
 github.com/gardener/landscaper/controller-utils/pkg/kubernetes
 github.com/gardener/landscaper/controller-utils/pkg/kubernetes/mock
 # github.com/ghodss/yaml v1.0.0

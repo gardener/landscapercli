@@ -12,6 +12,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
+
+	"github.com/gardener/landscapercli/pkg/components"
+	"github.com/gardener/landscapercli/pkg/resolver"
+
 	ociclientopts "github.com/gardener/component-cli/ociclient/options"
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/component-spec/bindings-go/codec"
@@ -65,6 +70,8 @@ type RenderOptions struct {
 	ComponentDescriptorPath string
 	// AdditionalComponentDescriptorPath is the path to the component descriptor to be used
 	AdditionalComponentDescriptorPath []string
+	// ResourcesPath is the path to the resources yaml file
+	ResourcesPath string
 	// ValueFiles is a list of file paths to value yaml files.
 	ValueFiles []string
 	// OutputFormat defines the format of the output
@@ -80,6 +87,7 @@ type RenderOptions struct {
 	componentDescriptor     *cdv2.ComponentDescriptor
 	componentDescriptorList *cdv2.ComponentDescriptorList
 	componentResolver       ctf.ComponentResolver
+	resources               []resources.ResourceOptions
 }
 
 // NewRenderCommand creates a new local command to render a blueprint instance locally
@@ -125,6 +133,7 @@ Available resources are
 func (o *RenderOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVarP(&o.ComponentDescriptorPath, "component-descriptor", "c", "", "Path to the local component descriptor")
 	fs.StringArrayVarP(&o.AdditionalComponentDescriptorPath, "additional-component-descriptor", "a", []string{}, "Path to additional local component descriptors")
+	fs.StringVarP(&o.ResourcesPath, "resources", "r", "", "Path to the resources yaml file")
 	fs.StringArrayVarP(&o.ValueFiles, "file", "f", []string{}, "List of filepaths to value yaml files that define the imports")
 	fs.StringVarP(&o.OutputFormat, "output", "o", YAMLOut, "The format of the output. Can be json or yaml.")
 	fs.StringVarP(&o.OutDir, "write", "w", "", "The output directory where the rendered files should be written to")
@@ -143,6 +152,7 @@ func (o *RenderOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSys
 		Fs:                          overlayFs,
 		BlueprintPath:               o.BlueprintPath,
 		ComponentDescriptorFilepath: o.ComponentDescriptorPath,
+		ComponentDescriptor:         o.componentDescriptor,
 		ComponentResolver:           o.componentResolver,
 		ComponentDescriptorList:     o.componentDescriptorList,
 	}
@@ -286,8 +296,34 @@ func (o *RenderOptions) Complete(log logr.Logger, args []string, fs vfs.FileSyst
 		o.componentDescriptorList.Components = append(o.componentDescriptorList.Components, cd)
 	}
 
+	if len(o.ResourcesPath) != 0 {
+		absResourcesPath, err := filepath.Abs(o.ResourcesPath)
+		if err != nil {
+			return fmt.Errorf("unable get absolute resources path for %s: %w", o.ResourcesPath, err)
+		}
+
+		o.ResourcesPath = absResourcesPath
+
+		resourceReader := components.NewResourceReader(o.ResourcesPath)
+		o.resources, err = resourceReader.Read()
+		if err != nil {
+			return fmt.Errorf("unable to read resources from file %s: %w", o.ResourcesPath, err)
+		}
+	}
+
 	if err := o.parseOutputResources(args); err != nil {
 		return err
+	}
+
+	if len(o.resources) > 0 {
+		if o.componentDescriptor == nil {
+			return fmt.Errorf("if you specify a resources yaml file (option -r) you must also specify a component descriptor (option -c)")
+		}
+
+		o.componentDescriptor, err = resolver.AddLocalResourcesForRender(o.componentDescriptor, o.resources)
+		if err != nil {
+			return err
+		}
 	}
 
 	// build component resolver with oci client
@@ -296,9 +332,20 @@ func (o *RenderOptions) Complete(log logr.Logger, args []string, fs vfs.FileSyst
 		return err
 	}
 
-	o.componentResolver, err = componentsregistry.NewOCIRegistryWithOCIClient(log, ociClient)
-	if err != nil {
-		return err
+	if o.componentDescriptor == nil {
+		o.componentResolver, err = componentsregistry.NewOCIRegistryWithOCIClient(log, ociClient)
+		if err != nil {
+			return err
+		}
+	} else {
+		o.componentResolver, err = componentsregistry.NewOCIRegistryWithOCIClient(log, ociClient, o.componentDescriptor)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(o.resources) > 0 {
+		o.componentResolver = resolver.NewRenderComponentResolver(o.componentResolver, o.componentDescriptor, o.resources, o.ResourcesPath, fs)
 	}
 
 	return o.Validate()
