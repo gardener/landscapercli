@@ -65,7 +65,7 @@ github.com/drone/envsubst/path
 github.com/evanphx/json-patch
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
-# github.com/gardener/component-cli v0.35.0
+# github.com/gardener/component-cli v0.36.0
 ## explicit
 github.com/gardener/component-cli/cmd/component-cli/app
 github.com/gardener/component-cli/ociclient
@@ -104,7 +104,7 @@ github.com/gardener/component-spec/bindings-go/codec
 github.com/gardener/component-spec/bindings-go/ctf
 github.com/gardener/component-spec/bindings-go/oci
 github.com/gardener/component-spec/bindings-go/utils/selector
-# github.com/gardener/image-vector v0.8.0
+# github.com/gardener/image-vector v0.9.0
 github.com/gardener/image-vector/pkg
 # github.com/gardener/landscaper v0.20.0
 ## explicit

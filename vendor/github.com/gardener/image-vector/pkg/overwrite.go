@@ -428,7 +428,7 @@ func (io *imageOverwrite) findGenericImageResource(ctx context.Context, image Im
 			if err != nil {
 				return nil, fmt.Errorf("unable to parse resource version from resource %q of component %q: %w", res.GetName(), comp.GetName(), err)
 			}
-			if constr != nil && !constr.Check(semverVersion) {
+			if image.TargetVersion != nil && !constr.Check(semverVersion) {
 				rLog.V(9).Info("semver constraint does not match", "version", res.GetVersion(), "constraint", *image.TargetVersion)
 				continue
 			}
@@ -440,16 +440,9 @@ func (io *imageOverwrite) findGenericImageResource(ctx context.Context, image Im
 				return nil, fmt.Errorf("unable to parse oci access from resource %q of component %q: %w", res.GetName(), comp.GetName(), err)
 			}
 
-			if image.TargetVersion == nil {
-				io.log.V(7).Info("found image with no target version", "image", image.Name)
-				entry.Tag = nil
-				images = append(images, entry)
-				return images, nil
-			} else {
-				targetVersion := semverVersion.String()
-				entry.TargetVersion = &targetVersion
-				images = append(images, entry)
-			}
+			targetVersion := semverVersion.String()
+			entry.TargetVersion = &targetVersion
+			images = append(images, entry)
 		}
 	}
 	return images, nil
