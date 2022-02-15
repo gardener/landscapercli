@@ -252,7 +252,7 @@ func (c *client) PushOCIArtifact(ctx context.Context, ref string, artifact *oci.
 		_, err := c.pushManifest(ctx, artifact.GetManifest().Data, pusher, tempCache, opts)
 		return err
 	} else if artifact.IsIndex() {
-		return c.pushImageIndex(ctx, artifact, pusher, tempCache, opts)
+		return c.pushImageIndex(ctx, artifact.GetIndex(), pusher, tempCache, opts)
 	} else {
 		// execution of this code should never happen
 		// the oci artifact should always be of type manifest or index
@@ -262,6 +262,33 @@ func (c *client) PushOCIArtifact(ctx context.Context, ref string, artifact *oci.
 		}
 		panic(fmt.Errorf("invalid oci artifact: %s", utils.SafeConvert(marshaledArtifact)))
 	}
+}
+
+func (c *client) PushBlob(ctx context.Context, ref string, desc ocispecv1.Descriptor, options ...PushOption) error {
+	refspec, err := oci.ParseRef(ref)
+	if err != nil {
+		return fmt.Errorf("unable to parse ref: %w", err)
+	}
+	ref = refspec.String()
+
+	opts := &PushOptions{}
+	opts.Store = c.cache
+	opts.ApplyOptions(options)
+
+	resolver, err := c.getResolverForRef(ctx, ref, transport.PushScope)
+	if err != nil {
+		return err
+	}
+	pusher, err := resolver.Pusher(ctx, ref)
+	if err != nil {
+		return err
+	}
+
+	if err := c.pushContent(ctx, opts.Store, pusher, desc); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *client) pushManifest(ctx context.Context, manifest *ocispecv1.Manifest, pusher remotes.Pusher, cache cache.Cache, opts *PushOptions) (ocispecv1.Descriptor, error) {
@@ -276,36 +303,46 @@ func (c *client) pushManifest(ctx context.Context, manifest *ocispecv1.Manifest,
 		if err := cache.Add(dummyDesc, ioutil.NopCloser(bytes.NewBuffer(dummyConfig))); err != nil {
 			return ocispecv1.Descriptor{}, fmt.Errorf("unable to add dummy config to cache: %w", err)
 		}
-		if err := c.pushContent(ctx, cache, pusher, manifest.Config); err != nil {
-			return ocispecv1.Descriptor{}, err
+		if err := c.pushContent(ctx, cache, pusher, dummyDesc); err != nil {
+			return ocispecv1.Descriptor{}, fmt.Errorf("unable to push dummy config: %w", err)
 		}
 	} else {
 		if err := c.pushContent(ctx, opts.Store, pusher, manifest.Config); err != nil {
-			return ocispecv1.Descriptor{}, err
+			return ocispecv1.Descriptor{}, fmt.Errorf("unable to push config: %w", err)
 		}
 	}
 
 	// last upload all layers
 	for _, layer := range manifest.Layers {
 		if err := c.pushContent(ctx, opts.Store, pusher, layer); err != nil {
-			return ocispecv1.Descriptor{}, err
+			return ocispecv1.Descriptor{}, fmt.Errorf("unable to push layer: %w", err)
 		}
 	}
 
-	desc, err := createDescriptorFromManifest(cache, manifest)
+	manifestDesc, err := CreateDescriptorFromManifest(manifest)
 	if err != nil {
-		return ocispecv1.Descriptor{}, err
-	}
-	if err := c.pushContent(ctx, cache, pusher, desc); err != nil {
-		return ocispecv1.Descriptor{}, err
+		return ocispecv1.Descriptor{}, fmt.Errorf("unable to create manifest descriptor: %w", err)
 	}
 
-	return desc, nil
+	manifestBytes, err := json.Marshal(manifest)
+	if err != nil {
+		return ocispecv1.Descriptor{}, fmt.Errorf("unable to marshal manifest: %w", err)
+	}
+
+	if err := cache.Add(manifestDesc, ioutil.NopCloser(bytes.NewBuffer(manifestBytes))); err != nil {
+		return ocispecv1.Descriptor{}, fmt.Errorf("unable to add manifest to cache: %w", err)
+	}
+
+	if err := c.pushContent(ctx, cache, pusher, manifestDesc); err != nil {
+		return ocispecv1.Descriptor{}, fmt.Errorf("unable to push manifest: %w", err)
+	}
+
+	return manifestDesc, nil
 }
 
-func (c *client) pushImageIndex(ctx context.Context, ociArtifact *oci.Artifact, pusher remotes.Pusher, cache cache.Cache, opts *PushOptions) error {
+func (c *client) pushImageIndex(ctx context.Context, indexArtifact *oci.Index, pusher remotes.Pusher, cache cache.Cache, opts *PushOptions) error {
 	manifestDescs := []ocispecv1.Descriptor{}
-	for _, manifest := range ociArtifact.GetIndex().Manifests {
+	for _, manifest := range indexArtifact.Manifests {
 		mdesc, err := c.pushManifest(ctx, manifest.Data, pusher, cache, opts)
 		if err != nil {
 			return fmt.Errorf("unable to upload manifest: %w", err)
@@ -320,7 +357,7 @@ func (c *client) pushImageIndex(ctx context.Context, ociArtifact *oci.Artifact, 
 			SchemaVersion: 2,
 		},
 		Manifests:   manifestDescs,
-		Annotations: ociArtifact.GetIndex().Annotations,
+		Annotations: indexArtifact.Annotations,
 	}
 
 	idesc, err := createDescriptorFromIndex(cache, &index)
@@ -701,7 +738,7 @@ func doRequestWithPaging(ctx context.Context, u *url.URL, pFunc pagingFunc) erro
 	}
 }
 
-func createDescriptorFromManifest(cache cache.Cache, manifest *ocispecv1.Manifest) (ocispecv1.Descriptor, error) {
+func CreateDescriptorFromManifest(manifest *ocispecv1.Manifest) (ocispecv1.Descriptor, error) {
 	if manifest.SchemaVersion == 0 {
 		manifest.SchemaVersion = 2
 	}
@@ -715,10 +752,6 @@ func createDescriptorFromManifest(cache cache.Cache, manifest *ocispecv1.Manifes
 		Size:      int64(len(manifestBytes)),
 	}
 
-	manifestBuf := bytes.NewBuffer(manifestBytes)
-	if err := cache.Add(manifestDescriptor, ioutil.NopCloser(manifestBuf)); err != nil {
-		return ocispecv1.Descriptor{}, err
-	}
 	return manifestDescriptor, nil
 }
 

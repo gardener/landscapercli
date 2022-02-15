@@ -33,6 +33,9 @@ type Client interface {
 
 	// PushOCIArtifact uploads the given OCIArtifact to the given ref.
 	PushOCIArtifact(ctx context.Context, ref string, artifact *oci.Artifact, opts ...PushOption) error
+
+	// PushBlob uploads the blob for the given ocispec Descriptor to the given ref
+	PushBlob(ctx context.Context, ref string, desc ocispecv1.Descriptor, opts ...PushOption) error
 }
 
 // ExtendedClient defines an oci client with extended functionality that may not work with all registries.
