@@ -13,7 +13,7 @@ replace (
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/gardener/component-cli v0.32.0
+	github.com/gardener/component-cli v0.36.0
 	github.com/gardener/component-spec/bindings-go v0.0.53
 	github.com/gardener/landscaper v0.20.0
 	github.com/gardener/landscaper/apis v0.20.0

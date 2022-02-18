@@ -65,7 +65,7 @@ github.com/drone/envsubst/path
 github.com/evanphx/json-patch
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
-# github.com/gardener/component-cli v0.32.0
+# github.com/gardener/component-cli v0.36.0
 ## explicit
 github.com/gardener/component-cli/cmd/component-cli/app
 github.com/gardener/component-cli/ociclient
@@ -104,7 +104,7 @@ github.com/gardener/component-spec/bindings-go/codec
 github.com/gardener/component-spec/bindings-go/ctf
 github.com/gardener/component-spec/bindings-go/oci
 github.com/gardener/component-spec/bindings-go/utils/selector
-# github.com/gardener/image-vector v0.6.0
+# github.com/gardener/image-vector v0.9.0
 github.com/gardener/image-vector/pkg
 # github.com/gardener/landscaper v0.20.0
 ## explicit
@@ -775,8 +775,8 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 ## explicit
 sigs.k8s.io/yaml
+# github.com/containerd/containerd => github.com/containerd/containerd v1.5.9
 # github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
 # github.com/mandelsoft/spiff => github.com/mandelsoft/spiff v1.3.0-beta-7.0.20200909122641-3393af1d3804
 # github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.8.0
 # golang.org/x/text => golang.org/x/text v0.3.5
-# github.com/containerd/containerd => github.com/containerd/containerd v1.5.9
