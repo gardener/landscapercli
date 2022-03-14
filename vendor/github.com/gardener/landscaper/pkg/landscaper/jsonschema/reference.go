@@ -38,6 +38,9 @@ type ReferenceContext struct {
 	ComponentDescriptor *cdv2.ComponentDescriptor
 	// ComponentResolver is a object that can resolve component descriptors.
 	ComponentResolver ctf.ComponentResolver
+	// RepositoryContext can be used to overwrite the effective repository context of the component descriptor.
+	// If not set, the effective repository context of the ComponentDescriptor will be used.
+	RepositoryContext *cdv2.UnstructuredTypedObject
 }
 
 type ReferenceResolver struct {
@@ -92,10 +95,6 @@ func (rr *ReferenceResolver) resolveMap(data map[string]interface{}, currentPath
 	res := map[string]interface{}{}
 	for k, v := range data {
 		subPath := currentPath.Child(k)
-		if k == gojsonschema.KEY_REF {
-			// map contains a reference
-			return nil, fmt.Errorf("invalid reference at %s: there are no other fields allowed next to %q", subPath.String(), gojsonschema.KEY_REF)
-		}
 		sub, err := rr.resolve(v, subPath, alreadyResolved)
 		if err != nil {
 			return nil, err
@@ -110,7 +109,7 @@ func (rr *ReferenceResolver) resolveMap(data map[string]interface{}, currentPath
 // Otherwise, it returns false and an empty string.
 func checkForReference(data map[string]interface{}, currentPath *field.Path) (bool, string, error) {
 	value, ok := data[gojsonschema.KEY_REF]
-	if len(data) != 1 || !ok {
+	if !ok {
 		// no reference
 		return false, "", nil
 	}
@@ -211,7 +210,11 @@ func (rr *ReferenceResolver) handleComponentDescriptorReference(uri *url.URL, cu
 	if err != nil {
 		return nil, err
 	}
-	cd, res, err := cdUri.GetResource(rr.ComponentDescriptor, rr.ComponentResolver)
+	repositoryContext := rr.RepositoryContext
+	if repositoryContext == nil {
+		repositoryContext = rr.ComponentDescriptor.GetEffectiveRepositoryContext()
+	}
+	cd, res, err := cdUri.GetResource(rr.ComponentDescriptor, rr.ComponentResolver, repositoryContext)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +222,11 @@ func (rr *ReferenceResolver) handleComponentDescriptorReference(uri *url.URL, cu
 	// get the blob resolver for the specific component
 	ctx := context.Background()
 	defer ctx.Done()
-	_, blobResolver, err := rr.ComponentResolver.ResolveWithBlobResolver(ctx, cd.GetEffectiveRepositoryContext(), cd.GetName(), cd.GetVersion())
+	repositoryContext = rr.RepositoryContext
+	if repositoryContext == nil {
+		repositoryContext = cd.GetEffectiveRepositoryContext()
+	}
+	_, blobResolver, err := rr.ComponentResolver.ResolveWithBlobResolver(ctx, repositoryContext, cd.GetName(), cd.GetVersion())
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch component descriptor %s:%s for %q: %w", cd.GetName(), cd.GetVersion(), uri.String(), err)
 	}
@@ -262,6 +269,7 @@ func (rr *ReferenceResolver) handleComponentDescriptorReference(uri *url.URL, cu
 		BlueprintFs:         nil,
 		ComponentDescriptor: cd,
 		ComponentResolver:   rr.ComponentResolver,
+		RepositoryContext:   rr.RepositoryContext,
 	}).resolve(data, currentPath, alreadyResolved)
 	if err != nil {
 		return nil, err
