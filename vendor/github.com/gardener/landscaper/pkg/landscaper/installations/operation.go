@@ -85,7 +85,7 @@ func (o *Operation) ResolveComponentDescriptors(ctx context.Context) error {
 		return nil
 	}
 
-	resolvedCD, err := cdutils.ResolveToComponentDescriptorList(ctx, o.ComponentsRegistry(), *cd)
+	resolvedCD, err := cdutils.ResolveToComponentDescriptorList(ctx, o.ComponentsRegistry(), *cd, o.Context().External.RepositoryContext)
 	if err != nil {
 		return err
 	}
@@ -120,6 +120,7 @@ func (o *Operation) JSONSchemaValidator(schema []byte) (*jsonschema.Validator, e
 		BlueprintFs:         o.Inst.Blueprint.Fs,
 		ComponentDescriptor: o.ComponentDescriptor,
 		ComponentResolver:   o.ComponentsRegistry(),
+		RepositoryContext:   o.context.External.RepositoryContext,
 	})
 	err := v.CompileSchema(schema)
 	if err != nil {
