@@ -1,0 +1,22 @@
+installations:
+  - name: subinst-c
+    selector: ".*/subinst-c"
+    template: |
+      dataExports:
+        subinst-c-export: {{ .installation.metadata.name }}
+      targetExports: {}
+
+deployItems:
+  - name: subinst-a-deploy
+    selector: ".*/subinst-a-deploy"
+    template: |
+      exports:
+        subinst-a-export-a: {{ .deployItem.metadata.name }}
+        subinst-a-export-b: {{ .cd.component.name }}
+
+  - name: subinst-b-deploy
+    selector: ".*/subinst-b-deploy"
+    template: |
+      exports:
+        subinst-b-export-a: {{ .deployItem.metadata.name }}
+        subinst-b-export-b: {{ .cd.component.name }}

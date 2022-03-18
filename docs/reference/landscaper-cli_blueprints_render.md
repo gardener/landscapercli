@@ -34,6 +34,7 @@ landscaper-cli blueprints render BLUEPRINT_DIR [all,deployitems,subinstallations
       --allow-plain-http                              allows the fallback to http if the oci registry does not support https
       --cc-config string                              path to the local concourse config file
   -c, --component-descriptor string                   Path to the local component descriptor
+  -e, --export-templates string                       Path to the yaml file, defining the export templates
   -f, --file stringArray                              List of filepaths to value yaml files that define the imports
   -h, --help                                          help for render
       --insecure-skip-tls-verify                      If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
