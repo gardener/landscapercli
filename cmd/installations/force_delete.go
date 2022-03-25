@@ -103,7 +103,7 @@ func (o *forceDeleteOptions) deleteInstallationTrees(ctx context.Context, instal
 }
 
 func (o *forceDeleteOptions) deleteExecutionTree(ctx context.Context, executionTree *inspect.ExecutionTree) error {
-	if executionTree.Execution == nil {
+	if executionTree == nil || executionTree.Execution == nil {
 		return nil
 	}
 
@@ -128,6 +128,13 @@ func (o *forceDeleteOptions) deleteInstallation(ctx context.Context, inst *lsv1a
 		return fmt.Errorf("cannot delete installation %s: %w", inst.Name, err)
 	}
 
+	if err := o.k8sClient.Get(ctx, client.ObjectKeyFromObject(inst), inst); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("cannot fetch installation %s: %w", inst.Name, err)
+	}
+
 	inst.SetFinalizers(nil)
 	if err := o.k8sClient.Update(ctx, inst); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -147,6 +154,13 @@ func (o *forceDeleteOptions) deleteExecution(ctx context.Context, exec *lsv1alph
 		return fmt.Errorf("cannot delete execution %s: %w", exec.Name, err)
 	}
 
+	if err := o.k8sClient.Get(ctx, client.ObjectKeyFromObject(exec), exec); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("cannot fetch execution %s: %w", exec.Name, err)
+	}
+
 	exec.SetFinalizers(nil)
 	if err := o.k8sClient.Update(ctx, exec); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -164,6 +178,13 @@ func (o *forceDeleteOptions) deleteDeployItem(ctx context.Context, di *lsv1alpha
 			return nil
 		}
 		return fmt.Errorf("cannot delete deploy item %s: %w", di.Name, err)
+	}
+
+	if err := o.k8sClient.Get(ctx, client.ObjectKeyFromObject(di), di); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("cannot fetch deploy item %s: %w", di.Name, err)
 	}
 
 	di.SetFinalizers(nil)
