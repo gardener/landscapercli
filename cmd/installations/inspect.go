@@ -11,10 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
@@ -71,7 +68,7 @@ func NewInspectCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Logger) error {
-	k8sClient, namespace, err := o.buildKubeClientFromConfigOrCurrentClusterContext()
+	k8sClient, namespace, err := util.BuildKubeClientFromConfigOrCurrentClusterContext(o.kubeconfig, scheme)
 	if err != nil {
 		return fmt.Errorf("cannot build k8s client from config or current cluster context: %w", err)
 	}
@@ -153,31 +150,6 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 	cmd.Print(output.String())
 
 	return nil
-}
-
-func (o *statusOptions) buildKubeClientFromConfigOrCurrentClusterContext() (client.Client, string, error) {
-	var err error
-	namespace := ""
-	var k8sClient client.Client
-	if o.kubeconfig != "" {
-		cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfig)
-		if err != nil {
-			return nil, namespace, fmt.Errorf("cannot parse K8s config: %w", err)
-		}
-		k8sClient, err = client.New(cfg, client.Options{
-			Scheme: scheme,
-		})
-		if err != nil {
-			return nil, namespace, fmt.Errorf("cannot build K8s client: %w", err)
-		}
-	} else {
-		k8sClient, namespace, err = util.GetK8sClientFromCurrentConfiguredCluster()
-		if err != nil {
-			return nil, namespace, fmt.Errorf("cannot build K8s client from current cluster config: %w", err)
-		}
-	}
-
-	return k8sClient, namespace, nil
 }
 
 func (o *statusOptions) validateArgs(args []string) error {

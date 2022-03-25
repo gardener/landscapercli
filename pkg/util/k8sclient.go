@@ -40,5 +40,29 @@ func GetK8sClientFromCurrentConfiguredCluster() (client.Client, string, error) {
 	}
 
 	return k8sClient, namespace, nil
+}
 
+func BuildKubeClientFromConfigOrCurrentClusterContext(kubeconfig string, scheme *runtime.Scheme) (client.Client, string, error) {
+	var err error
+	namespace := ""
+	var k8sClient client.Client
+	if kubeconfig != "" {
+		cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			return nil, namespace, fmt.Errorf("cannot parse K8s config: %w", err)
+		}
+		k8sClient, err = client.New(cfg, client.Options{
+			Scheme: scheme,
+		})
+		if err != nil {
+			return nil, namespace, fmt.Errorf("cannot build K8s client: %w", err)
+		}
+	} else {
+		k8sClient, namespace, err = GetK8sClientFromCurrentConfiguredCluster()
+		if err != nil {
+			return nil, namespace, fmt.Errorf("cannot build K8s client from current cluster config: %w", err)
+		}
+	}
+
+	return k8sClient, namespace, nil
 }
