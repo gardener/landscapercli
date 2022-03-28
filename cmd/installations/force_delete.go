@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	inspect "github.com/gardener/landscapercli/cmd/installations/inspect"
 
-	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -45,6 +47,7 @@ func NewForceDeleteCommand(ctx context.Context) *cobra.Command {
 				cmd.PrintErr(err.Error())
 				os.Exit(1)
 			}
+			cmd.Println("All objects deleted")
 		},
 	}
 
@@ -87,7 +90,7 @@ func (o *forceDeleteOptions) run(ctx context.Context, cmd *cobra.Command, log lo
 
 func (o *forceDeleteOptions) deleteInstallationTrees(ctx context.Context, installationTrees []*inspect.InstallationTree) error {
 	for _, installationTree := range installationTrees {
-		if err := o.deleteInstallation(ctx, installationTree.Installation); err != nil {
+		if err := o.deleteObject(ctx, installationTree.Installation, "installation"); err != nil {
 			return err
 		}
 
@@ -107,12 +110,12 @@ func (o *forceDeleteOptions) deleteExecutionTree(ctx context.Context, executionT
 		return nil
 	}
 
-	if err := o.deleteExecution(ctx, executionTree.Execution); err != nil {
+	if err := o.deleteObject(ctx, executionTree.Execution, "execution"); err != nil {
 		return err
 	}
 
 	for _, di := range executionTree.DeployItems {
-		if err := o.deleteDeployItem(ctx, di.DeployItem); err != nil {
+		if err := o.deleteObject(ctx, di.DeployItem, "deployItem"); err != nil {
 			return err
 		}
 	}
@@ -120,81 +123,43 @@ func (o *forceDeleteOptions) deleteExecutionTree(ctx context.Context, executionT
 	return nil
 }
 
-func (o *forceDeleteOptions) deleteInstallation(ctx context.Context, inst *lsv1alpha1.Installation) error {
-	if err := o.k8sClient.Delete(ctx, inst); err != nil {
+func (o *forceDeleteOptions) deleteObject(ctx context.Context, object client.Object, objectType string) error {
+	if err := o.k8sClient.Delete(ctx, object); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
-		return fmt.Errorf("cannot delete installation %s: %w", inst.Name, err)
+		return fmt.Errorf("cannot delete %s %s: %w", objectType, object.GetName(), err)
 	}
 
-	if err := o.k8sClient.Get(ctx, client.ObjectKeyFromObject(inst), inst); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
+	var lastErr error = nil
+
+	if err := wait.PollImmediate(time.Second, 10*time.Second, func() (done bool, err error) {
+		if err := o.k8sClient.Get(ctx, client.ObjectKeyFromObject(object), object); err != nil {
+			if apierrors.IsNotFound(err) {
+				return true, nil
+			}
+			lastErr = fmt.Errorf("cannot fetch %s %s: %w", objectType, object.GetName(), err)
+			fmt.Println("**********" + lastErr.Error())
+			return false, nil
 		}
-		return fmt.Errorf("cannot fetch installation %s: %w", inst.Name, err)
-	}
 
-	inst.SetFinalizers(nil)
-	if err := o.k8sClient.Update(ctx, inst); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
+		object.SetFinalizers(nil)
+		if err := o.k8sClient.Update(ctx, object); err != nil {
+			if apierrors.IsNotFound(err) {
+				return true, nil
+			}
+			lastErr = fmt.Errorf("cannot remove finalizers from %s %s: %w", objectType, object.GetName(), err)
+			fmt.Println("**********" + lastErr.Error())
+			return false, nil
 		}
-		return fmt.Errorf("cannot remove finalizers from installation %s: %w", inst.Name, err)
+
+		return true, nil
+
+	}); err != nil {
+		return lastErr
 	}
 
-	return nil
-}
-
-func (o *forceDeleteOptions) deleteExecution(ctx context.Context, exec *lsv1alpha1.Execution) error {
-	if err := o.k8sClient.Delete(ctx, exec); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("cannot delete execution %s: %w", exec.Name, err)
-	}
-
-	if err := o.k8sClient.Get(ctx, client.ObjectKeyFromObject(exec), exec); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("cannot fetch execution %s: %w", exec.Name, err)
-	}
-
-	exec.SetFinalizers(nil)
-	if err := o.k8sClient.Update(ctx, exec); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("cannot remove finalizers from execution %s: %w", exec.Name, err)
-	}
-
-	return nil
-}
-
-func (o *forceDeleteOptions) deleteDeployItem(ctx context.Context, di *lsv1alpha1.DeployItem) error {
-	if err := o.k8sClient.Delete(ctx, di); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("cannot delete deploy item %s: %w", di.Name, err)
-	}
-
-	if err := o.k8sClient.Get(ctx, client.ObjectKeyFromObject(di), di); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("cannot fetch deploy item %s: %w", di.Name, err)
-	}
-
-	di.SetFinalizers(nil)
-	if err := o.k8sClient.Update(ctx, di); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("cannot remove finalizers from deploy item %s: %w", di.Name, err)
-	}
-
+	fmt.Printf("### Deleted %s %s\n", objectType, object.GetName())
 	return nil
 }
 
