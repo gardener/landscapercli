@@ -101,6 +101,10 @@ func (o *forceDeleteOptions) deleteInstallationTrees(ctx context.Context, instal
 		if err := o.deleteExecutionTree(ctx, installationTree.Execution); err != nil {
 			return err
 		}
+
+		if err := o.removeFinalizer(ctx, installationTree.Installation, "installation"); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -118,6 +122,13 @@ func (o *forceDeleteOptions) deleteExecutionTree(ctx context.Context, executionT
 		if err := o.deleteObject(ctx, di.DeployItem, "deployItem"); err != nil {
 			return err
 		}
+		if err := o.removeFinalizer(ctx, di.DeployItem, "deployItem"); err != nil {
+			return err
+		}
+	}
+
+	if err := o.removeFinalizer(ctx, executionTree.Execution, "execution"); err != nil {
+		return err
 	}
 
 	return nil
@@ -126,11 +137,16 @@ func (o *forceDeleteOptions) deleteExecutionTree(ctx context.Context, executionT
 func (o *forceDeleteOptions) deleteObject(ctx context.Context, object client.Object, objectType string) error {
 	if err := o.k8sClient.Delete(ctx, object); err != nil {
 		if apierrors.IsNotFound(err) {
+			fmt.Printf("- already gone: %s %s\n", objectType, object.GetName())
 			return nil
 		}
 		return fmt.Errorf("cannot delete %s %s: %w", objectType, object.GetName(), err)
 	}
 
+	return nil
+}
+
+func (o *forceDeleteOptions) removeFinalizer(ctx context.Context, object client.Object, objectType string) error {
 	var lastErr error = nil
 
 	if err := wait.PollImmediate(time.Second, 10*time.Second, func() (done bool, err error) {
@@ -139,7 +155,8 @@ func (o *forceDeleteOptions) deleteObject(ctx context.Context, object client.Obj
 				return true, nil
 			}
 			lastErr = fmt.Errorf("cannot fetch %s %s: %w", objectType, object.GetName(), err)
-			fmt.Println("**********" + lastErr.Error())
+			preliminaryMessage := fmt.Sprintf("- cannot fetch %s %s - will retry", objectType, object.GetName())
+			fmt.Println(preliminaryMessage)
 			return false, nil
 		}
 
@@ -149,7 +166,8 @@ func (o *forceDeleteOptions) deleteObject(ctx context.Context, object client.Obj
 				return true, nil
 			}
 			lastErr = fmt.Errorf("cannot remove finalizers from %s %s: %w", objectType, object.GetName(), err)
-			fmt.Println("**********" + lastErr.Error())
+			preliminaryMessage := fmt.Sprintf("- cannot remove finalizers from %s %s - will retry", objectType, object.GetName())
+			fmt.Println(preliminaryMessage)
 			return false, nil
 		}
 
@@ -159,7 +177,7 @@ func (o *forceDeleteOptions) deleteObject(ctx context.Context, object client.Obj
 		return lastErr
 	}
 
-	fmt.Printf("### Deleted %s %s\n", objectType, object.GetName())
+	fmt.Printf("- deleted %s %s\n", objectType, object.GetName())
 	return nil
 }
 
