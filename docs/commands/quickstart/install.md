@@ -1,33 +1,56 @@
 # Quickstart Install
 
-The quickstart install command allows to install the landscaper (and optionally an OCI registry) in a specified kubernetes cluster, such as a minikube, kind or garden shoot cluster. This is the quickest way to get the landscaper up and running.
+The quickstart install command allows to install the landscaper (and optionally an OCI registry) in a specified 
+kubernetes cluster, such as a minikube, kind or garden shoot cluster. This is the quickest way to get the landscaper up 
+and running.
 
 ## Prerequisites
 - K8s cluster
 - [Helm >=3.7.0](https://helm.sh/docs/intro/install/)
 
 ## Usage
-The simple use case would be to install Landscaper without the internal OCI registry, e.g. if you already have an external OCI registry (GCR, Harbor, ...) for usage. This can be achieved by executing the following command:
+
+The simple use case would be to install Landscaper without the internal OCI registry, e.g. if you already have an 
+external OCI registry (GCR, Harbor, ...) for usage. This can be achieved by executing the following command:
 
 ```
-landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper
+landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml 
 ```
 
-`landscaper-values.yaml` is the values file of the landscaper. See [here](#landscaper-values) for a minimal example. To install a specific version of the landscaper chart, use the `landscaper-chart-version` argument.
+This command installs the landscaper in the namespace `landscaper` together with a helm-, manifest- and container-deployer.
 
 If the installation succeeds you can verify the created pods with:
 
 ```
 kubectl get pods -n landscaper --kubeconfig=./kubconfig.yaml
 NAME                            READY   STATUS    RESTARTS   AGE
-landscaper-6674fd9c47-9jz2n     1/1     Running   0          78s
+container-default-container-deployer-7d7c5bf786-8lx9m   1/1     Running   0          2m15s
+helm-default-helm-deployer-555f848cd9-ltrq6             1/1     Running   0          2m10s
+landscaper-8658c96b59-qxj2g                             1/1     Running   0          2m41s
+landscaper-webhooks-589985ff45-kbm8r                    1/1     Running   0          2m41s
+manifest-default-manifest-deployer-7fbc77ff79-dklbr     1/1     Running   0          45s
 ```
+
+You see the central pods of the landscaper and its webhook as well as one pod for each deployer.  
+
+If you want to install the landscaper and the deployer in another namespace and/or provide some more configuration values,
+you might call the command in the following form:
+
+```
+landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper
+```
+
+`landscaper-values.yaml` is the values file of the landscaper. See [here](#landscaper-values) for a minimal example. 
+To install a specific version of the landscaper chart, use the `landscaper-chart-version` argument.
 
 For more details on the cli usage, consult [landscaper-cli_quickstart_install reference](../../reference/landscaper-cli_quickstart_install.md).
 
 ### Installing and configuring the OCI registry
 
-If you don't want to use an external OCI registry, it is also possible to setup a new registry inside the target cluster via the `quickstart install` command. **This registry should only be used for dev/testing purposes.**. There are 2 possible ways to setup this OCI registry. Depending on which you chose, the interaction with it will be slightly different. These two alternatives are described in the following.
+If you don't want to use an external OCI registry, it is also possible to setup a new registry inside the target cluster 
+via the `quickstart install` command. **This registry should only be used for dev/testing purposes.**. There are 2 
+possible ways to setup this OCI registry. Depending on which you chose, the interaction with it will be slightly different. 
+These two alternatives are described in the following.
 
 #### Alternative 1: Expose registry via ingress (recommended)
 
