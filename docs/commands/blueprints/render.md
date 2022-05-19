@@ -170,7 +170,7 @@ The resources are written as files in the following directory structure to the g
 ### Rendering with Export Templates
 
 For rendering with export templates, the `-e, --export-templates` flag has to be specified.
-The flag has to point to a yaml file, that containing the export templates.
+The flag has to point to a yaml file, containing the export templates.
 
 The export templates yaml file must have the following structure:
 
