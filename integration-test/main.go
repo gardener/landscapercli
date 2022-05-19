@@ -16,6 +16,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -173,6 +175,14 @@ func run() error {
 		return fmt.Errorf("landscaper-cli quickstart uninstall failed: %w", err)
 	}
 
+	if err := removeFinalizerLandscaperResources(k8sClient, config.LandscaperNamespace); err != nil {
+		return fmt.Errorf("failed to remove landscaper finalizers in namespace %s: %w", config.LandscaperNamespace, err)
+	}
+
+	if err := util.DeleteNamespace(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries); err != nil {
+		return fmt.Errorf("failed to delete namespace %s: %w", config.LandscaperNamespace, err)
+	}
+
 	return nil
 }
 
@@ -281,7 +291,6 @@ func runQuickstartUninstall(config *inttestutil.Config) error {
 		config.Kubeconfig,
 		"--namespace",
 		config.LandscaperNamespace,
-		"--delete-namespace",
 	}
 	uninstallCmd := quickstart.NewUninstallCommand(context.TODO())
 	uninstallCmd.SetArgs(uninstallArgs)
@@ -366,4 +375,88 @@ landscaper:
 	}
 
 	return b.Bytes(), nil
+}
+
+type FinalizerPatch struct {
+}
+
+func (FinalizerPatch) Type() types.PatchType {
+	return types.MergePatchType
+}
+
+func (FinalizerPatch) Data(obj client.Object) ([]byte, error) {
+	patch := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"finalizers": nil,
+		},
+	}
+
+	patchRaw, err := json.Marshal(patch)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal patch: %w", err)
+	}
+
+	return patchRaw, nil
+}
+
+func removeFinalizerLandscaperResources(k8sClient client.Client, namespace string) error {
+	ctx := context.Background()
+	patch := FinalizerPatch{}
+
+	podList := &corev1.PodList{}
+	if err := k8sClient.List(ctx, podList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return fmt.Errorf("failed to list pods: %w", err)
+	}
+
+	for _, pod := range podList.Items {
+		if err := k8sClient.Patch(ctx, &pod, patch); err != nil {
+			return fmt.Errorf("failed to patch pod %q: %w", pod.Name, err)
+		}
+	}
+
+	deployerRegList := &lsv1alpha1.DeployerRegistrationList{}
+	if err := k8sClient.List(ctx, deployerRegList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return fmt.Errorf("failed to list deployer registrations: %w", err)
+	}
+
+	for _, deployerReg := range deployerRegList.Items {
+		if err := k8sClient.Patch(ctx, &deployerReg, patch); err != nil {
+			return fmt.Errorf("failed to patch deployer registration %q: %w", deployerReg.Name, err)
+		}
+	}
+
+	installationList := &lsv1alpha1.InstallationList{}
+	if err := k8sClient.List(ctx, installationList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return fmt.Errorf("failed to list installations: %w", err)
+	}
+
+	for _, installation := range installationList.Items {
+		if err := k8sClient.Patch(ctx, &installation, patch); err != nil {
+			return fmt.Errorf("failed to patch installation %q: %w", installation.Name, err)
+		}
+	}
+
+	executionList := &lsv1alpha1.ExecutionList{}
+	if err := k8sClient.List(ctx, executionList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return fmt.Errorf("failed to list executions: %w", err)
+	}
+
+	for _, execution := range executionList.Items {
+		if err := k8sClient.Patch(ctx, &execution, patch); err != nil {
+			return fmt.Errorf("failed to patch execution %q: %w", execution.Name, err)
+		}
+	}
+
+	deployItemList := &lsv1alpha1.DeployItemList{}
+	if err := k8sClient.List(ctx, deployItemList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return fmt.Errorf("failed to list deploy items: %w", err)
+	}
+
+	for _, deployItem := range deployItemList.Items {
+		if err := k8sClient.Patch(ctx, &deployItem, patch); err != nil {
+			return fmt.Errorf("failed to patch deploy item %q: %w", deployItem.Name, err)
+		}
+	}
+
+	return nil
 }
