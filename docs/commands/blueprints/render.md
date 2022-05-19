@@ -112,12 +112,17 @@ see also: [add a resource](https://github.com/gardener/component-cli/tree/main/d
 ## Render Modes
 
 The blueprint render command supports two modes of rendering.
-The default mode renders all deploy items and subinstallations that are defined within the blueprint, defined in the render arguments.
+The default mode renders all deploy items and subinstallations of the specified blueprint.
+This mode can be used when there is no need to evaluate the export results of the subinstallations or deploy items. 
+The generation of export values is therefore not executed in this mode.
 
 When specifying export templates via the `-e, --export-templates` flag, the blueprint renderer also generates the export values for deploy items and/or subinstallations.
 With this generated export values subinstallations (both locally defined in the blueprint and defined in external components) will be executed recursively.
 The blueprint renderer will output all deploy items, imports and exports for the subinstallations it executes.
-
+This mode will try to simulate a real installation of the blueprint on a kubernetes cluster with the landscaper as close as possible.
+The export templates are used to simulate the real landscaper deployers (helm, manifest, container etc.) and can use input values (blueprint imports, component descriptor etc.) to generate export values.
+This mode can be used when the complete installation flow shall be tested without triggering a real installation. 
+This especially helps to minimize turnaround times during development.
 
 ### Rendering without Export Templates (default mode)
 
