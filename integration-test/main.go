@@ -103,24 +103,14 @@ func run() error {
 
 	fmt.Println("========== Cleaning up before test ==========")
 
-	namespace := &corev1.Namespace{}
-	if err := k8sClient.Get(context.Background(), types.NamespacedName{Name: config.LandscaperNamespace}, namespace); err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("failed to get landscaper namespace %s: %w", config.LandscaperNamespace, err)
-		}
-	} else {
-		if err := removeFinalizerLandscaperResources(k8sClient, config.LandscaperNamespace); err != nil {
-			return fmt.Errorf("failed to remove landscaper finalizers in namespace %s: %w", config.LandscaperNamespace, err)
-		}
-	}
-
-	if err := util.DeleteNamespace(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries); err != nil {
+	if err := deleteNamespace(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries); err != nil {
 		return fmt.Errorf("failed to delete namespace %s: %w", config.LandscaperNamespace, err)
 	}
 
-	if err := util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries); err != nil {
-		return fmt.Errorf("cannot delete test namespace %s: %w", config.TestNamespace, err)
+	if err := deleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries); err != nil {
+		return fmt.Errorf("failed to delete namespace %s: %w", config.TestNamespace, err)
 	}
+
 	if err := runQuickstartUninstall(config); err != nil {
 		return fmt.Errorf("landscaper-cli quickstart uninstall failed: %w", err)
 	}
@@ -406,6 +396,23 @@ func (FinalizerPatch) Data(obj client.Object) ([]byte, error) {
 	}
 
 	return patchRaw, nil
+}
+
+func deleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
+	namespaceRes := &corev1.Namespace{}
+	if err := k8sClient.Get(context.Background(), types.NamespacedName{Name: namespace}, namespaceRes); err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return fmt.Errorf("failed to get landscaper namespace %s: %w", namespace, err)
+		}
+	} else {
+		if err := removeFinalizerLandscaperResources(k8sClient, namespace); err != nil {
+			return fmt.Errorf("failed to remove landscaper finalizers in namespace %s: %w", namespace, err)
+		}
+		if err := util.DeleteNamespace(k8sClient, namespace, sleepTime, maxRetries); err != nil {
+			return fmt.Errorf("failed to delete namespace %s: %w", namespace, err)
+		}
+	}
+	return nil
 }
 
 func removeFinalizerLandscaperResources(k8sClient client.Client, namespace string) error {
