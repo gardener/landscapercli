@@ -11,8 +11,11 @@ import (
 	"text/template"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	componentclilog "github.com/gardener/component-cli/pkg/logger"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -417,6 +420,20 @@ func deleteNamespace(k8sClient client.Client, namespace string, sleepTime time.D
 
 func removeFinalizerLandscaperResources(k8sClient client.Client, namespace string) error {
 	ctx := context.Background()
+
+	validationConfig := &admissionv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "landscaper-validation-webhook",
+			Namespace: namespace,
+		},
+	}
+
+	if err := k8sClient.Delete(ctx, validationConfig); err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return fmt.Errorf("failed to delete validating webhook configuration %s/landscaper-validation-webhook: %w", namespace, err)
+		}
+	}
+
 	patch := FinalizerPatch{}
 
 	podList := &corev1.PodList{}
