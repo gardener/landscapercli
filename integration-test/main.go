@@ -14,6 +14,7 @@ import (
 	componentclilog "github.com/gardener/component-cli/pkg/logger"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -102,6 +103,21 @@ func run() error {
 
 	fmt.Println("========== Cleaning up before test ==========")
 
+	namespace := &corev1.Namespace{}
+	if err := k8sClient.Get(context.Background(), types.NamespacedName{Name: config.LandscaperNamespace}, namespace); err != nil {
+		if !k8sErrors.IsNotFound(err) {
+			return fmt.Errorf("failed to get landscaper namespace %s: %w", config.LandscaperNamespace, err)
+		}
+	} else {
+		if err := removeFinalizerLandscaperResources(k8sClient, config.LandscaperNamespace); err != nil {
+			return fmt.Errorf("failed to remove landscaper finalizers in namespace %s: %w", config.LandscaperNamespace, err)
+		}
+	}
+
+	if err := util.DeleteNamespace(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries); err != nil {
+		return fmt.Errorf("failed to delete namespace %s: %w", config.LandscaperNamespace, err)
+	}
+
 	if err := util.DeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries); err != nil {
 		return fmt.Errorf("cannot delete test namespace %s: %w", config.TestNamespace, err)
 	}
@@ -173,14 +189,6 @@ func run() error {
 	fmt.Println("========== Cleaning up after test ==========")
 	if err := runQuickstartUninstall(config); err != nil {
 		return fmt.Errorf("landscaper-cli quickstart uninstall failed: %w", err)
-	}
-
-	if err := removeFinalizerLandscaperResources(k8sClient, config.LandscaperNamespace); err != nil {
-		return fmt.Errorf("failed to remove landscaper finalizers in namespace %s: %w", config.LandscaperNamespace, err)
-	}
-
-	if err := util.DeleteNamespace(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries); err != nil {
-		return fmt.Errorf("failed to delete namespace %s: %w", config.LandscaperNamespace, err)
 	}
 
 	return nil
@@ -291,6 +299,7 @@ func runQuickstartUninstall(config *inttestutil.Config) error {
 		config.Kubeconfig,
 		"--namespace",
 		config.LandscaperNamespace,
+		"--delete-namespace",
 	}
 	uninstallCmd := quickstart.NewUninstallCommand(context.TODO())
 	uninstallCmd.SetArgs(uninstallArgs)
