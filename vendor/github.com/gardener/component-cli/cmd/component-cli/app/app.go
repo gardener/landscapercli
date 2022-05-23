@@ -59,7 +59,27 @@ func NewVersionCommand() *cobra.Command {
 		Short:   "displays the version",
 		Run: func(cmd *cobra.Command, args []string) {
 			v := version.Get()
-			fmt.Printf("%#v", v)
+			fmt.Printf("\nComponent CLI Version: %s\n", v.GitVersion)
+
+			if v.GitCommit != "" {
+				fmt.Printf("  GitCommit: %s\n", v.GitCommit)
+			}
+
+			if v.GitTreeState != "" {
+				fmt.Printf("  GitTreeState: %s\n", v.GitTreeState)
+			}
+
+			if v.GoVersion != "" {
+				fmt.Printf("  GoVersion: %s\n", v.GoVersion)
+			}
+
+			if v.Compiler != "" {
+				fmt.Printf("  Compiler: %s\n", v.Compiler)
+			}
+
+			if v.Platform != "" {
+				fmt.Printf("  Platform: %s\n", v.Platform)
+			}
 		},
 	}
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/componentreferences"
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/remote"
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
+	"github.com/gardener/component-cli/pkg/commands/componentarchive/signature"
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/sources"
 	ctfcmd "github.com/gardener/component-cli/pkg/commands/ctf"
 	"github.com/gardener/component-cli/pkg/componentarchive"
@@ -74,6 +75,7 @@ func NewComponentArchiveCommand(ctx context.Context) *cobra.Command {
 	cmd.AddCommand(resources.NewResourcesCommand(ctx))
 	cmd.AddCommand(componentreferences.NewCompRefCommand(ctx))
 	cmd.AddCommand(sources.NewSourcesCommand(ctx))
+	cmd.AddCommand(signature.NewSignatureCommand(ctx))
 	return cmd
 }
 

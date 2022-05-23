@@ -181,6 +181,7 @@ func (o *Options) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) e
 
 	log.V(3).Info(fmt.Sprintf("Adding %d resources...", len(resources)))
 	for _, resource := range resources {
+		log := log.WithValues("resource-name", resource.Name, "resource-version", resource.Version)
 		utils.PrintPrettyYaml(resource, log.V(5).Enabled())
 
 		if resource.Input != nil {
@@ -191,6 +192,7 @@ func (o *Options) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) e
 		} else {
 			id := archive.ComponentDescriptor.GetResourceIndex(resource.Resource)
 			if id != -1 {
+				log.V(5).Info("Found existing resource in component descriptor, attempt merge...")
 				mergedRes := cdutils.MergeResources(archive.ComponentDescriptor.Resources[id], resource.Resource)
 				if errList := cdvalidation.ValidateResource(field.NewPath(""), mergedRes); len(errList) != 0 {
 					return errList.ToAggregate()
@@ -215,7 +217,7 @@ func (o *Options) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) e
 		if err := vfs.WriteFile(fs, compDescFilePath, data, 0664); err != nil {
 			return fmt.Errorf("unable to write modified comonent descriptor: %w", err)
 		}
-		log.V(2).Info(fmt.Sprintf("Successfully added %q resource %q %q to component descriptor", resource.Type, resource.Name, resource.Version))
+		log.V(2).Info("Successfully added resource to component descriptor")
 	}
 	log.V(2).Info("Successfully added all resources to component descriptor")
 	return nil
