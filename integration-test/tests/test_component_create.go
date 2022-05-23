@@ -164,7 +164,7 @@ func (t *componentCreateTest) addHelmDeployItemWithExternalChart(ctx context.Con
 		"--component-directory",
 		t.componentDir,
 		"--oci-reference",
-		"eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0",
+		"eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:4.0.17",
 		"--resource-version",
 		"v0.2.0",
 		"--cluster-param",
