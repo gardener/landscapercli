@@ -6,7 +6,9 @@ package blueprints_test
 
 import (
 	"context"
+	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -199,6 +201,79 @@ imports:
 		fail(a.Equal(absBlueprintPath, renderOpts.BlueprintPath))
 		fail(a.Error(renderOpts.Run(context.TODO(), logr.Discard(), testdataFs)))
 	})
+
+}
+
+func TestRenderCommandWithExportTemplates(t *testing.T) {
+	a := assert.New(t)
+	fail := failFunc(a)
+
+	testDir := "../../docs/examples/render-blueprint/02-render-with-export-templates"
+	blueprintPath := path.Join(testDir, "blueprint")
+	componentDescriptorPath := path.Join(testDir, "component-descriptor")
+
+	testdataFs, err := createTestdataFs("/")
+	fail(a.NoError(err))
+
+	renderOpts := &blueprints.RenderOptions{
+		ComponentDescriptorPath: path.Join(componentDescriptorPath, "root/component-descriptor.yaml"),
+		AdditionalComponentDescriptorPath: []string{
+			path.Join(componentDescriptorPath, "comp-a/component-descriptor.yaml"),
+			path.Join(componentDescriptorPath, "comp-b/component-descriptor.yaml"),
+			path.Join(componentDescriptorPath, "comp-c/component-descriptor.yaml"),
+		},
+		ResourcesPath:       path.Join(testDir, "resources.yaml"),
+		ExportTemplatesPath: path.Join(testDir, "export-templates.yaml"),
+		ValueFiles: []string{
+			path.Join(testDir, "values.yaml"),
+		},
+		OutputFormat: blueprints.YAMLOut,
+		OutDir:       "./out",
+	}
+
+	a.NoError(renderOpts.Complete(logr.Discard(), []string{path.Join(blueprintPath, "root")}, testdataFs))
+	ctx := context.Background()
+	defer ctx.Done()
+	fail(a.NoError(renderOpts.Run(ctx, logr.Discard(), testdataFs)))
+
+	files := make(map[string]interface{})
+
+	err = vfs.Walk(testdataFs, renderOpts.OutDir, func(path string, info fs.FileInfo, err error) error {
+		fail(a.NoError(err))
+
+		if info.IsDir() {
+			return nil
+		}
+
+		data, err2 := vfs.ReadFile(testdataFs, path)
+		fail(a.NoError(err2))
+
+		var actual map[string]interface{}
+		fail(a.NoError(yaml.Unmarshal(data, &actual)))
+
+		files[path] = actual
+		return nil
+	})
+	fail(a.NoError(err))
+
+	fail(a.Contains(files, "out/root/installation"))
+	fail(a.Contains(files, "out/root/imports"))
+	fail(a.Contains(files, "out/root/exports"))
+
+	fail(a.Contains(files, "out/root/subinst-a/installation"))
+	fail(a.Contains(files, "out/root/subinst-a/imports"))
+	fail(a.Contains(files, "out/root/subinst-a/exports"))
+	fail(a.Contains(files, "out/root/subinst-a/deployitems/subinst-a-deploy"))
+
+	fail(a.Contains(files, "out/root/subinst-b/installation"))
+	fail(a.Contains(files, "out/root/subinst-b/imports"))
+	fail(a.Contains(files, "out/root/subinst-b/exports"))
+	fail(a.Contains(files, "out/root/subinst-b/deployitems/subinst-b-deploy"))
+
+	fail(a.Contains(files, "out/root/subinst-c/installation"))
+	fail(a.Contains(files, "out/root/subinst-c/imports"))
+	fail(a.Contains(files, "out/root/subinst-c/exports"))
+	fail(a.NotContains(files, "out/root/subinst-a/deployitems/subinst-c-deploy"))
 
 }
 

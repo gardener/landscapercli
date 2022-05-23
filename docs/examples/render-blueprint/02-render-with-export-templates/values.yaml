@@ -1,0 +1,57 @@
+imports:
+  root-param-a: value-a
+  root-param-b: value-b
+  cluster:
+    metadata:
+      name: test-cluster
+      namespace: default
+    spec:
+      type: landscaper.gardener.cloud/kubernetes-cluster
+      config:
+        kubeconfig: |
+          apiVersion: v1
+          kind: Config
+          clusters:
+            - name: test
+              cluster:
+                server: 'https://api.test.local'
+                certificate-authority-data: >-
+                  askadsklasoijasdlm
+          contexts:
+            - name: test
+              context:
+                cluster: test
+                user: testuser
+          current-context: test
+          users:
+            - name: testuser
+              user:
+                token: >-
+                  abcdefghij
+  clusters:
+    - metadata:
+        name: test-cluster
+        namespace: default
+      spec:
+        type: landscaper.gardener.cloud/kubernetes-cluster
+        config:
+          kubeconfig: |
+            apiVersion: v1
+            kind: Config
+            clusters:
+              - name: test
+                cluster:
+                  server: 'https://api.test2.local'
+                  certificate-authority-data: >-
+                    klsdjfoal
+            contexts:
+              - name: test
+                context:
+                  cluster: test
+                  user: testuser
+            current-context: test
+            users:
+              - name: testuser
+                user:
+                  token: >-
+                    aoisodj
