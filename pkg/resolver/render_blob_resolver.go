@@ -2,6 +2,7 @@ package resolver
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/mandelsoft/vfs/pkg/vfs"
@@ -37,9 +38,19 @@ func (r *renderBlobResolver) Info(ctx context.Context, res v2.Resource) (*ctf.Bl
 	if err != nil {
 		return nil, err
 	}
+	if blobInput == nil {
+		return nil, fmt.Errorf("resource %s has no input definition", res.Name)
+	}
+
+	blob, err := blobInput.Read(context.Background(), r.fs, r.resourcesPath)
+	if err != nil {
+		return nil, err
+	}
 
 	return &ctf.BlobInfo{
 		MediaType: blobInput.MediaType,
+		Digest:    blob.Digest,
+		Size:      blob.Size,
 	}, nil
 }
 
@@ -56,6 +67,9 @@ func (r *renderBlobResolver) Resolve(ctx context.Context, res v2.Resource, write
 	blob, err := blobInput.Read(context.Background(), r.fs, r.resourcesPath)
 	if err != nil {
 		return nil, err
+	}
+	if blobInput == nil {
+		return nil, fmt.Errorf("resource %s has no input definition", res.Name)
 	}
 
 	_, err = io.Copy(writer, blob.Reader)

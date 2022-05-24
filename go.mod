@@ -13,10 +13,10 @@ replace (
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/gardener/component-cli v0.36.0
-	github.com/gardener/component-spec/bindings-go v0.0.53
-	github.com/gardener/landscaper v0.23.0
-	github.com/gardener/landscaper/apis v0.23.0
+	github.com/gardener/component-cli v0.40.0
+	github.com/gardener/component-spec/bindings-go v0.0.61
+	github.com/gardener/landscaper v0.24.0
+	github.com/gardener/landscaper/apis v0.24.0
 	github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr v0.4.0
 	github.com/golang/mock v1.5.0
