@@ -34,7 +34,7 @@ func NewRSASignCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rsa BASE_URL COMPONENT_NAME VERSION",
 		Args:  cobra.ExactArgs(3),
-		Short: fmt.Sprintf("fetch the component descriptor from an oci registry, sign it using %s, and re-upload", cdv2.SignatureAlgorithmRSAPKCS1v15),
+		Short: fmt.Sprintf("fetch the component descriptor from an oci registry, sign it using %s, and re-upload", cdv2.RSAPKCS1v15),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
@@ -54,9 +54,9 @@ func NewRSASignCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *RSASignOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
-	signer, err := cdv2Sign.CreateRsaSignerFromKeyFile(o.PathToPrivateKey)
+	signer, err := cdv2Sign.CreateRSASignerFromKeyFile(o.PathToPrivateKey, cdv2.MediaTypePEM)
 	if err != nil {
-		return fmt.Errorf("failed creating rsa signer: %w", err)
+		return fmt.Errorf("unable to create rsa signer: %w", err)
 	}
 	return o.SignAndUploadWithSigner(ctx, log, fs, signer)
 }

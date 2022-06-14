@@ -30,11 +30,11 @@ type SigningServerSigner struct {
 func NewSigningServerSignerFromConfigFile(configFilePath string) (*SigningServerSigner, error) {
 	configBytes, err := ioutil.ReadFile(configFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed reading config file: %w", err)
+		return nil, fmt.Errorf("unable to read config file: %w", err)
 	}
 	var signer SigningServerSigner
 	if err := yaml.Unmarshal(configBytes, &signer); err != nil {
-		return nil, fmt.Errorf("failed parsing config yaml: %w", err)
+		return nil, fmt.Errorf("unable to parse config yaml: %w", err)
 	}
 	return &signer, nil
 }
@@ -42,12 +42,12 @@ func NewSigningServerSignerFromConfigFile(configFilePath string) (*SigningServer
 func (signer *SigningServerSigner) Sign(componentDescriptor cdv2.ComponentDescriptor, digest cdv2.DigestSpec) (*cdv2.SignatureSpec, error) {
 	decodedHash, err := hex.DecodeString(digest.Value)
 	if err != nil {
-		return nil, fmt.Errorf("failed decoding hash: %w", err)
+		return nil, fmt.Errorf("unable to hex decode hash: %w", err)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/sign", signer.Url), bytes.NewBuffer(decodedHash))
 	if err != nil {
-		return nil, fmt.Errorf("failed building http request: %w", err)
+		return nil, fmt.Errorf("unable to build http request: %w", err)
 	}
 	req.Header.Add(AcceptHeader, cdv2.MediaTypePEM)
 	req.SetBasicAuth(signer.Username, signer.Password)
@@ -55,13 +55,13 @@ func (signer *SigningServerSigner) Sign(componentDescriptor cdv2.ComponentDescri
 	client := http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed sending request: %w", err)
+		return nil, fmt.Errorf("unable to send http request: %w", err)
 	}
 	defer res.Body.Close()
 
 	responseBodyBytes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed reading response body: %w", err)
+		return nil, fmt.Errorf("unable to read response body: %w", err)
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -83,9 +83,9 @@ func (signer *SigningServerSigner) Sign(componentDescriptor cdv2.ComponentDescri
 		return nil, errors.New("invalid response: signature block doesn't contain signature")
 	}
 
-	algorithm := signatureBlock.Headers[cdv2.SignaturePEMBlockAlgorithmHeader]
+	algorithm := signatureBlock.Headers[cdv2.SignatureAlgorithmHeader]
 	if algorithm == "" {
-		return nil, fmt.Errorf("invalid response: %s header is empty", cdv2.SignaturePEMBlockAlgorithmHeader)
+		return nil, fmt.Errorf("invalid response: %s header is empty", cdv2.SignatureAlgorithmHeader)
 	}
 
 	encodedSignature := pem.EncodeToMemory(signatureBlock)
