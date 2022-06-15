@@ -1,9 +1,9 @@
-## landscaper-cli component-cli component-archive signature sign rsa
+## landscaper-cli component-cli component-archive signatures sign rsa
 
 fetch the component descriptor from an oci registry, sign it using RSASSA-PKCS1-V1_5, and re-upload
 
 ```
-landscaper-cli component-cli component-archive signature sign rsa BASE_URL COMPONENT_NAME VERSION [flags]
+landscaper-cli component-cli component-archive signatures sign rsa BASE_URL COMPONENT_NAME VERSION [flags]
 ```
 
 ### Options
@@ -35,5 +35,5 @@ landscaper-cli component-cli component-archive signature sign rsa BASE_URL COMPO
 
 ### SEE ALSO
 
-* [landscaper-cli component-cli component-archive signature sign](landscaper-cli_component-cli_component-archive_signature_sign.md)	 - command to sign component descriptors
+* [landscaper-cli component-cli component-archive signatures sign](landscaper-cli_component-cli_component-archive_signatures_sign.md)	 - command to sign component descriptors
 

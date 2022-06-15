@@ -1,9 +1,9 @@
-## landscaper-cli component-cli component-archive signature verify rsa
+## landscaper-cli component-cli component-archive signatures verify rsa
 
 fetch the component descriptor from an oci registry and verify its integrity based on a RSASSA-PKCS1-V1_5-SIGN signature
 
 ```
-landscaper-cli component-cli component-archive signature verify rsa BASE_URL COMPONENT_NAME VERSION [flags]
+landscaper-cli component-cli component-archive signatures verify rsa BASE_URL COMPONENT_NAME VERSION [flags]
 ```
 
 ### Options
@@ -31,5 +31,5 @@ landscaper-cli component-cli component-archive signature verify rsa BASE_URL COM
 
 ### SEE ALSO
 
-* [landscaper-cli component-cli component-archive signature verify](landscaper-cli_component-cli_component-archive_signature_verify.md)	 - command to verify the signature of a component descriptor
+* [landscaper-cli component-cli component-archive signatures verify](landscaper-cli_component-cli_component-archive_signatures_verify.md)	 - command to verify the signature of a component descriptor
 
