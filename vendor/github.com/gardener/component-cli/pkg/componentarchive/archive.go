@@ -149,6 +149,10 @@ func (o *BuilderOptions) Build(fs vfs.FileSystem) (*ctf.ComponentArchive, error)
 		return nil, fmt.Errorf("unable to default component descriptor: %w", err)
 	}
 
+	if err := cdvalidation.Validate(cd); err != nil {
+		return nil, fmt.Errorf("unable to validate component descriptor: %w", err)
+	}
+
 	data, err := yaml.Marshal(cd)
 	if err != nil {
 		utils.PrintPrettyYaml(cd, true)

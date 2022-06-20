@@ -41,6 +41,6 @@ landscaper-cli component-cli component-archive [component-archive-path] [ctf-pat
 * [landscaper-cli component-cli component-archive export](landscaper-cli_component-cli_component-archive_export.md)	 - Exports a component archive as defined by CTF
 * [landscaper-cli component-cli component-archive remote](landscaper-cli_component-cli_component-archive_remote.md)	 - command to interact with component descriptors stored in an oci registry
 * [landscaper-cli component-cli component-archive resources](landscaper-cli_component-cli_component-archive_resources.md)	 - command to modify resources of a component descriptor
-* [landscaper-cli component-cli component-archive signature](landscaper-cli_component-cli_component-archive_signature.md)	 - [EXPERIMENTAL] command to work with signatures and digests in component descriptors
+* [landscaper-cli component-cli component-archive signatures](landscaper-cli_component-cli_component-archive_signatures.md)	 - command to work with signatures and digests in component descriptors
 * [landscaper-cli component-cli component-archive sources](landscaper-cli_component-cli_component-archive_sources.md)	 - command to modify sources of a component descriptor
 

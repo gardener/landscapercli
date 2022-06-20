@@ -14,22 +14,22 @@ import (
 
 // CreateAndVerifyX509CertificateFromFiles creates and verifies a x509 certificate from certificate files.
 // The certificates must be in PEM format.
-func CreateAndVerifyX509CertificateFromFiles(certPath, intermediateCAsCertsPath, rootCACertPath string) (*x509.Certificate, error) {
+func CreateAndVerifyX509CertificateFromFiles(certPath, intermediateCACertsPath, rootCACertPath string) (*x509.Certificate, error) {
 	var err error
 
 	var rootCACert []byte
 	if rootCACertPath != "" {
 		rootCACert, err = ioutil.ReadFile(rootCACertPath)
 		if err != nil {
-			return nil, fmt.Errorf("unable to read root CA certificate file: %w", err)
+			return nil, fmt.Errorf("unable to read root ca certificate file: %w", err)
 		}
 	}
 
-	var intermediateCAsCerts []byte
-	if intermediateCAsCertsPath != "" {
-		intermediateCAsCerts, err = ioutil.ReadFile(intermediateCAsCertsPath)
+	var intermediateCACerts []byte
+	if intermediateCACertsPath != "" {
+		intermediateCACerts, err = ioutil.ReadFile(intermediateCACertsPath)
 		if err != nil {
-			return nil, fmt.Errorf("unable to read intermediate CAs certificates file: %w", err)
+			return nil, fmt.Errorf("unable to read intermediate ca certificates file: %w", err)
 		}
 	}
 
@@ -38,12 +38,12 @@ func CreateAndVerifyX509CertificateFromFiles(certPath, intermediateCAsCertsPath,
 		return nil, fmt.Errorf("unable to read certificate file: %w", err)
 	}
 
-	return CreateAndVerifyX509Certificate(cert, intermediateCAsCerts, rootCACert)
+	return CreateAndVerifyX509Certificate(cert, intermediateCACerts, rootCACert)
 }
 
 // CreateAndVerifyX509Certificate creates and verifies a x509 certificate from in-memory raw certificates.
 // The certificates must be in PEM format.
-func CreateAndVerifyX509Certificate(cert, intermediateCAsCerts, rootCACert []byte) (*x509.Certificate, error) {
+func CreateAndVerifyX509Certificate(cert, intermediateCACerts, rootCACert []byte) (*x509.Certificate, error) {
 	// First, create the set of root certificates. For this example we only
 	// have one. It's also possible to omit this in order to use the
 	// default root set of the current operating system.
@@ -53,14 +53,14 @@ func CreateAndVerifyX509Certificate(cert, intermediateCAsCerts, rootCACert []byt
 
 		block, _ := pem.Decode(rootCACert)
 		if block == nil {
-			return nil, errors.New("unable to decode root CA certificate")
+			return nil, errors.New("unable to decode root ca certificate")
 		}
 		parsedCert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			return nil, fmt.Errorf("unable to parse root CA certificate: %w", err)
+			return nil, fmt.Errorf("unable to parse root ca certificate: %w", err)
 		}
 		if !bytes.Equal(parsedCert.RawIssuer, parsedCert.RawSubject) || !parsedCert.IsCA {
-			return nil, errors.New("the given root CA certificate doesn't fulfil the requirements for a root CA certificate (Issuer == Subject && CA == true) ")
+			return nil, errors.New("the given root ca certificate doesn't fulfil the requirements for a root ca certificate (issuer == subject && ca == true)")
 		}
 
 		if ok := roots.AppendCertsFromPEM(rootCACert); !ok {
@@ -69,10 +69,10 @@ func CreateAndVerifyX509Certificate(cert, intermediateCAsCerts, rootCACert []byt
 	}
 
 	var intermediates *x509.CertPool
-	if intermediateCAsCerts != nil {
+	if intermediateCACerts != nil {
 		intermediates = x509.NewCertPool()
-		if ok := intermediates.AppendCertsFromPEM(intermediateCAsCerts); !ok {
-			return nil, errors.New("unable to parse intermediate cas certificates")
+		if ok := intermediates.AppendCertsFromPEM(intermediateCACerts); !ok {
+			return nil, errors.New("unable to parse intermediate ca certificates")
 		}
 	}
 
