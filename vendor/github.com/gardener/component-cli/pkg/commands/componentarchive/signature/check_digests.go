@@ -76,7 +76,7 @@ func (o *CheckDigestsOptions) Run(ctx context.Context, log logr.Logger, fs vfs.F
 
 	// check componentReferences and resources
 	if err := verify.CheckCdDigests(cd, *repoCtx, ociClient, context.TODO()); err != nil {
-		return fmt.Errorf("failed checking cd: %w", err)
+		return fmt.Errorf("unable to check component descriptor digests: %w", err)
 	}
 
 	return nil

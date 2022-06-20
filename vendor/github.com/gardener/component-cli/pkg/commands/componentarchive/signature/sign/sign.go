@@ -131,7 +131,7 @@ func (o *GenericSignOptions) SignAndUploadWithSigner(ctx context.Context, log lo
 
 	digestedCds, err := signatures.RecursivelyAddDigestsToCd(cd, *repoCtx, ociClient, blobResolvers, context.TODO(), skipAccessTypesMap)
 	if err != nil {
-		return fmt.Errorf("failed adding digests to cd: %w", err)
+		return fmt.Errorf("unable to add digests to component descriptor: %w", err)
 	}
 
 	targetRepoCtx := cdv2.NewOCIRegistryRepository(o.UploadBaseUrlForSigned, "")
@@ -140,35 +140,35 @@ func (o *GenericSignOptions) SignAndUploadWithSigner(ctx context.Context, log lo
 		for _, digestedCd := range digestedCds {
 			hasher, err := cdv2Sign.HasherForName(cdv2Sign.SHA256)
 			if err != nil {
-				return fmt.Errorf("failed creating hasher: %w", err)
+				return fmt.Errorf("unable to create hasher: %w", err)
 			}
 
 			if err := cdv2Sign.SignComponentDescriptor(digestedCd, signer, *hasher, o.SignatureName); err != nil {
-				return fmt.Errorf("failed signing component descriptor: %w", err)
+				return fmt.Errorf("unable to sign component descriptor: %w", err)
 			}
-			logger.Log.Info(fmt.Sprintf("CD Signed %s %s", digestedCd.Name, digestedCd.Version))
+			logger.Log.Info(fmt.Sprintf("Signed component descriptor %s %s", digestedCd.Name, digestedCd.Version))
 
 			logger.Log.Info(fmt.Sprintf("Uploading to %s %s %s", o.UploadBaseUrlForSigned, digestedCd.Name, digestedCd.Version))
 
 			if err := signatures.UploadCDPreservingLocalOciBlobs(ctx, *digestedCd, *targetRepoCtx, ociClient, cache, blobResolvers, o.Force, log); err != nil {
-				return fmt.Errorf("failed uploading cd: %w", err)
+				return fmt.Errorf("unable to upload component descriptor: %w", err)
 			}
 		}
 	} else {
 		hasher, err := cdv2Sign.HasherForName(cdv2Sign.SHA256)
 		if err != nil {
-			return fmt.Errorf("failed creating hasher: %w", err)
+			return fmt.Errorf("unable to create hasher: %w", err)
 		}
 
 		if err := cdv2Sign.SignComponentDescriptor(cd, signer, *hasher, o.SignatureName); err != nil {
-			return fmt.Errorf("failed signing component descriptor: %w", err)
+			return fmt.Errorf("unable to sign component descriptor: %w", err)
 		}
-		logger.Log.Info(fmt.Sprintf("CD Signed %s %s", cd.Name, cd.Version))
+		logger.Log.Info(fmt.Sprintf("Signed component descriptor %s %s", cd.Name, cd.Version))
 
 		logger.Log.Info(fmt.Sprintf("Uploading to %s %s %s", o.UploadBaseUrlForSigned, cd.Name, cd.Version))
 
 		if err := signatures.UploadCDPreservingLocalOciBlobs(ctx, *cd, *targetRepoCtx, ociClient, cache, blobResolvers, o.Force, log); err != nil {
-			return fmt.Errorf("failed uploading cd: %w", err)
+			return fmt.Errorf("unable to upload component descriptor: %w", err)
 		}
 	}
 	return nil

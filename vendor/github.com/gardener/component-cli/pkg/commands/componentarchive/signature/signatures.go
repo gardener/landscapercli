@@ -12,11 +12,12 @@ import (
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/signature/verify"
 )
 
-// NewSignatureCommand creates a new command to interact with signatures.
-func NewSignatureCommand(ctx context.Context) *cobra.Command {
+// NewSignaturesCommand creates a new command to interact with signatures.
+func NewSignaturesCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "signature",
-		Short: "[EXPERIMENTAL] command to work with signatures and digests in component descriptors",
+		Use:     "signatures",
+		Aliases: []string{"signature"},
+		Short:   "command to work with signatures and digests in component descriptors",
 	}
 
 	cmd.AddCommand(NewAddDigestsCommand(ctx))

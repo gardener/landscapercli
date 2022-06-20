@@ -1,9 +1,9 @@
-## landscaper-cli component-cli component-archive signature check-digests
+## landscaper-cli component-cli component-archive signatures check-digests
 
 fetch the component descriptor from an oci registry and check digests
 
 ```
-landscaper-cli component-cli component-archive signature check-digests BASE_URL COMPONENT_NAME VERSION [flags]
+landscaper-cli component-cli component-archive signatures check-digests BASE_URL COMPONENT_NAME VERSION [flags]
 ```
 
 ### Options
@@ -29,5 +29,5 @@ landscaper-cli component-cli component-archive signature check-digests BASE_URL 
 
 ### SEE ALSO
 
-* [landscaper-cli component-cli component-archive signature](landscaper-cli_component-cli_component-archive_signature.md)	 - [EXPERIMENTAL] command to work with signatures and digests in component descriptors
+* [landscaper-cli component-cli component-archive signatures](landscaper-cli_component-cli_component-archive_signatures.md)	 - command to work with signatures and digests in component descriptors
 

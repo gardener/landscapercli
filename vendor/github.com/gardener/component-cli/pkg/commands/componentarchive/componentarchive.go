@@ -75,7 +75,7 @@ func NewComponentArchiveCommand(ctx context.Context) *cobra.Command {
 	cmd.AddCommand(resources.NewResourcesCommand(ctx))
 	cmd.AddCommand(componentreferences.NewCompRefCommand(ctx))
 	cmd.AddCommand(sources.NewSourcesCommand(ctx))
-	cmd.AddCommand(signature.NewSignatureCommand(ctx))
+	cmd.AddCommand(signature.NewSignaturesCommand(ctx))
 	return cmd
 }
 

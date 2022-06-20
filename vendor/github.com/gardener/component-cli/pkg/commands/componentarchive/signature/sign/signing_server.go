@@ -53,7 +53,7 @@ func NewSigningServerSignCommand(ctx context.Context) *cobra.Command {
 func (o *SigningServerSignOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
 	signer, err := signatures.NewSigningServerSignerFromConfigFile(o.SigningServerConfigPath)
 	if err != nil {
-		return fmt.Errorf("failed creating signing server signer: %w", err)
+		return fmt.Errorf("unable to create signing server signer: %w", err)
 	}
 	return o.SignAndUploadWithSigner(ctx, log, fs, signer)
 }
