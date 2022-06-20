@@ -1,9 +1,15 @@
-## landscaper-cli component-cli component-archive signature sign signing-server
+## landscaper-cli component-cli component-archive signatures add-digests
 
-fetch the component descriptor from an oci registry, sign it with a signature provided from a signing server, and re-upload
+fetch the component descriptor from an oci registry and add digests
+
+### Synopsis
+
+
+		fetch the component descriptor from an oci registry and add digests. optionally resolve and digest the referenced component descriptors.
+
 
 ```
-landscaper-cli component-cli component-archive signature sign signing-server BASE_URL COMPONENT_NAME VERSION [flags]
+landscaper-cli component-cli component-archive signatures add-digests BASE_URL COMPONENT_NAME VERSION [flags]
 ```
 
 ### Options
@@ -11,14 +17,12 @@ landscaper-cli component-cli component-archive signature sign signing-server BAS
 ```
       --allow-plain-http            allows the fallback to http if the oci registry does not support https
       --cc-config string            path to the local concourse config file
-      --config string               config file which contains the signing server configuration
-      --force                       [OPTIONAL] force overwrite of already existing component descriptors
-  -h, --help                        help for signing-server
+      --force                       force overwrite of already existing component descriptors
+  -h, --help                        help for add-digests
       --insecure-skip-tls-verify    If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
-      --recursive                   [OPTIONAL] recursively sign and upload all referenced component descriptors
+      --recursive                   recursively upload all referenced component descriptors
       --registry-config string      path to the dockerconfig.json with the oci registry authentication information
-      --signature-name string       name of the signature
-      --skip-access-types strings   [OPTIONAL] comma separated list of access types that will not be digested and signed
+      --skip-access-types strings   comma separated list of access types that will not be digested
       --upload-base-url string      target repository context to upload the signed cd
 ```
 
@@ -35,5 +39,5 @@ landscaper-cli component-cli component-archive signature sign signing-server BAS
 
 ### SEE ALSO
 
-* [landscaper-cli component-cli component-archive signature sign](landscaper-cli_component-cli_component-archive_signature_sign.md)	 - command to sign component descriptors
+* [landscaper-cli component-cli component-archive signatures](landscaper-cli_component-cli_component-archive_signatures.md)	 - command to work with signatures and digests in component descriptors
 

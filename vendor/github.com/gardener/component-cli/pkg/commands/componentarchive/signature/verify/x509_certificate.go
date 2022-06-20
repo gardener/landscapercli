@@ -24,9 +24,9 @@ import (
 )
 
 type X509CertificateVerifyOptions struct {
-	rootCACertPath           string
-	intermediateCAsCertsPath string
-	signingCertPath          string
+	rootCACertPath          string
+	intermediateCACertsPath string
+	certPath                string
 
 	GenericVerifyOptions
 }
@@ -36,7 +36,7 @@ func NewX509CertificateVerifyCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "x509 BASE_URL COMPONENT_NAME VERSION",
 		Args:  cobra.ExactArgs(3),
-		Short: fmt.Sprintf("fetch the component descriptor from an oci registry and verify its integrity based on a x509 certificate chain and a %s signature", cdv2.SignatureAlgorithmRSAPKCS1v15),
+		Short: fmt.Sprintf("fetch the component descriptor from an oci registry and verify its integrity based on a x509 certificate chain and a %s signature", cdv2.RSAPKCS1v15),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
@@ -56,7 +56,7 @@ func NewX509CertificateVerifyCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *X509CertificateVerifyOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
-	cert, err := signatures.CreateAndVerifyX509CertificateFromFiles(o.signingCertPath, o.intermediateCAsCertsPath, o.rootCACertPath)
+	cert, err := signatures.CreateAndVerifyX509CertificateFromFiles(o.certPath, o.intermediateCACertsPath, o.rootCACertPath)
 	if err != nil {
 		return fmt.Errorf("unable to create certificate from files: %w", err)
 	}
@@ -66,13 +66,13 @@ func (o *X509CertificateVerifyOptions) Run(ctx context.Context, log logr.Logger,
 		return fmt.Errorf("public key is not of type *rsa.PublicKey: %T", cert.PublicKey)
 	}
 
-	verifier, err := cdv2Sign.CreateRsaVerifier(publicKey)
+	verifier, err := cdv2Sign.CreateRSAVerifier(publicKey)
 	if err != nil {
-		return fmt.Errorf("failed creating rsa verifier: %w", err)
+		return fmt.Errorf("unable to create rsa verifier: %w", err)
 	}
 
 	if err := o.GenericVerifyOptions.VerifyWithVerifier(ctx, log, fs, verifier); err != nil {
-		return fmt.Errorf("failed verifying cd: %w", err)
+		return fmt.Errorf("unable to verify component descriptor: %w", err)
 	}
 	return nil
 }
@@ -82,8 +82,8 @@ func (o *X509CertificateVerifyOptions) Complete(args []string) error {
 		return err
 	}
 
-	if o.signingCertPath == "" {
-		return errors.New("a path to a signing certificate file must be given as flag")
+	if o.certPath == "" {
+		return errors.New("a path to a certificate file must be given as flag")
 	}
 
 	return nil
@@ -91,7 +91,8 @@ func (o *X509CertificateVerifyOptions) Complete(args []string) error {
 
 func (o *X509CertificateVerifyOptions) AddFlags(fs *pflag.FlagSet) {
 	o.GenericVerifyOptions.AddFlags(fs)
-	fs.StringVar(&o.signingCertPath, "signing-cert", "", "path to a file containing the signing certificate file in PEM format")
-	fs.StringVar(&o.intermediateCAsCertsPath, "intermediate-cas-certs", "", "[OPTIONAL] path to a file containing the intermediate CAs certificates in PEM format")
-	fs.StringVar(&o.rootCACertPath, "root-ca-cert", "", "[OPTIONAL] path to a file containing the root CA certificate in PEM format. if empty, the system root CA certificate pool is used.")
+	fs.StringVar(&o.certPath, "signing-cert", "", "(deprecated: use --cert instead) path to a file containing the signing certificate file in PEM format")
+	fs.StringVar(&o.certPath, "cert", "", "path to a file containing the certificate file in PEM format")
+	fs.StringVar(&o.intermediateCACertsPath, "intermediate-ca-certs", "", "[OPTIONAL] path to a file containing the concatenation of any intermediate ca certificates in PEM format")
+	fs.StringVar(&o.rootCACertPath, "root-ca-cert", "", "[OPTIONAL] path to a file containing the root ca certificate in PEM format. if empty, the system root ca certificate pool is used")
 }

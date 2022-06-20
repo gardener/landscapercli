@@ -30,7 +30,6 @@ func NewDigester(ociClient ociclient.Client, hasher signatures.Hasher) *Digester
 		ociClient: ociClient,
 		hasher:    hasher,
 	}
-
 }
 
 func (d *Digester) DigestForResource(ctx context.Context, cd cdv2.ComponentDescriptor, res cdv2.Resource) (*cdv2.DigestSpec, error) {
@@ -47,7 +46,7 @@ func (d *Digester) DigestForResource(ctx context.Context, cd cdv2.ComponentDescr
 	case cdv2.S3AccessType:
 		return d.digestForS3Access(ctx, cd, res)
 	case "None":
-		logger.Log.V(5).Info(fmt.Sprintf("access type %s found in %s %s", res.Access.Type, cd.Name, cd.Version))
+		logger.Log.V(5).Info(fmt.Sprintf("access type None found in component descriptor %s:%s", cd.Name, cd.Version))
 		return nil, nil
 	default:
 		return nil, fmt.Errorf("access type %s not supported", res.Access.Type)
@@ -56,7 +55,7 @@ func (d *Digester) DigestForResource(ctx context.Context, cd cdv2.ComponentDescr
 
 func (d *Digester) digestForLocalOciBlob(ctx context.Context, componentDescriptor cdv2.ComponentDescriptor, res cdv2.Resource) (*cdv2.DigestSpec, error) {
 	if res.Access.GetType() != cdv2.LocalOCIBlobType {
-		return nil, fmt.Errorf("unsupported access type: %s", res.Access.Type)
+		return nil, fmt.Errorf("unsupported access type %s in digestForLocalOciBlob", res.Access.Type)
 	}
 
 	repoctx := cdv2.OCIRegistryRepository{}
@@ -85,7 +84,7 @@ func (d *Digester) digestForLocalOciBlob(ctx context.Context, componentDescripto
 	d.hasher.HashFunction.Reset()
 
 	if _, err := io.Copy(d.hasher.HashFunction, tmpfile); err != nil {
-		return nil, fmt.Errorf("unable to hash blob: %w", err)
+		return nil, fmt.Errorf("unable to calculate hash: %w", err)
 	}
 	return &cdv2.DigestSpec{
 		HashAlgorithm:          d.hasher.AlgorithmName,
@@ -96,7 +95,7 @@ func (d *Digester) digestForLocalOciBlob(ctx context.Context, componentDescripto
 
 func (d *Digester) digestForOciArtifact(ctx context.Context, componentDescriptor cdv2.ComponentDescriptor, res cdv2.Resource) (*cdv2.DigestSpec, error) {
 	if res.Access.GetType() != cdv2.OCIRegistryType {
-		return nil, fmt.Errorf("unsupported access type: %s", res.Access.Type)
+		return nil, fmt.Errorf("unsupported access type %s in digestForOciArtifact", res.Access.Type)
 	}
 
 	ociAccess := &cdv2.OCIRegistryAccess{}
@@ -106,12 +105,12 @@ func (d *Digester) digestForOciArtifact(ctx context.Context, componentDescriptor
 
 	_, bytes, err := d.ociClient.GetRawManifest(ctx, ociAccess.ImageReference)
 	if err != nil {
-		return nil, fmt.Errorf("failed getting oci raw manifest: %w", err)
+		return nil, fmt.Errorf("unable to get oci manifest: %w", err)
 	}
 
 	d.hasher.HashFunction.Reset()
 	if _, err = d.hasher.HashFunction.Write(bytes); err != nil {
-		return nil, fmt.Errorf("failed hashing oci raw manifest, %w", err)
+		return nil, fmt.Errorf("unable to calculate hash, %w", err)
 	}
 
 	return &cdv2.DigestSpec{
@@ -125,7 +124,7 @@ func (d *Digester) digestForS3Access(ctx context.Context, componentDescriptor cd
 	log := logger.Log.WithValues("componentDescriptor", componentDescriptor.ComponentSpec.ObjectMeta, "resource.name", res.Name, "resource.version", res.Version, "resource.extraIdentity", res.ExtraIdentity)
 
 	if res.Access.GetType() != cdv2.S3AccessType {
-		return nil, fmt.Errorf("unsupported access type for s3 Access Digester: %s", res.Access.Type)
+		return nil, fmt.Errorf("unsupported access type %s in digestForS3Access", res.Access.Type)
 	}
 	s3Access := &cdv2.S3Access{}
 	if err := res.Access.DecodeInto(s3Access); err != nil {
@@ -133,19 +132,28 @@ func (d *Digester) digestForS3Access(ctx context.Context, componentDescriptor cd
 	}
 
 	url := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", s3Access.BucketName, s3Access.ObjectKey)
+	log.V(5).Info(fmt.Sprintf("issue GET request to url %s", url))
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("unable to access s3 access with url %s: %w", url, err)
+		return nil, fmt.Errorf("unable to get s3 resource with url %s: %w", url, err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unable to access s3 access with url %s, response code %d", url, resp.StatusCode)
+
+	responseBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read response body: %w", err)
 	}
-	log.V(5).Info(fmt.Sprintf("downloading and hashing %s bytes from s3 access", resp.Header.Get("Content-Length")))
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("request returned with response code %d: %s", resp.StatusCode, string(responseBodyBytes))
+	}
+
+	log.V(5).Info(fmt.Sprintf("download and calculate hash for s3 resource with url %s and size %s bytes", url, resp.Header.Get("Content-Length")))
 	d.hasher.HashFunction.Reset()
 	if _, err := io.Copy(d.hasher.HashFunction, resp.Body); err != nil {
-		return nil, fmt.Errorf("unable to hash s3 access with url %s and hash function %s: %w", url, d.hasher.AlgorithmName, err)
+		return nil, fmt.Errorf("unable to calculate hash: %w", err)
 	}
+
 	return &cdv2.DigestSpec{
 		HashAlgorithm:          d.hasher.AlgorithmName,
 		NormalisationAlgorithm: string(cdv2.GenericBlobDigestV1),

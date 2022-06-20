@@ -106,24 +106,23 @@ func (o *GenericVerifyOptions) VerifyWithVerifier(ctx context.Context, log logr.
 
 	// check componentReferences and resources
 	if err := CheckCdDigests(cd, *repoCtx, ociClient, context.TODO()); err != nil {
-		return fmt.Errorf("failed checking cd: %w", err)
+		return fmt.Errorf("unable to check component descriptor digests: %w", err)
 	}
 
 	// check if digest is correctly signed and the hash matches the normalised cd
 	if err = cdv2Sign.VerifySignedComponentDescriptor(cd, verifier, o.SignatureName); err != nil {
-		return fmt.Errorf("signature invalid for digest: %w", err)
+		return fmt.Errorf("unable to verify signature: %w", err)
 	}
 
-	log.Info(fmt.Sprintf("Signature %s is valid and digest of normalised cd matches calculated digest", o.SignatureName))
+	log.Info(fmt.Sprintf("Signature %s is valid and calculated digest matches existing digest", o.SignatureName))
 	return nil
-
 }
 
 func CheckCdDigests(cd *cdv2.ComponentDescriptor, repoContext cdv2.OCIRegistryRepository, ociClient ociclient.Client, ctx context.Context) error {
 	for _, reference := range cd.ComponentReferences {
 		ociRef, err := cdoci.OCIRef(repoContext, reference.Name, reference.Version)
 		if err != nil {
-			return fmt.Errorf("invalid component reference: %w", err)
+			return fmt.Errorf("unable to build oci reference from component reference: %w", err)
 		}
 
 		cdresolver := cdoci.NewResolver(ociClient)
@@ -133,52 +132,52 @@ func CheckCdDigests(cd *cdv2.ComponentDescriptor, repoContext cdv2.OCIRegistryRe
 		}
 
 		if reference.Digest == nil || reference.Digest.HashAlgorithm == "" || reference.Digest.NormalisationAlgorithm == "" || reference.Digest.Value == "" {
-			return fmt.Errorf("component reference is missing digest %s:%s", reference.ComponentName, reference.Version)
+			return fmt.Errorf("missing digest in component reference %s:%s", reference.ComponentName, reference.Version)
 		}
 
 		hasherForCdReference, err := cdv2Sign.HasherForName(reference.Digest.HashAlgorithm)
 		if err != nil {
-			return fmt.Errorf("failed creating hasher for algorithm %s for referenceCd %s %s: %w", reference.Digest.HashAlgorithm, reference.Name, reference.Version, err)
+			return fmt.Errorf("unable to create hasher for component reference %s:%s: %w", reference.Name, reference.Version, err)
 		}
 
 		digest, err := recursivelyCheckCdsDigests(childCd, repoContext, ociClient, ctx, hasherForCdReference)
 		if err != nil {
-			return fmt.Errorf("checking of component reference %s:%s failed: %w", reference.ComponentName, reference.Version, err)
+			return fmt.Errorf("unable to check digests for component reference %s:%s: %w", reference.ComponentName, reference.Version, err)
 		}
 
 		if !reflect.DeepEqual(reference.Digest, digest) {
-			return fmt.Errorf("component reference digest for  %s:%s is different to stored one", reference.ComponentName, reference.Version)
+			return fmt.Errorf("calculated digest mismatches existing digest for component reference %s:%s", reference.ComponentName, reference.Version)
 		}
-
 	}
+
 	for _, resource := range cd.Resources {
 		if resource.Access == nil || resource.Access.Type == "None" {
 			if resource.Digest != nil {
-				return fmt.Errorf("resource with access nil/access.type none for %s:%s", resource.Name, resource.Version)
+				return fmt.Errorf("found access == nil or access.type == None in resource %s:%s", resource.Name, resource.Version)
 			}
 			continue
 		}
 
 		if resource.Digest == nil || resource.Digest.HashAlgorithm == "" || resource.Digest.NormalisationAlgorithm == "" || resource.Digest.Value == "" {
-			return fmt.Errorf("resource is missing digest %s:%s", resource.Name, resource.Version)
+			return fmt.Errorf("missing digest in resource %s:%s", resource.Name, resource.Version)
 		}
 
 		hasher, err := cdv2Sign.HasherForName(resource.Digest.HashAlgorithm)
 		if err != nil {
-			return fmt.Errorf("failed creating hasher for algorithm %s for resource %s %s: %w", resource.Digest.HashAlgorithm, resource.Name, resource.Version, err)
+			return fmt.Errorf("unable to create hasher for resource %s:%s: %w", resource.Name, resource.Version, err)
 		}
 		digester := signatures.NewDigester(ociClient, *hasher)
 
 		digest, err := digester.DigestForResource(ctx, *cd, resource)
 		if err != nil {
-			return fmt.Errorf("failed creating digest for resource %s: %w", resource.Name, err)
+			return fmt.Errorf("unable to calculate digest for resource %s:%s: %w", resource.Name, resource.Version, err)
 		}
 
 		if !reflect.DeepEqual(resource.Digest, digest) {
-			return fmt.Errorf("resource digest is different to stored one %s:%s", resource.Name, resource.Version)
+			return fmt.Errorf("calculated digest mismatches existing digest for resource %s:%s", resource.Name, resource.Version)
 		}
-
 	}
+
 	return nil
 }
 
@@ -188,7 +187,7 @@ func recursivelyCheckCdsDigests(cd *cdv2.ComponentDescriptor, repoContext cdv2.O
 
 		ociRef, err := cdoci.OCIRef(repoContext, reference.Name, reference.Version)
 		if err != nil {
-			return nil, fmt.Errorf("invalid component reference: %w", err)
+			return nil, fmt.Errorf("unable to build oci reference from component reference: %w", err)
 		}
 
 		cdresolver := cdoci.NewResolver(ociClient)
@@ -199,37 +198,38 @@ func recursivelyCheckCdsDigests(cd *cdv2.ComponentDescriptor, repoContext cdv2.O
 
 		hasher, err := cdv2Sign.HasherForName(cdv2Sign.SHA256)
 		if err != nil {
-			return nil, fmt.Errorf("failed creating hasher: %w", err)
+			return nil, fmt.Errorf("unable to create hasher for component reference %s:%s: %w", reference.Name, reference.Version, err)
 		}
 
 		digest, err := recursivelyCheckCdsDigests(childCd, repoContext, ociClient, ctx, hasher)
 		if err != nil {
-			return nil, fmt.Errorf("unable to resolve component reference to %s:%s: %w", reference.ComponentName, reference.Version, err)
+			return nil, fmt.Errorf("unable to check digests for component reference %s:%s: %w", reference.ComponentName, reference.Version, err)
 		}
 		reference.Digest = digest
 		cd.ComponentReferences[referenceIndex] = reference
 	}
+
 	for resourceIndex, resource := range cd.Resources {
 		resource := resource
 		log := logger.Log.WithValues("componentDescriptor", cd, "resource.name", resource.Name, "resource.version", resource.Version, "resource.extraIdentity", resource.ExtraIdentity)
 
 		hasher, err := cdv2Sign.HasherForName(cdv2Sign.SHA256)
 		if err != nil {
-			return nil, fmt.Errorf("failed creating hasher: %w", err)
+			return nil, fmt.Errorf("unable to create hasher for resource %s:%s: %w", resource.Name, resource.Version, err)
 		}
 
 		digester := signatures.NewDigester(ociClient, *hasher)
 
 		digest, err := digester.DigestForResource(ctx, *cd, resource)
 		if err != nil {
-			return nil, fmt.Errorf("failed creating digest for resource %s: %w", resource.Name, err)
+			return nil, fmt.Errorf("unable to calculate digest for resource %s:%s: %w", resource.Name, resource.Version, err)
 		}
 
 		// For better user information, log resource with mismatching digest.
 		// Since we do not trust the digest data in this cd, it is only for information purpose.
 		// The mismatch will be noted in the propagated cd reference digest in the root cd.
 		if resource.Digest != nil && !reflect.DeepEqual(resource.Digest, digest) {
-			log.Info(fmt.Sprintf("digest in (untrusted) cd %+v mismatches with calculated digest %+v ", resource.Digest, digest))
+			log.Info(fmt.Sprintf("calculated digest %+v mismatches existing (untrusted) digest %+v", digest, resource.Digest))
 		}
 
 		resource.Digest = digest
@@ -238,7 +238,8 @@ func recursivelyCheckCdsDigests(cd *cdv2.ComponentDescriptor, repoContext cdv2.O
 
 	hashCd, err := cdv2Sign.HashForComponentDescriptor(*cd, *hasherForCd)
 	if err != nil {
-		return nil, fmt.Errorf("failed hashing cd %s:%s: %w", cd.Name, cd.Version, err)
+		return nil, fmt.Errorf("unable to hash component descriptor %s:%s: %w", cd.Name, cd.Version, err)
 	}
+
 	return hashCd, nil
 }

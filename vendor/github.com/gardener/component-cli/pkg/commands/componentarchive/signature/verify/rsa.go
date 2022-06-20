@@ -52,13 +52,13 @@ func NewRSAVerifyCommand(ctx context.Context) *cobra.Command {
 }
 
 func (o *RSAVerifyOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
-	verifier, err := cdv2Sign.CreateRsaVerifierFromKeyFile(o.PathToPublicKey)
+	verifier, err := cdv2Sign.CreateRSAVerifierFromKeyFile(o.PathToPublicKey)
 	if err != nil {
-		return fmt.Errorf("failed creating rsa verifier: %w", err)
+		return fmt.Errorf("unable to create rsa verifier: %w", err)
 	}
 
 	if err := o.GenericVerifyOptions.VerifyWithVerifier(ctx, log, fs, verifier); err != nil {
-		return fmt.Errorf("failed verifying cd: %w", err)
+		return fmt.Errorf("unable to verify component descriptor: %w", err)
 	}
 	return nil
 }

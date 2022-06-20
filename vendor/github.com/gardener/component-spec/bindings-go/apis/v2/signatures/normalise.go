@@ -1,3 +1,17 @@
+// Copyright 2022 Copyright (c) 2022 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package signatures
 
 import (
@@ -9,40 +23,40 @@ import (
 	"reflect"
 	"sort"
 
-	v2 "github.com/gardener/component-spec/bindings-go/apis/v2"
+	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 )
 
 // Entry is used for normalisation and has to contain one key
 type Entry map[string]interface{}
 
 // AddDigestsToComponentDescriptor adds digest to componentReferences and resources as returned in the resolver functions. If a digest already exists, a mismatch against the resolved digest will return an error.
-func AddDigestsToComponentDescriptor(ctx context.Context, cd *v2.ComponentDescriptor,
-	compRefResolver func(context.Context, v2.ComponentDescriptor, v2.ComponentReference) (*v2.DigestSpec, error),
-	resResolver func(context.Context, v2.ComponentDescriptor, v2.Resource) (*v2.DigestSpec, error)) error {
+func AddDigestsToComponentDescriptor(ctx context.Context, cd *cdv2.ComponentDescriptor,
+	compRefResolver func(context.Context, cdv2.ComponentDescriptor, cdv2.ComponentReference) (*cdv2.DigestSpec, error),
+	resResolver func(context.Context, cdv2.ComponentDescriptor, cdv2.Resource) (*cdv2.DigestSpec, error)) error {
 
 	for i, reference := range cd.ComponentReferences {
 		digest, err := compRefResolver(ctx, *cd, reference)
 		if err != nil {
-			return fmt.Errorf("failed resolving componentReference for %s:%s: %w", reference.Name, reference.Version, err)
+			return fmt.Errorf("unable to resolve component reference for %s:%s: %w", reference.Name, reference.Version, err)
 		}
 		if reference.Digest != nil && !reflect.DeepEqual(reference.Digest, digest) {
-			return fmt.Errorf("calculated cd reference digest mismatches existing digest %s:%s", reference.ComponentName, reference.Version)
+			return fmt.Errorf("calculated digest mismatches existing digest for component reference %s:%s", reference.ComponentName, reference.Version)
 		}
 		cd.ComponentReferences[i].Digest = digest
 	}
 
 	for i, res := range cd.Resources {
 		// special digest notation indicates to not digest the content
-		if res.Digest != nil && reflect.DeepEqual(res.Digest, v2.NewExcludeFromSignatureDigest()) {
+		if res.Digest != nil && reflect.DeepEqual(res.Digest, cdv2.NewExcludeFromSignatureDigest()) {
 			continue
 		}
 
 		digest, err := resResolver(ctx, *cd, res)
 		if err != nil {
-			return fmt.Errorf("failed resolving resource for %s:%s: %w", res.Name, res.Version, err)
+			return fmt.Errorf("unable to resolve resource %s:%s: %w", res.Name, res.Version, err)
 		}
 		if res.Digest != nil && !reflect.DeepEqual(res.Digest, digest) {
-			return fmt.Errorf("calculated resource digest mismatches existing digest %s:%s", res.Name, res.Version)
+			return fmt.Errorf("calculated digest mismatches existing digest for resource %s:%s", res.Name, res.Version)
 		}
 		cd.Resources[i].Digest = digest
 	}
@@ -51,25 +65,25 @@ func AddDigestsToComponentDescriptor(ctx context.Context, cd *v2.ComponentDescri
 
 // HashForComponentDescriptor return the hash for the component-descriptor, if it is normaliseable
 // (= componentReferences and resources contain digest field)
-func HashForComponentDescriptor(cd v2.ComponentDescriptor, hash Hasher) (*v2.DigestSpec, error) {
-	normalisedComponentDescriptor, err := normalizeComponentDescriptor(cd)
+func HashForComponentDescriptor(cd cdv2.ComponentDescriptor, hash Hasher) (*cdv2.DigestSpec, error) {
+	normalisedComponentDescriptor, err := normaliseComponentDescriptor(cd)
 	if err != nil {
-		return nil, fmt.Errorf("failed normalising component descriptor %w", err)
+		return nil, fmt.Errorf("unable to normalise component descriptor: %w", err)
 	}
 	hash.HashFunction.Reset()
 	if _, err = hash.HashFunction.Write(normalisedComponentDescriptor); err != nil {
-		return nil, fmt.Errorf("failed hashing the normalisedComponentDescriptorJson: %w", err)
+		return nil, fmt.Errorf("unable to hash normalised component descriptor: %w", err)
 	}
-	return &v2.DigestSpec{
+	return &cdv2.DigestSpec{
 		HashAlgorithm:          hash.AlgorithmName,
-		NormalisationAlgorithm: string(v2.JsonNormalisationV1),
+		NormalisationAlgorithm: string(cdv2.JsonNormalisationV1),
 		Value:                  hex.EncodeToString(hash.HashFunction.Sum(nil)),
 	}, nil
 }
 
-func normalizeComponentDescriptor(cd v2.ComponentDescriptor) ([]byte, error) {
+func normaliseComponentDescriptor(cd cdv2.ComponentDescriptor) ([]byte, error) {
 	if err := isNormaliseable(cd); err != nil {
-		return nil, fmt.Errorf("can not normalise component-descriptor %s:%s: %w", cd.Name, cd.Version, err)
+		return nil, fmt.Errorf("component descriptor %s:%s is not normaliseable: %w", cd.Name, cd.Version, err)
 	}
 
 	meta := []Entry{
@@ -138,34 +152,34 @@ func normalizeComponentDescriptor(cd v2.ComponentDescriptor) ([]byte, error) {
 		{"resources": resources},
 	}
 
-	normalizedComponentDescriptor := []Entry{
+	normalisedComponentDescriptor := []Entry{
 		{"meta": meta},
 		{"component": componentSpec},
 	}
 
-	if err := deepSort(normalizedComponentDescriptor); err != nil {
-		return nil, fmt.Errorf("failed sorting during normalisation: %w", err)
+	if err := deepSort(normalisedComponentDescriptor); err != nil {
+		return nil, fmt.Errorf("unable to sort normalised component descriptor: %w", err)
 	}
 
 	byteBuffer := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(byteBuffer)
 	encoder.SetEscapeHTML(false)
 
-	if err := encoder.Encode(normalizedComponentDescriptor); err != nil {
+	if err := encoder.Encode(normalisedComponentDescriptor); err != nil {
 		return nil, err
 	}
 
-	normalizedJson := byteBuffer.Bytes()
+	normalisedJson := byteBuffer.Bytes()
 
 	// encoder.Encode appends a newline that we do not want
-	if normalizedJson[len(normalizedJson)-1] == 10 {
-		normalizedJson = normalizedJson[:len(normalizedJson)-1]
+	if normalisedJson[len(normalisedJson)-1] == 10 {
+		normalisedJson = normalisedJson[:len(normalisedJson)-1]
 	}
 
-	return normalizedJson, nil
+	return normalisedJson, nil
 }
 
-func buildExtraIdentity(identity v2.Identity) []Entry {
+func buildExtraIdentity(identity cdv2.Identity) []Entry {
 	var extraIdentities []Entry
 	for k, v := range identity {
 		extraIdentities = append(extraIdentities, Entry{k: v})
@@ -201,12 +215,12 @@ func deepSort(in interface{}) error {
 		}
 	case string:
 		break
-	case v2.ProviderType:
+	case cdv2.ProviderType:
 		break
-	case v2.ResourceRelation:
+	case cdv2.ResourceRelation:
 		break
 	default:
-		return fmt.Errorf("unknown type in sorting. This should not happen")
+		return fmt.Errorf("unknown type in sorting: %T", in)
 	}
 	return nil
 }
@@ -230,19 +244,19 @@ func getOnlyValueInEntry(entry Entry) interface{} {
 // isNormaliseable checks if componentReferences and resources contain digest.
 // Resources are allowed to omit the digest, if res.access.type == None or res.access == nil.
 // Does NOT verify if the digests are correct
-func isNormaliseable(cd v2.ComponentDescriptor) error {
+func isNormaliseable(cd cdv2.ComponentDescriptor) error {
 	// check for digests on component references
 	for _, reference := range cd.ComponentReferences {
 		if reference.Digest == nil || reference.Digest.HashAlgorithm == "" || reference.Digest.NormalisationAlgorithm == "" || reference.Digest.Value == "" {
-			return fmt.Errorf("missing digest in componentReference for %s:%s", reference.Name, reference.Version)
+			return fmt.Errorf("missing digest in component reference %s:%s", reference.Name, reference.Version)
 		}
 	}
 	for _, res := range cd.Resources {
 		if (res.Access != nil && res.Access.Type != "None") && res.Digest == nil {
-			return fmt.Errorf("missing digest in resource for %s:%s", res.Name, res.Version)
+			return fmt.Errorf("missing digest in resource %s:%s", res.Name, res.Version)
 		}
 		if (res.Access == nil || res.Access.Type == "None") && res.Digest != nil {
-			return fmt.Errorf("digest for resource with emtpy (None) access not allowed %s:%s", res.Name, res.Version)
+			return fmt.Errorf("digest with emtpy (None) access not allowed in resource %s:%s", res.Name, res.Version)
 		}
 	}
 	return nil
