@@ -37,7 +37,15 @@ func (c *Collector) CollectInstallationsInCluster(name string, namespace string)
 		}
 	}
 	for _, inst := range instList.Items {
-		if inst.OwnerReferences == nil { //filters for root installations (since subInstallations have a owner reference)
+		//an installation is a root installation if it does NOT have any other installations as owner reference.
+		//It may have other custom resources as owners reference.
+		isRootInstallation := true
+		for _, ownerReference := range inst.OwnerReferences {
+			if ownerReference.Kind == lsv1alpha1.InstallationDefinition.Names.Kind {
+				isRootInstallation = false
+			}
+		}
+		if isRootInstallation {
 			filledInst, err := c.collectInstallationTree(inst.Name, inst.Namespace)
 			if err != nil {
 				return nil, fmt.Errorf("cannot get installation details for %s: %w", inst.Name, err)
