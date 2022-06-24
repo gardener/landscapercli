@@ -56,7 +56,7 @@ func NewAddDigestsCommand(ctx context.Context) *cobra.Command {
 		Args:  cobra.ExactArgs(3),
 		Short: "fetch the component descriptor from an oci registry and add digests",
 		Long: `
-		fetch the component descriptor from an oci registry and add digests. Optionally resolve and digest the referenced component descriptors.
+		fetch the component descriptor from an oci registry and add digests. optionally resolve and digest the referenced component descriptors.
 `,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
@@ -100,7 +100,7 @@ func (o *AddDigestsOptions) Run(ctx context.Context, log logr.Logger, fs vfs.Fil
 
 	cds, err := signatures.RecursivelyAddDigestsToCd(rootCd, *repoCtx, ociClient, blobResolvers, context.TODO(), skipAccessTypesMap)
 	if err != nil {
-		return fmt.Errorf("failed adding digests to cd: %w", err)
+		return fmt.Errorf("unable to add digests to component descriptor: %w", err)
 	}
 
 	targetRepoCtx := cdv2.NewOCIRegistryRepository(o.UploadBaseUrl, "")
@@ -110,12 +110,12 @@ func (o *AddDigestsOptions) Run(ctx context.Context, log logr.Logger, fs vfs.Fil
 			logger.Log.Info(fmt.Sprintf("Uploading to %s %s %s", o.UploadBaseUrl, cd.Name, cd.Version))
 
 			if err := signatures.UploadCDPreservingLocalOciBlobs(ctx, *cd, *targetRepoCtx, ociClient, cache, blobResolvers, o.Force, log); err != nil {
-				return fmt.Errorf("failed uploading cd: %w", err)
+				return fmt.Errorf("unable to upload component descriptor %s:%s: %w", cd.Name, cd.Version, err)
 			}
 		}
 	} else {
 		if err := signatures.UploadCDPreservingLocalOciBlobs(ctx, *rootCd, *targetRepoCtx, ociClient, cache, blobResolvers, o.Force, log); err != nil {
-			return fmt.Errorf("failed uploading cd: %w", err)
+			return fmt.Errorf("unable to upload component descriptor %s:%s: %w", rootCd.Name, rootCd.Version, err)
 		}
 	}
 

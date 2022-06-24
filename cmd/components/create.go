@@ -18,6 +18,7 @@ import (
 
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cd "github.com/gardener/component-spec/bindings-go/apis/v2"
+	cdvalidation "github.com/gardener/component-spec/bindings-go/apis/v2/validation"
 
 	"github.com/gardener/landscapercli/pkg/blueprints"
 	"github.com/gardener/landscapercli/pkg/components"
@@ -37,7 +38,7 @@ type createOptions struct {
 	componentVersion string
 }
 
-// NewCreateCommand creates a new blueprint command to create a blueprint
+// NewCreateCommand creates a new component command to create a component
 func NewCreateCommand(ctx context.Context) *cobra.Command {
 	opts := &createOptions{}
 	cmd := &cobra.Command{
@@ -160,7 +161,10 @@ func (o *createOptions) run(ctx context.Context, log logr.Logger) error {
 	}
 
 	// Create component-descriptor file
-	componentDescriptor := o.buildInitialComponentDescriptor()
+	componentDescriptor, err := o.buildInitialComponentDescriptor()
+	if err != nil {
+		return fmt.Errorf("failed creating component descriptor: %w", err)
+	}
 	err = components.NewComponentDescriptorWriter(o.componentPath).Write(componentDescriptor)
 	if err != nil {
 		return err
@@ -198,9 +202,9 @@ func (o *createOptions) createComponentDir() error {
 	return nil
 }
 
-func (o *createOptions) buildInitialComponentDescriptor() *cd.ComponentDescriptor {
+func (o *createOptions) buildInitialComponentDescriptor() (*cd.ComponentDescriptor, error) {
 	repoCtx, _ := cd.NewUnstructured(cd.NewOCIRegistryRepository("", ""))
-	return &cd.ComponentDescriptor{
+	cd := cd.ComponentDescriptor{
 		Metadata: cd.Metadata{
 			Version: cd.SchemaVersion,
 		},
@@ -216,6 +220,10 @@ func (o *createOptions) buildInitialComponentDescriptor() *cd.ComponentDescripto
 			Resources:           []cd.Resource{},
 		},
 	}
+	if err := cdvalidation.Validate(&cd); err != nil {
+		return nil, fmt.Errorf("invalid component descriptor: %w", err)
+	}
+	return &cd, nil
 }
 
 func (o *createOptions) buildInitialResources() []cdresources.ResourceOptions {

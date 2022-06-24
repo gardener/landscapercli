@@ -6,6 +6,7 @@ package componentarchive
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -65,6 +66,14 @@ func (o *CreateOptions) Complete(args []string) error {
 		return fmt.Errorf("expected exactly one argument that contains the path to the component archive")
 	}
 	o.ComponentArchivePath = args[0]
+
+	if len(o.Name) == 0 {
+		return errors.New("a name has to be provided for a minimal component descriptor")
+	}
+
+	if len(o.Version) == 0 {
+		return errors.New("a version has to be provided for a minimal component descriptor")
+	}
 
 	return o.validate()
 }
