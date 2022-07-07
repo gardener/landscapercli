@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	installations "github.com/gardener/landscaper/pkg/landscaper/installations"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -37,7 +38,7 @@ func (c *Collector) CollectInstallationsInCluster(name string, namespace string)
 		}
 	}
 	for _, inst := range instList.Items {
-		if inst.OwnerReferences == nil { //filters for root installations (since subInstallations have a owner reference)
+		if installations.IsRootInstallation(&inst) {
 			filledInst, err := c.collectInstallationTree(inst.Name, inst.Namespace)
 			if err != nil {
 				return nil, fmt.Errorf("cannot get installation details for %s: %w", inst.Name, err)
