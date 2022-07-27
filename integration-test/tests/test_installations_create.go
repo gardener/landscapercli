@@ -271,6 +271,9 @@ func (t *installationsCreateTest) checkInstallation(outBuf *bytes.Buffer) error 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: t.installationName,
+			Annotations: map[string]string{
+				lsv1alpha1.OperationAnnotation: string(lsv1alpha1.ReconcileOperation),
+			},
 		},
 		Spec: lsv1alpha1.InstallationSpec{
 			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{

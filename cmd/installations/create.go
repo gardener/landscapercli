@@ -393,6 +393,9 @@ func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes c
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
+			Annotations: map[string]string{
+				lsv1alpha1.OperationAnnotation: string(lsv1alpha1.ReconcileOperation),
+			},
 		},
 		Spec: lsv1alpha1.InstallationSpec{
 			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{

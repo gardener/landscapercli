@@ -154,6 +154,9 @@ func buildHelmInstallation(name string, target *lsv1alpha1.Target, helmChartRef,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: target.Namespace,
+			Annotations: map[string]string{
+				lsv1alpha1.OperationAnnotation: string(lsv1alpha1.ReconcileOperation),
+			},
 		},
 		Spec: lsv1alpha1.InstallationSpec{
 			Blueprint: lsv1alpha1.BlueprintDefinition{

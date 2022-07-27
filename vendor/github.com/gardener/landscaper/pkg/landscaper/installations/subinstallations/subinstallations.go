@@ -28,14 +28,14 @@ import (
 )
 
 // TriggerSubInstallations triggers a reconcile for all sub installation of the component.
-func (o *Operation) TriggerSubInstallations(ctx context.Context, inst *lsv1alpha1.Installation, operation lsv1alpha1.Operation) error {
+func (o *Operation) TriggerSubInstallations(ctx context.Context, inst *lsv1alpha1.Installation) error {
 	for _, instRef := range inst.Status.InstallationReferences {
 		subInst := &lsv1alpha1.Installation{}
 		if err := read_write_layer.GetInstallation(ctx, o.Client(), instRef.Reference.NamespacedName(), subInst); err != nil {
 			return errors.Wrapf(err, "unable to get sub installation %s", instRef.Reference.NamespacedName().String())
 		}
 
-		metav1.SetMetaDataAnnotation(&subInst.ObjectMeta, lsv1alpha1.OperationAnnotation, string(operation))
+		metav1.SetMetaDataAnnotation(&subInst.ObjectMeta, lsv1alpha1.OperationAnnotation, string(lsv1alpha1.ReconcileOperation))
 		if err := o.Writer().UpdateInstallation(ctx, read_write_layer.W000007, subInst); err != nil {
 			return errors.Wrapf(err, "unable to update sub installation %s", instRef.Reference.NamespacedName().String())
 		}
@@ -60,16 +60,16 @@ func (o *Operation) Ensure(ctx context.Context) error {
 	// need to check if we are allowed to update the subinstallation
 	// - we are not allowed if any subresource is in deletion
 	// - we are not allowed to update if any subinstallation is progressing
-	for _, subInstallations := range subInstallations {
-		if subInstallations.DeletionTimestamp != nil {
+	for _, subInstallation := range subInstallations {
+		if subInstallation.DeletionTimestamp != nil {
 			inst.Status.Conditions = lsv1alpha1helper.MergeConditions(inst.Status.Conditions, cond)
-			err := fmt.Errorf("not eligible for update due to deletion of subinstallation %s", subInstallations.Name)
+			err := fmt.Errorf("not eligible for update due to deletion of subinstallation %s", subInstallation.Name)
 			return o.NewError(err, "DeletingSubInstallation", err.Error())
 		}
 
-		if subInstallations.Status.Phase == lsv1alpha1.ComponentPhaseProgressing {
+		if subInstallation.Status.Phase == lsv1alpha1.ComponentPhaseProgressing {
 			inst.Status.Conditions = lsv1alpha1helper.MergeConditions(inst.Status.Conditions, cond)
-			err = fmt.Errorf("not eligible for update due to running subinstallation %s", subInstallations.Name)
+			err = fmt.Errorf("not eligible for update due to running subinstallation %s", subInstallation.Name)
 			return o.NewError(err, "RunningSubinstallation", err.Error())
 		}
 	}
@@ -253,13 +253,14 @@ func (o *Operation) getInstallationTemplates() ([]*lsv1alpha1.InstallationTempla
 			Inst:       o.Inst.Info,
 		}
 		tmpl := template.New(gotemplate.New(o.BlobResolver, templateStateHandler), spiff.New(templateStateHandler))
-		templatedTmpls, err := tmpl.TemplateSubinstallationExecutions(template.DeployExecutionOptions{
-			Imports:              o.Inst.GetImports(),
-			Installation:         o.Context().External.InjectComponentDescriptorRef(o.Inst.Info.DeepCopy()),
-			Blueprint:            o.Inst.Blueprint,
-			ComponentDescriptor:  o.ComponentDescriptor,
-			ComponentDescriptors: o.ResolvedComponentDescriptorList,
-		})
+		templatedTmpls, err := tmpl.TemplateSubinstallationExecutions(template.NewDeployExecutionOptions(
+			template.NewBlueprintExecutionOptions(
+				o.Context().External.InjectComponentDescriptorRef(o.Inst.Info.DeepCopy()),
+				o.Inst.Blueprint,
+				o.ComponentDescriptor,
+				o.ResolvedComponentDescriptorList,
+				o.Inst.GetImports())))
+
 		if err != nil {
 			return nil, fmt.Errorf("unable to template subinstllations: %w", err)
 		}

@@ -11,6 +11,9 @@ import (
 	"text/template"
 	"time"
 
+	v1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+
 	componentclilog "github.com/gardener/component-cli/pkg/logger"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
@@ -399,6 +402,28 @@ func (FinalizerPatch) Data(obj client.Object) ([]byte, error) {
 	return patchRaw, nil
 }
 
+type ReplicasPatch struct {
+}
+
+func (ReplicasPatch) Type() types.PatchType {
+	return types.MergePatchType
+}
+
+func (ReplicasPatch) Data(obj client.Object) ([]byte, error) {
+	patch := map[string]interface{}{
+		"spec": map[string]interface{}{
+			"replicas": 0,
+		},
+	}
+
+	patchRaw, err := json.Marshal(patch)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal patch: %w", err)
+	}
+
+	return patchRaw, nil
+}
+
 func forceDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
 	ctx := context.Background()
 
@@ -433,6 +458,30 @@ func forceDeleteNamespace(k8sClient client.Client, namespace string, sleepTime t
 
 func removeFinalizerLandscaperResources(ctx context.Context, k8sClient client.Client, namespace string) error {
 	patch := FinalizerPatch{}
+
+	// Scale down the deployments, so that there are in particular no more landscaper pods that could re-create the
+	// finalizers that we are going to remove below.
+	deploymentList := &v1.DeploymentList{}
+	if err := k8sClient.List(ctx, deploymentList, &client.ListOptions{Namespace: namespace}); err != nil {
+		return fmt.Errorf("failed to list deployments: %w", err)
+	}
+
+	replicaPatch := ReplicasPatch{}
+	for _, deployment := range deploymentList.Items {
+		if err := k8sClient.Patch(ctx, &deployment, replicaPatch); err != nil {
+			return fmt.Errorf("failed to scale down deployment %q: %w", deployment.Name, err)
+		}
+
+		if err := wait.PollImmediate(time.Second, 10*time.Second, func() (done bool, err error) {
+			deploy := &v1.Deployment{}
+			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&deployment), deploy); err != nil {
+				return false, fmt.Errorf("failed to get deployment %q: %w", deployment.Name, err)
+			}
+			return deploy.Status.Replicas == 0, nil
+		}); err != nil {
+			return fmt.Errorf("failed to wait until deployment %q was scaled down: %w", deployment.Name, err)
+		}
+	}
 
 	podList := &corev1.PodList{}
 	if err := k8sClient.List(ctx, podList, &client.ListOptions{Namespace: namespace}); err != nil {
