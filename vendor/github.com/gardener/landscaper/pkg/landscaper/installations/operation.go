@@ -32,6 +32,7 @@ import (
 	"github.com/gardener/landscaper/pkg/landscaper/dataobjects"
 	"github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
+	lsutil "github.com/gardener/landscaper/pkg/utils"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	lsv1alpha1helper "github.com/gardener/landscaper/apis/core/v1alpha1/helper"
@@ -49,6 +50,9 @@ type Operation struct {
 	BlobResolver                    ctf.BlobResolver
 	ResolvedComponentDescriptorList *cdv2.ComponentDescriptorList
 	context                         Context
+
+	targetLists map[string]*dataobjects.TargetList
+	targets     map[string]*dataobjects.Target
 
 	// CurrentOperation is the name of the current operation that is used for the error erporting
 	CurrentOperation string
@@ -72,6 +76,19 @@ func NewInstallationOperationFromOperation(ctx context.Context, op *lsoperation.
 	return NewOperationBuilder(inst).
 		WithOperation(op).
 		Build(ctx)
+}
+
+func (o *Operation) GetTargetImport(name string) *dataobjects.Target {
+	return o.targets[name]
+}
+func (o *Operation) GetTargetListImport(name string) *dataobjects.TargetList {
+	return o.targetLists[name]
+}
+func (o *Operation) SetTargetImports(data map[string]*dataobjects.Target) {
+	o.targets = data
+}
+func (o *Operation) SetTargetListImports(data map[string]*dataobjects.TargetList) {
+	o.targetLists = data
 }
 
 // ResolveComponentDescriptors resolves the effective component descriptors for the installation.
@@ -513,6 +530,26 @@ func (o *Operation) TriggerDependents(ctx context.Context) error {
 	return nil
 }
 
+// NewTriggerDependents triggers all installations that depend on the current installation.
+func (o *Operation) NewTriggerDependents(ctx context.Context) error {
+	for _, sibling := range o.Context().Siblings {
+		if !importsAnyExport(o.Inst, sibling) {
+			continue
+		}
+
+		if IsRootInstallation(o.Inst.Info) {
+			metav1.SetMetaDataAnnotation(&sibling.Info.ObjectMeta, lsv1alpha1.OperationAnnotation, string(lsv1alpha1.ReconcileOperation))
+		} else {
+			lsv1alpha1helper.Touch(&sibling.Info.ObjectMeta)
+		}
+
+		if err := o.Writer().UpdateInstallation(ctx, read_write_layer.W000085, sibling.Info); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // SetExportConfigGeneration returns the new export generation of the installation
 // based on its own generation and its context
 func (o *Operation) SetExportConfigGeneration(ctx context.Context) error {
@@ -549,8 +586,10 @@ func (o *Operation) CreateOrUpdateExports(ctx context.Context, dataExports []*da
 
 		// we do not need to set controller ownership as we anyway need a separate garbage collection.
 		if _, err := o.Writer().CreateOrUpdateCoreDataObject(ctx, read_write_layer.W000068, raw, func() error {
-			if err := controllerutil.SetOwnerReference(o.Inst.Info, raw, api.LandscaperScheme); err != nil {
-				return err
+			if err, err2 := lsutil.SetExclusiveOwnerReference(o.Inst.Info, raw); err != nil {
+				return fmt.Errorf("dataobject '%s' for export '%s' conflicts with existing dataobject owned by another installation: %w", client.ObjectKeyFromObject(raw).String(), do.Metadata.Key, err)
+			} else if err2 != nil {
+				return fmt.Errorf("error setting owner reference: %w", err2)
 			}
 			return do.Apply(raw)
 		}); err != nil {
@@ -574,8 +613,10 @@ func (o *Operation) CreateOrUpdateExports(ctx context.Context, dataExports []*da
 
 		// we do not need to set controller ownership as we anyway need a separate garbage collection.
 		if _, err := o.Writer().CreateOrUpdateCoreTarget(ctx, read_write_layer.W000069, raw, func() error {
-			if err := controllerutil.SetOwnerReference(o.Inst.Info, raw, api.LandscaperScheme); err != nil {
-				return err
+			if err, err2 := lsutil.SetExclusiveOwnerReference(o.Inst.Info, raw); err != nil {
+				return fmt.Errorf("target object '%s' for export '%s' conflicts with existing target owned by another installation: %w", client.ObjectKeyFromObject(raw).String(), target.Metadata.Key, err)
+			} else if err2 != nil {
+				return fmt.Errorf("error setting owner reference: %w", err2)
 			}
 			return target.Apply(raw)
 		}); err != nil {
@@ -657,9 +698,6 @@ func (o *Operation) createOrUpdateDataImport(ctx context.Context, src string, im
 			lsv1alpha1helper.UpdatedCondition(cond, lsv1alpha1.ConditionFalse,
 				"CreateDataObjects",
 				fmt.Sprintf("unable to create data object for import '%s'", importDef.Name)))
-		o.Inst.Info.Status.LastError = lserrors.UpdatedError(o.Inst.Info.Status.LastError,
-			"CreateDataObjects", fmt.Sprintf("unable to create dataobjects for import '%s'", importDef.Name),
-			err.Error())
 		return fmt.Errorf("unable to build data object for import '%s': %w", importDef.Name, err)
 	}
 
@@ -674,9 +712,6 @@ func (o *Operation) createOrUpdateDataImport(ctx context.Context, src string, im
 			lsv1alpha1helper.UpdatedCondition(cond, lsv1alpha1.ConditionFalse,
 				"CreateDataObjects",
 				fmt.Sprintf("unable to create data object for import '%s'", importDef.Name)))
-		o.Inst.Info.Status.LastError = lserrors.UpdatedError(o.Inst.Info.Status.LastError,
-			"CreateDatatObjects", fmt.Sprintf("unable to create data objects for import '%s'", importDef.Name),
-			err.Error())
 		return fmt.Errorf("unable to create or update data object '%s' for import '%s': %w", raw.Name, importDef.Name, err)
 	}
 	return nil
@@ -707,9 +742,6 @@ func (o *Operation) createOrUpdateTargetImport(ctx context.Context, src string, 
 			lsv1alpha1helper.UpdatedCondition(cond, lsv1alpha1.ConditionFalse,
 				"CreateTargets",
 				fmt.Sprintf("unable to create target for import '%s'", importDef.Name)))
-		o.Inst.Info.Status.LastError = lserrors.UpdatedError(o.Inst.Info.Status.LastError,
-			"CreateTargets", fmt.Sprintf("unable to create target for import '%s'", importDef.Name),
-			err.Error())
 		return fmt.Errorf("unable to build target for import '%s': %w", importDef.Name, err)
 	}
 
@@ -724,9 +756,6 @@ func (o *Operation) createOrUpdateTargetImport(ctx context.Context, src string, 
 			lsv1alpha1helper.UpdatedCondition(cond, lsv1alpha1.ConditionFalse,
 				"CreateTargets",
 				fmt.Sprintf("unable to create target for import '%s'", importDef.Name)))
-		o.Inst.Info.Status.LastError = lserrors.UpdatedError(o.Inst.Info.Status.LastError,
-			"CreateTargets", fmt.Sprintf("unable to create target for import '%s'", importDef.Name),
-			err.Error())
 		return fmt.Errorf("unable to create or update target '%s' for import '%s': %w", target.Name, importDef.Name, err)
 	}
 
@@ -765,9 +794,6 @@ func (o *Operation) createOrUpdateTargetListImport(ctx context.Context, src stri
 			lsv1alpha1helper.UpdatedCondition(cond, lsv1alpha1.ConditionFalse,
 				"CreateTargets",
 				fmt.Sprintf("unable to create targets for import '%s'", importDef.Name)))
-		o.Inst.Info.Status.LastError = lserrors.UpdatedError(o.Inst.Info.Status.LastError,
-			"CreateTargets", fmt.Sprintf("unable to create targets for import '%s'", importDef.Name),
-			err.Error())
 		return fmt.Errorf("unable to build targets for import '%s': %w", importDef.Name, err)
 	}
 
@@ -783,9 +809,6 @@ func (o *Operation) createOrUpdateTargetListImport(ctx context.Context, src stri
 				lsv1alpha1helper.UpdatedCondition(cond, lsv1alpha1.ConditionFalse,
 					"CreateTargets",
 					fmt.Sprintf("unable to create target for import '%s'", importDef.Name)))
-			o.Inst.Info.Status.LastError = lserrors.UpdatedError(o.Inst.Info.Status.LastError,
-				"CreateTargets", fmt.Sprintf("unable to create target for import '%s'", importDef.Name),
-				err.Error())
 			return fmt.Errorf("unable to create or update target '%s' for import '%s': %w", target.Name, importDef.Name, err)
 		}
 	}

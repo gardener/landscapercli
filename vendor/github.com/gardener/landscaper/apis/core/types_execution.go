@@ -24,6 +24,8 @@ const ReconcileDeployItemsCondition ConditionType = "ReconcileDeployItems"
 
 type ExecutionPhase string
 
+type ExecPhase string
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ExecutionList contains a list of Executions‚
@@ -61,12 +63,16 @@ type ExecutionSpec struct {
 	// Note that the type information is used to determine the secret key and the type of the secret.
 	// +optional
 	RegistryPullSecrets []ObjectReference `json:"registryPullSecrets,omitempty"`
+
+	// ReconcileID is used to update an execution even if its deploy items have not changed but their
+	// reconciliation should be triggered again.
+	ReconcileID string `json:"reconcileID,omitempty"`
 }
 
 // ExecutionStatus contains the current status of a execution.
 type ExecutionStatus struct {
 	// Phase is the current phase of the execution .
-	Phase ExecutionPhase `json:"phase,omitempty"`
+	Phase ExecutionPhase `json:"-"`
 
 	// ObservedGeneration is the most recent generation observed for this Execution.
 	// It corresponds to the Execution generation, which is updated on mutation by the landscaper.
@@ -89,6 +95,15 @@ type ExecutionStatus struct {
 	// ExecutionGenerations stores which generation the execution had when it last applied a specific deployitem.
 	// So in this case, the observedGeneration refers to the executions generation.
 	ExecutionGenerations []ExecutionGeneration `json:"execGenerations,omitempty"`
+
+	// JobID is the ID of the current working request.
+	JobID string `json:"jobID,omitempty"`
+
+	// JobIDFinished is the ID of the finished working request.
+	JobIDFinished string `json:"jobIDFinished,omitempty"`
+
+	// ExecutionPhase is the current phase of the execution.
+	ExecutionPhase ExecPhase `json:"phase,omitempty"`
 }
 
 // ExecutionGeneration links a deployitem to the generation of the execution when it was applied.

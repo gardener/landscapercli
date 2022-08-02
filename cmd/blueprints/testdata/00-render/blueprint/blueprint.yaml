@@ -16,7 +16,6 @@ deployExecutions:
     - name: first-di
       type: mock
       target:
-        name: {{ .imports.cluster.metadata.name }}
-        namespace: {{ .imports.cluster.metadata.namespace }}
+        import: cluster
       config: {{ toJson . }}
 

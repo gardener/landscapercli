@@ -62,6 +62,22 @@ const (
 	ComponentPhaseFailed      ComponentInstallationPhase = "Failed"
 )
 
+type InstallationPhase string
+
+const (
+	InstallationPhaseInit           InstallationPhase = "Init"
+	InstallationPhaseObjectsCreated InstallationPhase = "ObjectsCreated"
+	InstallationPhaseProgressing    InstallationPhase = "Progressing"
+	InstallationPhaseCompleting     InstallationPhase = "Completing"
+	InstallationPhaseSucceeded      InstallationPhase = "Succeeded"
+	InstallationPhaseFailed         InstallationPhase = "Failed"
+
+	InstallationPhaseInitDelete    InstallationPhase = "InitDelete"
+	InstallationPhaseTriggerDelete InstallationPhase = "TriggerDelete"
+	InstallationPhaseDeleting      InstallationPhase = "Deleting"
+	InstallationPhaseDeleteFailed  InstallationPhase = "DeleteFailed"
+)
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // InstallationList contains a list of Components
@@ -166,7 +182,7 @@ type InstallationSpec struct {
 // InstallationStatus contains the current status of a Installation.
 type InstallationStatus struct {
 	// Phase is the current phase of the installation.
-	Phase ComponentInstallationPhase `json:"phase,omitempty"`
+	Phase ComponentInstallationPhase `json:"-"`
 
 	// ObservedGeneration is the most recent generation observed for this ControllerInstallations.
 	// It corresponds to the ControllerInstallations generation, which is updated on mutation by the landscaper.
@@ -190,6 +206,18 @@ type InstallationStatus struct {
 
 	// ExecutionReference is the reference to the execution that schedules the templated execution items.
 	ExecutionReference *ObjectReference `json:"executionRef,omitempty"`
+
+	// JobID is the ID of the current working request.
+	JobID string `json:"jobID,omitempty"`
+
+	// JobIDFinished is the ID of the finished working request.
+	JobIDFinished string `json:"jobIDFinished,omitempty"`
+
+	// InstallationPhase is the current phase of the installation.
+	InstallationPhase InstallationPhase `json:"phase,omitempty"`
+
+	// ImportsHash is the hash of the import data.
+	ImportsHash string `json:"importsHash,omitempty"`
 }
 
 // InstallationImports defines import of data objects and targets.
