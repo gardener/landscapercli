@@ -18,7 +18,6 @@ landscaper-cli component-cli component-archive signatures verify x509 BASE_URL C
       --registry-config string         path to the dockerconfig.json with the oci registry authentication information
       --root-ca-cert string            [OPTIONAL] path to a file containing the root ca certificate in PEM format. if empty, the system root ca certificate pool is used
       --signature-name string          name of the signature to verify
-      --signing-cert string            (deprecated: use --cert instead) path to a file containing the signing certificate file in PEM format
 ```
 
 ### Options inherited from parent commands
