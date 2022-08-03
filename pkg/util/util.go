@@ -86,7 +86,7 @@ func CheckAndWaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, k
 			return false, fmt.Errorf("cannot get installation: %w", err)
 		}
 
-		return inst.Status.Phase == lsv1alpha1.ComponentPhaseSucceeded, nil
+		return inst.Status.InstallationPhase == lsv1alpha1.InstallationPhaseSucceeded, nil
 	}
 
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)

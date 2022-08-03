@@ -53,7 +53,7 @@ func (t Transformer) transformInstallation(installationTree *InstallationTree) (
 	}
 
 	printableNode.Headline = fmt.Sprintf("[%s] Installation %s%s",
-		formatStatus(string(installationTree.Installation.Status.Phase)), namespaceInfo, installationTree.Installation.Name)
+		formatStatus(string(installationTree.Installation.Status.InstallationPhase)), namespaceInfo, installationTree.Installation.Name)
 
 	if t.WideMode {
 		wide := strings.Builder{}
@@ -113,7 +113,7 @@ func (t Transformer) transformExecution(executionTree *ExecutionTree) (*Printabl
 
 	if t.ShowExecutions || t.DetailedMode {
 		printableNode.Headline = fmt.Sprintf("[%s] Execution %s",
-			formatStatus(string(executionTree.Execution.Status.Phase)), executionTree.Execution.Name)
+			formatStatus(string(executionTree.Execution.Status.ExecutionPhase)), executionTree.Execution.Name)
 	}
 
 	if t.DetailedMode {
@@ -224,14 +224,24 @@ func (t Transformer) transformDeployItem(deployItem *DeployItemLeaf) (*Printable
 }
 
 func formatStatus(status string) string {
-	if status == string(lsv1alpha1.ComponentPhaseSucceeded) {
+	switch status {
+	case string(lsv1alpha1.InstallationPhaseSucceeded):
 		return "✅ " + status
-	}
-	if status == string(lsv1alpha1.ComponentPhaseProgressing) {
+
+	case string(lsv1alpha1.InstallationPhaseInit),
+		string(lsv1alpha1.InstallationPhaseObjectsCreated),
+		string(lsv1alpha1.InstallationPhaseProgressing),
+		string(lsv1alpha1.InstallationPhaseCompleting),
+		string(lsv1alpha1.InstallationPhaseInitDelete),
+		string(lsv1alpha1.InstallationPhaseTriggerDelete),
+		string(lsv1alpha1.InstallationPhaseDeleting):
 		return "🏗️ " + status
-	}
-	if status == string(lsv1alpha1.ComponentPhaseFailed) {
+
+	case string(lsv1alpha1.InstallationPhaseFailed),
+		string(lsv1alpha1.InstallationPhaseDeleteFailed):
 		return "❌ " + status
+
+	default:
+		return status
 	}
-	return status
 }

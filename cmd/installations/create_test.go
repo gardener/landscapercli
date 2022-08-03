@@ -31,6 +31,9 @@ func TestBuildInstallation(t *testing.T) {
 				},
 				ObjectMeta: v1.ObjectMeta{
 					Name: "test-installation",
+					Annotations: map[string]string{
+						lsv1alpha1.OperationAnnotation: string(lsv1alpha1.ReconcileOperation),
+					},
 				},
 				Spec: lsv1alpha1.InstallationSpec{
 					ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
@@ -80,6 +83,9 @@ func TestBuildInstallation(t *testing.T) {
 				},
 				ObjectMeta: v1.ObjectMeta{
 					Name: "test-installation",
+					Annotations: map[string]string{
+						lsv1alpha1.OperationAnnotation: string(lsv1alpha1.ReconcileOperation),
+					},
 				},
 				Spec: lsv1alpha1.InstallationSpec{
 					ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{

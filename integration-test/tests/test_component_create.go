@@ -397,6 +397,9 @@ func (t *componentCreateTest) createInstallation(ctx context.Context) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      t.installationName,
 			Namespace: t.config.TestNamespace,
+			Annotations: map[string]string{
+				lsv1alpha1.OperationAnnotation: string(lsv1alpha1.ReconcileOperation),
+			},
 		},
 		Spec: lsv1alpha1.InstallationSpec{
 			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
@@ -455,7 +458,7 @@ func (t *componentCreateTest) waitUntilInstallationSucceeded(ctx context.Context
 			return false, fmt.Errorf("failed fetching installation: %w", err)
 		}
 
-		return installation.Status.Phase == lsv1alpha1.ComponentPhaseSucceeded, nil
+		return installation.Status.InstallationPhase == lsv1alpha1.InstallationPhaseSucceeded, nil
 	}
 
 	timeout, err := util.CheckConditionPeriodically(conditionFunc, t.config.SleepTime, t.config.MaxRetries)
