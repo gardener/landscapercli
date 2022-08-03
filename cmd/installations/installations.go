@@ -34,6 +34,8 @@ func NewInstallationsCommand(ctx context.Context) *cobra.Command {
 	cmd.AddCommand(NewSetImportParametersCommand(ctx))
 	cmd.AddCommand(NewInspectCommand(ctx))
 	cmd.AddCommand(NewForceDeleteCommand(ctx))
+	cmd.AddCommand(NewReconcileCommand(ctx))
+	cmd.AddCommand(NewInterruptCommand(ctx))
 
 	return cmd
 }
