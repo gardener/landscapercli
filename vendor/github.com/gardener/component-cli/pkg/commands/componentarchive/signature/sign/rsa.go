@@ -67,7 +67,7 @@ func (o *RSASignOptions) Complete(args []string) error {
 	}
 
 	if o.PathToPrivateKey == "" {
-		return errors.New("a path to private key file must be given as flag")
+		return errors.New("a path to a private key file must be provided")
 	}
 
 	return nil

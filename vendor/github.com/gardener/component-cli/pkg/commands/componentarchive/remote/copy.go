@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/component-spec/bindings-go/ctf"
@@ -71,6 +72,9 @@ type CopyOptions struct {
 
 	// OciOptions contains all exposed options to configure the oci client.
 	OciOptions ociopts.Options
+
+	MaxRetries    uint64
+	BackoffFactor time.Duration
 }
 
 // NewCopyCommand creates a new definition command to push definitions
@@ -136,6 +140,8 @@ func (o *CopyOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSyste
 		TargetArtifactRepository:       o.TargetArtifactRepository,
 		ConvertToRelativeOCIReferences: o.ConvertToRelativeOCIReferences,
 		ReplaceOCIRefs:                 replaceOCIRefs,
+		MaxRetries:                     o.MaxRetries,
+		BackoffFactor:                  o.BackoffFactor,
 	}
 
 	if err := c.Copy(ctx, o.ComponentName, o.ComponentVersion); err != nil {
@@ -192,6 +198,8 @@ func (o *CopyOptions) AddFlags(fs *pflag.FlagSet) {
 		"source repository where realtiove oci artifacts are copied from. This is only relevant if artifacts are copied by value and it will be defaulted to the source component repository")
 	fs.BoolVar(&o.ConvertToRelativeOCIReferences, "relative-urls", false, "converts all copied oci artifacts to relative urls")
 	fs.StringSliceVar(&o.ReplaceOCIRefs, "replace-oci-ref", []string{}, "list of replace expressions in the format left:right. For every resource with accessType == "+cdv2.OCIRegistryType+", all occurences of 'left' in the target ref are replaced with 'right' before the upload")
+	fs.Uint64Var(&o.MaxRetries, "max-retries", 0, "maximum number of retries for copying a component descriptor")
+	fs.DurationVar(&o.BackoffFactor, "backoff-factor", 1*time.Second, "a backoff factor to apply between retry attempts: backoff = backoff-factor * 2^retries. e.g. if backoff-factor is 1s, then the timeouts will be [1s, 2s, 4s, …]")
 	o.OciOptions.AddFlags(fs)
 }
 
@@ -222,9 +230,12 @@ type Copier struct {
 	ConvertToRelativeOCIReferences bool
 	// ReplaceOCIRefs contains replace expressions for manipulating upload refs of resources with accessType == ociRegistry
 	ReplaceOCIRefs map[string]string
+
+	MaxRetries    uint64
+	BackoffFactor time.Duration
 }
 
-func (c *Copier) Copy(ctx context.Context, name, version string) error {
+func (c *Copier) copy(ctx context.Context, name, version string) error {
 	log := logr.FromContextOrDiscard(ctx).WithValues("component", name, "version", version)
 	log.Info("copy component descriptor")
 	cd, blobs, err := c.CompResolver.ResolveWithBlobResolver(ctx, c.SrcRepoCtx, name, version)
@@ -256,7 +267,6 @@ func (c *Copier) Copy(ctx context.Context, name, version string) error {
 	var layers []ocispecv1.Descriptor
 	blobToResource := map[string]*cdv2.Resource{}
 	// todo: parallelize upload with
-	// todo: retry copy on failure
 	// todo: track if something has been uploaded otherwise only upload the component descriptor if "c.Force == true"
 	for i, res := range cd.Resources {
 		switch res.Access.Type {
@@ -399,6 +409,28 @@ func (c *Copier) Copy(ctx context.Context, name, version string) error {
 	log.V(3).Info("Upload component.", "ref", ref)
 	if err := c.OciClient.PushManifest(ctx, ref, manifest, ociclient.WithStore(store)); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (c *Copier) Copy(ctx context.Context, name, version string) error {
+	log := logr.FromContextOrDiscard(ctx).WithValues("component", name, "version", version)
+
+	for retries := uint64(0); retries <= c.MaxRetries; retries++ {
+		err := c.copy(ctx, name, version)
+		if err == nil {
+			break
+		}
+
+		if err != nil && retries == c.MaxRetries {
+			return fmt.Errorf("copy finished with error, max retries exceeded: %w", err)
+		}
+
+		backoff := utils.ExponentialBackoff(c.BackoffFactor, retries)
+		log.Error(err, fmt.Sprintf("copy finished with error, retrying after %s ...", backoff))
+
+		time.Sleep(backoff)
 	}
 
 	return nil

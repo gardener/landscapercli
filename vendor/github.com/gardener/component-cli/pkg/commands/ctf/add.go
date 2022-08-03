@@ -127,7 +127,7 @@ func (o *AddOptions) Complete(args []string) error {
 // Validate validates push options
 func (o *AddOptions) Validate() error {
 	if len(o.CTFPath) == 0 {
-		return errors.New("a path to the component descriptor must be defined")
+		return errors.New("a path to the component descriptor must be provided")
 	}
 
 	if len(o.ComponentArchives) == 0 {

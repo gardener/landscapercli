@@ -17,7 +17,6 @@ import (
 	"github.com/gardener/component-cli/pkg/logger"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
-	v2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	cdv2Sign "github.com/gardener/component-spec/bindings-go/apis/v2/signatures"
 	cdoci "github.com/gardener/component-spec/bindings-go/oci"
 	ocispecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -68,7 +67,7 @@ func RecursivelyAddDigestsToCd(cd *cdv2.ComponentDescriptor, repoContext cdv2.OC
 		res := res
 		if _, ok := skipAccessTypes[res.Access.Type]; ok {
 			log := logger.Log.WithValues("componentDescriptor", cd, "resource.name", res.Name, "resource.version", res.Version, "resource.extraIdentity", res.ExtraIdentity)
-			log.Info(fmt.Sprintf("adding %s digest to resource based on skip-access-type", v2.ExcludeFromSignature))
+			log.Info(fmt.Sprintf("adding %s digest to resource based on skip-access-type", cdv2.ExcludeFromSignature))
 
 			res.Digest = cdv2.NewExcludeFromSignatureDigest()
 			cd.Resources[i] = res
@@ -83,7 +82,7 @@ func RecursivelyAddDigestsToCd(cd *cdv2.ComponentDescriptor, repoContext cdv2.OC
 	return cdsWithHashes, nil
 }
 
-func UploadCDPreservingLocalOciBlobs(ctx context.Context, cd v2.ComponentDescriptor, targetRepository cdv2.OCIRegistryRepository, ociClient ociclient.ExtendedClient, cache ociCache.Cache, blobResolvers map[string]ctf.BlobResolver, force bool, log logr.Logger) error {
+func UploadCDPreservingLocalOciBlobs(ctx context.Context, cd cdv2.ComponentDescriptor, targetRepository cdv2.OCIRegistryRepository, ociClient ociclient.ExtendedClient, cache ociCache.Cache, blobResolvers map[string]ctf.BlobResolver, force bool, log logr.Logger) error {
 	// check if the component descriptor already exists and skip if not forced to overwrite
 	if !force {
 		cdresolver := cdoci.NewResolver(ociClient)

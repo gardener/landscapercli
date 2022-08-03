@@ -7,6 +7,7 @@ package spiffing
 import (
 	"os"
 
+	"github.com/mandelsoft/vfs/pkg/osfs"
 	"github.com/mandelsoft/vfs/pkg/vfs"
 
 	"github.com/mandelsoft/spiff/dynaml"
@@ -14,32 +15,51 @@ import (
 	"github.com/mandelsoft/spiff/yaml"
 )
 
-const MODE_OS_ACCESS = flow.MODE_OS_ACCESS
-const MODE_FILE_ACCESS = flow.MODE_FILE_ACCESS
-
-const MODE_DEFAULT = MODE_OS_ACCESS | MODE_FILE_ACCESS
-
-type Node = yaml.Node
-type Options = flow.Options
-type Functions = dynaml.Registry
-
-// Spiff is a configuration end execution context for
-// executing spiff operations
-type Spiff interface {
-	WithEncryptionKey(key string) Spiff
-	WithMode(mode int) Spiff
-	WithFileSystem(fs vfs.FileSystem) Spiff
-	WithFunctions(functions Functions) Spiff
-	WithValues(values map[string]interface{}) (Spiff, error)
-
-	Unmarshal(name string, source []byte) (Node, error)
-	Marshal(node Node) ([]byte, error)
-	DetermineState(node Node) Node
-
-	Cascade(template Node, stubs []Node, states ...Node) (Node, error)
-	PrepareStubs(stubs ...Node) ([]Node, error)
-	ApplyStubs(template Node, preparedstubs []Node) (Node, error)
+type sourceBase struct {
+	name string
 }
+
+func (s *sourceBase) Name() string {
+	return s.name
+}
+
+type sourceFile struct {
+	sourceBase
+	fs vfs.FileSystem
+}
+
+// NewSourceFile returns a source based on a file in a virtual filesystem
+// If no filesystem is given the os filesystem is used by default
+func NewSourceFile(path string, optfs ...vfs.FileSystem) Source {
+	var fs vfs.FileSystem
+	if len(optfs) > 0 {
+		fs = optfs[0]
+	}
+	if fs == nil {
+		fs = osfs.New()
+	}
+	return &sourceFile{sourceBase{path}, fs}
+}
+
+func (s *sourceFile) Data() ([]byte, error) {
+	return vfs.ReadFile(s.fs, s.name)
+}
+
+type sourceData struct {
+	sourceBase
+	data []byte
+}
+
+// NewSourceData creates a source based on yaml data
+func NewSourceData(name string, data []byte) Source {
+	return &sourceData{sourceBase{name}, data}
+}
+
+func (s *sourceData) Data() ([]byte, error) {
+	return s.data, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 type spiff struct {
 	key       string
@@ -52,12 +72,13 @@ type spiff struct {
 	binding dynaml.Binding
 }
 
+// NewFunctions provides a new registry for additional spiff functions
 func NewFunctions() Functions {
 	return dynaml.NewRegistry()
 }
 
 // New create a new default spiff context.
-func New() *spiff {
+func New() Spiff {
 	return &spiff{
 		key:  os.Getenv("SPIFF_ENCRYPTION_KEY"),
 		mode: MODE_DEFAULT,
@@ -124,6 +145,16 @@ func (s spiff) WithValues(values map[string]interface{}) (Spiff, error) {
 	return s.reset(), nil
 }
 
+// FileSystem return the virtual filesystem set for the execution context.
+func (s *spiff) FileSystem() vfs.FileSystem {
+	return s.fs
+}
+
+// FileSource create a new file source based on the configured file system.
+func (s *spiff) FileSource(path string) Source {
+	return NewSourceFile(path, s.fs)
+}
+
 // Cascade processes a template with a list of given subs and state
 // documents
 func (s *spiff) Cascade(template Node, stubs []Node, states ...Node) (Node, error) {
@@ -154,10 +185,30 @@ func (s *spiff) Unmarshal(name string, source []byte) (Node, error) {
 	return yaml.Unmarshal(name, source)
 }
 
+// Unmarshal parses a single source and
+// returns the internal representation
+func (s *spiff) UnmarshalSource(source Source) (Node, error) {
+	data, err := source.Data()
+	if err != nil {
+		return nil, err
+	}
+	return yaml.Unmarshal(source.Name(), data)
+}
+
 // UnmarshalMulti parses a multi document yaml representation and
 // returns the list of documents in the internal representation
 func (s *spiff) UnmarshalMulti(name string, source []byte) ([]Node, error) {
 	return yaml.UnmarshalMulti(name, source)
+}
+
+// UnmarshalMulti parses a multi document source and
+// returns the list of documents in the internal representation
+func (s *spiff) UnmarshalMultiSource(source Source) ([]Node, error) {
+	data, err := source.Data()
+	if err != nil {
+		return nil, err
+	}
+	return yaml.UnmarshalMulti(source.Name(), data)
 }
 
 // DetermineState extracts the intended new state representation from
@@ -172,7 +223,7 @@ func (s *spiff) Marshal(node Node) ([]byte, error) {
 	return yaml.Marshal(node)
 }
 
-// Normalize transform the node represenation to a regular go value representation
+// Normalize transform the node representation to a regular go value representation
 // consisting of map[string]interface{}`, `[]interface{}`, `string `boolean`,
 // `int64`, `float64` and []byte objects
 func (s *spiff) Normalize(node Node) (interface{}, error) {
