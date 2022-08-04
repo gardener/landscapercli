@@ -55,7 +55,7 @@ func (o *BuilderOptions) Default() {
 // Validate validates the component archive builder options.
 func (o *BuilderOptions) Validate() error {
 	if len(o.ComponentArchivePath) == 0 {
-		return errors.New("a component archive path must be defined")
+		return errors.New("a component archive path must be provided")
 	}
 
 	if len(o.Name) != 0 {

@@ -65,15 +65,17 @@ func CreateRSASignerFromKeyFile(pathToPrivateKey, mediaType string) (*RSASigner,
 
 // Sign returns the signature for the data for the component descriptor.
 func (s RSASigner) Sign(componentDescriptor cdv2.ComponentDescriptor, digest cdv2.DigestSpec) (*cdv2.SignatureSpec, error) {
+	hashfunc, ok := HashFunctions[digest.HashAlgorithm]
+	if !ok {
+		return nil, fmt.Errorf("unknown hash algorithm %s", digest.HashAlgorithm)
+	}
+
 	decodedHash, err := hex.DecodeString(digest.Value)
 	if err != nil {
 		return nil, fmt.Errorf("unable to hex decode hash: %w", err)
 	}
-	// ensure length of hash is correct
-	if len(decodedHash) != 32 {
-		return nil, fmt.Errorf("hash to sign has invalid length")
-	}
-	signature, err := rsa.SignPKCS1v15(rand.Reader, &s.privateKey, 0, decodedHash)
+
+	signature, err := rsa.SignPKCS1v15(rand.Reader, &s.privateKey, hashfunc, decodedHash)
 	if err != nil {
 		return nil, fmt.Errorf("unable to sign hash: %w", err)
 	}
@@ -172,17 +174,20 @@ func (v RSAVerifier) Verify(componentDescriptor cdv2.ComponentDescriptor, signat
 		return fmt.Errorf("invalid signature mediaType %s", signature.Signature.MediaType)
 	}
 
+	hashfunc, ok := HashFunctions[signature.Digest.HashAlgorithm]
+	if !ok {
+		return fmt.Errorf("unknown hash algorithm %s", signature.Digest.HashAlgorithm)
+	}
+
 	decodedHash, err := hex.DecodeString(signature.Digest.Value)
 	if err != nil {
 		return fmt.Errorf("unable to hex decode hash %s: %w", signature.Digest.Value, err)
 	}
-	// ensure length of hash is correct
-	if len(decodedHash) != 32 {
-		return fmt.Errorf("hash to verify has invalid length")
-	}
-	if err := rsa.VerifyPKCS1v15(&v.publicKey, 0, decodedHash, signatureBytes); err != nil {
+
+	if err := rsa.VerifyPKCS1v15(&v.publicKey, hashfunc, decodedHash, signatureBytes); err != nil {
 		return fmt.Errorf("unable to verify signature: %w", err)
 	}
+
 	return nil
 }
 

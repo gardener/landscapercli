@@ -138,17 +138,16 @@ func (o *AddDigestsOptions) Complete(args []string) error {
 	}
 
 	if len(o.BaseUrl) == 0 {
-		return errors.New("the base url must be defined")
+		return errors.New("a base url must be provided")
 	}
 	if len(o.ComponentName) == 0 {
-		return errors.New("a component name must be defined")
+		return errors.New("a component name must be provided")
 	}
 	if len(o.Version) == 0 {
-		return errors.New("a component version must be defined")
+		return errors.New("a component version must be provided")
 	}
-
 	if o.UploadBaseUrl == "" {
-		return errors.New("upload-base-url must be defined")
+		return errors.New("a upload base url must be provided")
 	}
 
 	return nil

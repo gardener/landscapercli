@@ -68,7 +68,7 @@ func (o *RSAVerifyOptions) Complete(args []string) error {
 		return err
 	}
 	if o.PathToPublicKey == "" {
-		return errors.New("a path to public key file must be given as flag")
+		return errors.New("a path to a public key file must be provided")
 	}
 
 	return nil

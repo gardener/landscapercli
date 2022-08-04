@@ -16,10 +16,8 @@ package signatures
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"hash"
-	"strings"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 )
@@ -44,23 +42,17 @@ type Hasher struct {
 	AlgorithmName string
 }
 
-const SHA256 = "sha256"
-
 // HasherForName creates a Hasher instance for the algorithmName.
 func HasherForName(algorithmName string) (*Hasher, error) {
-	switch strings.ToLower(algorithmName) {
-	case SHA256:
-		return &Hasher{
-			HashFunction:  sha256.New(),
-			AlgorithmName: SHA256,
-		}, nil
-	case strings.ToLower(cdv2.NoDigest):
-		return &Hasher{
-			HashFunction:  nil,
-			AlgorithmName: cdv2.NoDigest,
-		}, nil
+	hashfunc, ok := HashFunctions[algorithmName]
+	if !ok {
+		return nil, fmt.Errorf("hash algorithm %s not found/implemented", algorithmName)
 	}
-	return nil, fmt.Errorf("hash algorithm %s not found/implemented", algorithmName)
+
+	return &Hasher{
+		HashFunction:  hashfunc.New(),
+		AlgorithmName: algorithmName,
+	}, nil
 }
 
 type ResourceDigester interface {
