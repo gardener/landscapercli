@@ -139,22 +139,23 @@ items. When an installation with our example container deploy item is created, t
 acts as following:
 
 - The program (the script in our example) is configured as a container deploy item in a blueprint and an installation 
-  referencing this blueprint is deployed in a k8s cluster. The installation and teh blueprint define all 
+  referencing this blueprint is deployed in a k8s cluster. The installation and the blueprint define all 
   input parameter the program needs. We will show this in more detail later.
 
-- If all input parameters of the installation are available, the container deployer starts the 
-  program in a container in a `pod` providing the input data in the file specified by `$IMPORTS`. All 
-  other environment variable described above are set accordingly. Especially `$OPERATION` is set on `RECONCILE`.
+- If the installation has the annotation `landscaper.gardener.cloud/operation: reconcile` and all input parameters of 
+  the installation are available, the container deployer starts the program in a container in a `pod` providing the 
+  input data in the file specified by `$IMPORTS`. All other environment variable described above are set accordingly. 
+  Especially `$OPERATION` is set on `RECONCILE`.
   
 - When the program has finished the output data are fetched and provided as output data of the corresponding 
   installation. Furthermore, the data stored in the directory `STATE_PATH` are saved by the landscaper. Then, the
   `pod`, in which the container with our program was executed, is deleted.
   
-- If new input data is provided to the installation (or something else has changed here), the program is started in a new
-  pod with the latest input data available. Furthermore, the folder `STATE_PATH` contains exactly the data found here
-  after the last run of the program. When the program has finished again, the new output data are fetched and provided
-  by the installation, the state is saved and the `pod` deleted. This loops repeats until the installation with
-  the container deploy item is deleted.
+- If the installation is annotated with `landscaper.gardener.cloud/operation: reconcile` again, the program is started 
+  in a new pod with the latest specification and input data available. Furthermore, the folder `STATE_PATH` contains 
+  exactly the data found here after the last run of the program. When the program has finished again, the new output 
+  data are fetched and provided by the installation, the state is saved and the `pod` deleted. This loops repeats until 
+  the installation with the container deploy item is deleted.
   
 - If the installation is deleted, a container with our program is started as before. Only the variable `$OPERATION`
   now contains `DELETE` to inform the program that it is now time to clean up if necessary. Our example program

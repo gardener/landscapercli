@@ -3,6 +3,8 @@ kind: Installation
 metadata:
   name: demo-installation
   namespace: demo-namespace
+  annotations:
+    landscaper.gardener.cloud/operation: reconcile
 spec:
   componentDescriptor:
     ref:
