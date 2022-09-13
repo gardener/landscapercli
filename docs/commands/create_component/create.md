@@ -113,7 +113,7 @@ Example:
 ```
 landscaper-cli component add helm-ls deployitem nginx \
   --component-directory $LS_COMPONENT_DIR/demo-component \
-  --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0 \
+  --oci-reference eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:4.0.18 \
   --resource-version v0.2.0 \
   --cluster-param target-cluster \
   --target-ns-param nginx-namespace

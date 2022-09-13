@@ -15,7 +15,7 @@ component:
     type: blueprint
     version: v0.1.0
   - access:
-      imageReference: eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0
+      imageReference: eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:4.0.18
       type: ociRegistry
     name: nginx-chart
     relation: external
