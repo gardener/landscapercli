@@ -7,7 +7,6 @@ package blueprints
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -54,7 +53,7 @@ func NewValidationCommand(_ context.Context) *cobra.Command {
 }
 
 func (o *validationOptions) run() error {
-	data, err := ioutil.ReadFile(filepath.Join(o.blueprintPath, lsv1alpha1.BlueprintFileName))
+	data, err := os.ReadFile(filepath.Join(o.blueprintPath, lsv1alpha1.BlueprintFileName))
 	if err != nil {
 		return err
 	}

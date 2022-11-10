@@ -1,7 +1,7 @@
 package blueprints
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
@@ -22,7 +22,7 @@ func NewBlueprintReader(blueprintPath string) *BlueprintReader {
 
 func (r *BlueprintReader) Read() (*v1alpha1.Blueprint, error) {
 	blueprintFilePath := filepath.Join(r.blueprintPath, v1alpha1.BlueprintFileName)
-	data, err := ioutil.ReadFile(blueprintFilePath)
+	data, err := os.ReadFile(blueprintFilePath)
 	if err != nil {
 		return nil, err
 	}

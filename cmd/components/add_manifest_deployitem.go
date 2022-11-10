@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"text/template"
@@ -366,7 +365,7 @@ func (o *addManifestDeployItemOptions) readManifests() ([]managedresource.Manife
 }
 
 func (o *addManifestDeployItemOptions) readManifest(filename string) (*managedresource.Manifest, error) {
-	yamlData, err := ioutil.ReadFile(filename)
+	yamlData, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}

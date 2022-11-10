@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -117,7 +116,7 @@ prerequisites (!):
 }
 
 func (o *installOptions) ReadLandscaperValues() error {
-	content, err := ioutil.ReadFile(o.landscaperValuesPath)
+	content, err := os.ReadFile(o.landscaperValuesPath)
 	if err != nil {
 		return fmt.Errorf("cannot read file: %w", err)
 	}
@@ -261,7 +260,7 @@ func (o *installOptions) Complete(args []string) error {
 func (o *installOptions) installLandscaper(ctx context.Context) error {
 	fmt.Println("Installing Landscaper")
 
-	tempDir, err := ioutil.TempDir(".", "landscaper-chart-tmp-*")
+	tempDir, err := os.MkdirTemp(".", "landscaper-chart-tmp-*")
 	if err != nil {
 		return err
 	}
@@ -277,7 +276,7 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 		return err
 	}
 
-	fileInfos, err := ioutil.ReadDir(tempDir)
+	fileInfos, err := os.ReadDir(tempDir)
 	if err != nil {
 		return err
 	}
@@ -329,7 +328,7 @@ landscaper:
 `, landscaperValuesOverride, string(marshaledRegistryAuths))
 	}
 
-	tmpFile, err := ioutil.TempFile(".", "landscaper-values-override-")
+	tmpFile, err := os.CreateTemp(".", "landscaper-values-override-")
 	if err != nil {
 		return fmt.Errorf("cannot create temporary file: %w", err)
 	}
@@ -339,7 +338,7 @@ landscaper:
 		}
 	}()
 
-	if err := ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValuesOverride), os.ModePerm); err != nil {
+	if err := os.WriteFile(tmpFile.Name(), []byte(landscaperValuesOverride), os.ModePerm); err != nil {
 		return fmt.Errorf("cannot write to file: %w", err)
 	}
 
