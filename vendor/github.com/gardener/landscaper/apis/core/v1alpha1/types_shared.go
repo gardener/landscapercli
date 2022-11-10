@@ -157,6 +157,10 @@ const (
 	ErrorTimeout ErrorCode = "ERR_TIMEOUT"
 	// ErrorCyclicDependencies indicates that there are cyclic dependencies between multiple installations/deployitems.
 	ErrorCyclicDependencies ErrorCode = "ERR_CYCLIC_DEPENDENCIES"
+	// ErrorWebhook indicates that there is an intermediate problem with the webhook.
+	ErrorWebhook ErrorCode = "ERR_WEBHOOK"
+	// ErrorUnfinished indicates that there are unfinished sub-objects.
+	ErrorUnfinished ErrorCode = "ERR_UNFINISHED"
 )
 
 // UnrecoverableErrorCodes defines unrecoverable error codes
@@ -288,6 +292,15 @@ type VersionedNamedObjectReference struct {
 // The secret can also be in a different namespace.
 type SecretReference struct {
 	ObjectReference `json:",inline"`
+	// Key is the name of the key in the secret that holds the data.
+	// +optional
+	Key string `json:"key"`
+}
+
+// LocalSecretReference is a reference to data in a secret.
+type LocalSecretReference struct {
+	// Name is the name of the secret
+	Name string `json:"name"`
 	// Key is the name of the key in the secret that holds the data.
 	// +optional
 	Key string `json:"key"`

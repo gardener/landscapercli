@@ -27,6 +27,8 @@ const (
 	KeepPolicy ManifestPolicy = "keep"
 	// IgnorePolicy defines a policy where the resource is completely ignored by the deployer.
 	IgnorePolicy ManifestPolicy = "ignore"
+	// ImmutablePolicy defines a policy where the resource is created and deleted but never updated.
+	ImmutablePolicy ManifestPolicy = "immutable"
 )
 
 // Manifest defines a manifest that is managed by the deployer.
@@ -35,6 +37,12 @@ type Manifest struct {
 	Policy ManifestPolicy `json:"policy,omitempty"`
 	// Manifest defines the raw k8s manifest.
 	Manifest *runtime.RawExtension `json:"manifest,omitempty"`
+	// AnnotateBeforeCreate defines annotations that are being set before the manifest is being created.
+	// +optional
+	AnnotateBeforeCreate map[string]string `json:"annotateBeforeCreate,omitempty"`
+	// AnnotateBeforeDelete defines annotations that are being set before the manifest is being deleted.
+	// +optional
+	AnnotateBeforeDelete map[string]string `json:"annotateBeforeDelete,omitempty"`
 }
 
 // ManagedResourceStatusList describes a list of managed resource statuses.

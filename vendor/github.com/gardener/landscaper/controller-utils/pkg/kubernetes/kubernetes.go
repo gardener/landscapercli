@@ -11,11 +11,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/go-logr/logr"
+	lc "github.com/gardener/landscaper/controller-utils/pkg/logging/constants"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -36,6 +37,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/controller-utils/pkg/logging"
 )
 
 // image err reasons
@@ -427,28 +429,28 @@ func GenerateKubeconfig(restConfig *rest.Config) (clientcmdapi.Config, error) {
 		bearerToken = restConfig.BearerToken
 	)
 	if len(restConfig.TLSClientConfig.CAFile) != 0 {
-		data, err := ioutil.ReadFile(restConfig.TLSClientConfig.CAFile)
+		data, err := os.ReadFile(restConfig.TLSClientConfig.CAFile)
 		if err != nil {
 			return clientcmdapi.Config{}, fmt.Errorf("unable to read ca from %q: %w", restConfig.TLSClientConfig.CAFile, err)
 		}
 		caData = data
 	}
 	if len(restConfig.TLSClientConfig.CertFile) != 0 {
-		data, err := ioutil.ReadFile(restConfig.TLSClientConfig.CertFile)
+		data, err := os.ReadFile(restConfig.TLSClientConfig.CertFile)
 		if err != nil {
 			return clientcmdapi.Config{}, fmt.Errorf("unable to read cert from %q: %w", restConfig.TLSClientConfig.CertFile, err)
 		}
 		certData = data
 	}
 	if len(restConfig.TLSClientConfig.KeyFile) != 0 {
-		data, err := ioutil.ReadFile(restConfig.TLSClientConfig.KeyFile)
+		data, err := os.ReadFile(restConfig.TLSClientConfig.KeyFile)
 		if err != nil {
 			return clientcmdapi.Config{}, fmt.Errorf("unable to read key from %q: %w", restConfig.TLSClientConfig.KeyFile, err)
 		}
 		keyData = data
 	}
 	if len(restConfig.BearerTokenFile) != 0 {
-		data, err := ioutil.ReadFile(restConfig.BearerTokenFile)
+		data, err := os.ReadFile(restConfig.BearerTokenFile)
 		if err != nil {
 			return clientcmdapi.Config{}, fmt.Errorf("unable to read bearer token from %q: %w", restConfig.BearerTokenFile, err)
 		}
@@ -488,7 +490,7 @@ func GenerateKubeconfig(restConfig *rest.Config) (clientcmdapi.Config, error) {
 }
 
 // ParseFiles parses a map of filename->data into unstructured yaml objects.
-func ParseFiles(log logr.Logger, files map[string]string) ([]*unstructured.Unstructured, error) {
+func ParseFiles(log logging.Logger, files map[string]string) ([]*unstructured.Unstructured, error) {
 	objects := make([]*unstructured.Unstructured, 0)
 	for name, content := range files {
 		if _, file := filepath.Split(name); file == "NOTES.txt" {
@@ -503,8 +505,8 @@ func ParseFiles(log logr.Logger, files map[string]string) ([]*unstructured.Unstr
 	return objects, nil
 }
 
-// ParseFilesToRawExtension parses a map of filename->data into unstructured yaml objects.
-func ParseFilesToRawExtension(log logr.Logger, files map[string]string) ([]*runtime.RawExtension, error) {
+// ParseFilesToRawExtension parseslogging.Loggerilename->data into unstructured yaml objects.
+func ParseFilesToRawExtension(log logging.Logger, files map[string]string) ([]*runtime.RawExtension, error) {
 	objects := make([]*runtime.RawExtension, 0)
 	for name, content := range files {
 		if _, file := filepath.Split(name); file == "NOTES.txt" {
@@ -520,7 +522,7 @@ func ParseFilesToRawExtension(log logr.Logger, files map[string]string) ([]*runt
 }
 
 // DecodeObjects decodes raw data that can be a multiyaml file into unstructured kubernetes objects.
-func DecodeObjects(log logr.Logger, name string, data []byte) ([]*unstructured.Unstructured, error) {
+func DecodeObjects(log logging.Logger, name string, data []byte) ([]*unstructured.Unstructured, error) {
 	var (
 		decoder    = yamlutil.NewYAMLOrJSONDecoder(bytes.NewReader(data), 1024)
 		decodedObj map[string]interface{}
@@ -532,7 +534,7 @@ func DecodeObjects(log logr.Logger, name string, data []byte) ([]*unstructured.U
 			if err == io.EOF {
 				break
 			}
-			log.Error(err, fmt.Sprintf("unable to decode resource %d of file %q", i, name))
+			log.Error(err, "unable to decode resource", lc.KeyIndex, i, lc.KeyFileName, name)
 			continue
 		}
 		if decodedObj == nil {
@@ -549,7 +551,7 @@ func DecodeObjects(log logr.Logger, name string, data []byte) ([]*unstructured.U
 }
 
 // DecodeObjectsToRawExtension decodes raw data that can be a multiyaml file into unstructured kubernetes objects.
-func DecodeObjectsToRawExtension(log logr.Logger, name string, data []byte) ([]*runtime.RawExtension, error) {
+func DecodeObjectsToRawExtension(log logging.Logger, name string, data []byte) ([]*runtime.RawExtension, error) {
 	var (
 		decoder = yamlutil.NewYAMLOrJSONDecoder(bytes.NewReader(data), 1024)
 		objects = make([]*runtime.RawExtension, 0)
@@ -561,7 +563,8 @@ func DecodeObjectsToRawExtension(log logr.Logger, name string, data []byte) ([]*
 			if err == io.EOF {
 				break
 			}
-			log.Error(err, fmt.Sprintf("unable to decode resource %d of file %q", i, name))
+			log.Error(err, "unable to decode resource", lc.KeyIndex, i, lc.KeyFileName, name)
+
 			continue
 		}
 		if obj == nil || obj.Raw == nil {
@@ -570,7 +573,7 @@ func DecodeObjectsToRawExtension(log logr.Logger, name string, data []byte) ([]*
 		// ignore the obj if no group version is defined
 		var typeMeta runtime.TypeMeta
 		if err := json.Unmarshal(obj.Raw, &typeMeta); err != nil {
-			log.Error(err, fmt.Sprintf("unable to parse type meta %d of file %q to runtime object", i, name))
+			log.Error(err, "unable to parse type meta", lc.KeyIndex, i, lc.KeyFileName, name)
 			continue
 		}
 		if typeMeta.GetObjectKind().GroupVersionKind().Empty() {

@@ -16,6 +16,7 @@ import (
 	"github.com/gardener/component-spec/bindings-go/ctf"
 	cdoci "github.com/gardener/component-spec/bindings-go/oci"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/controller-utils/pkg/logging"
 	"github.com/gardener/landscaper/pkg/api"
 	lsjsonschema "github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
@@ -129,7 +130,7 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 
 	var marshaledYaml []byte
 	if o.renderSchemaInfo {
-		ociRegistry, err := componentsregistry.NewOCIRegistryWithOCIClient(log, ociClient)
+		ociRegistry, err := componentsregistry.NewOCIRegistryWithOCIClient(logging.Wrap(log), ociClient)
 		if err != nil {
 			return fmt.Errorf("cannot build oci registry: %w", err)
 		}

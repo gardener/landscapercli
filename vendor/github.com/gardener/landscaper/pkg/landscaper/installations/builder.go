@@ -10,13 +10,11 @@ import (
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/component-spec/bindings-go/ctf"
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	lsoperation "github.com/gardener/landscaper/pkg/landscaper/operation"
-	"github.com/gardener/landscaper/pkg/landscaper/registry/componentoverwrites"
 	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
 )
 
@@ -24,24 +22,23 @@ import (
 type OperationBuilder struct {
 	lsoperation.Builder
 
-	inst                            *Installation
+	inst                            *InstallationImportsAndBlueprint
 	cd                              *cdv2.ComponentDescriptor
 	op                              *lsoperation.Operation
 	blobResolver                    ctf.BlobResolver
 	resolvedComponentDescriptorList *cdv2.ComponentDescriptorList
-	overwriter                      componentoverwrites.Overwriter
-	context                         *Context
+	context                         *Scope
 }
 
 // NewOperationBuilder creates a new operation builder.
-func NewOperationBuilder(inst *Installation) *OperationBuilder {
+func NewOperationBuilder(inst *InstallationImportsAndBlueprint) *OperationBuilder {
 	return &OperationBuilder{
 		inst: inst,
 	}
 }
 
 // Installation sets an installation.
-func (b *OperationBuilder) Installation(inst *Installation) *OperationBuilder {
+func (b *OperationBuilder) Installation(inst *InstallationImportsAndBlueprint) *OperationBuilder {
 	b.inst = inst
 	return b
 }
@@ -73,15 +70,9 @@ func (b *OperationBuilder) WithOperation(op *lsoperation.Operation) *OperationBu
 	return b
 }
 
-// WithOverwriter sets an optional component overwriter.
-func (b *OperationBuilder) WithOverwriter(ow componentoverwrites.Overwriter) *OperationBuilder {
-	b.overwriter = ow
-	return b
-}
-
 // WithContext sets an optional context.
 // This value will be calculated during the build if not set.
-func (b *OperationBuilder) WithContext(ctx *Context) *OperationBuilder {
+func (b *OperationBuilder) WithContext(ctx *Scope) *OperationBuilder {
 	b.context = ctx
 	return b
 }
@@ -103,13 +94,6 @@ func (b *OperationBuilder) Scheme(s *runtime.Scheme) *OperationBuilder {
 // ComponentRegistry sets the component registry.
 func (b *OperationBuilder) ComponentRegistry(resolver ctf.ComponentResolver) *OperationBuilder {
 	b.Builder.ComponentRegistry(resolver)
-	return b
-}
-
-// WithLogger sets a logger.
-// If no logger is given the logger from the context is used.
-func (b *OperationBuilder) WithLogger(log logr.Logger) *OperationBuilder {
-	b.Builder.WithLogger(log)
 	return b
 }
 
@@ -146,11 +130,10 @@ func (b *OperationBuilder) Build(ctx context.Context) (*Operation, error) {
 		ComponentDescriptor:             b.cd,
 		BlobResolver:                    b.blobResolver,
 		ResolvedComponentDescriptorList: b.resolvedComponentDescriptorList,
-		Overwriter:                      b.overwriter,
 	}
 
 	if b.context == nil {
-		newCtx, err := GetInstallationContext(ctx, instOp.Client(), instOp.Inst.Info, instOp.Overwriter)
+		newCtx, err := GetInstallationContext(ctx, instOp.Client(), instOp.Inst.GetInstallation())
 		if err != nil {
 			return nil, err
 		}
@@ -191,7 +174,7 @@ func (b *OperationBuilder) Build(ctx context.Context) (*Operation, error) {
 	}
 	if instOp.ResolvedComponentDescriptorList == nil {
 		var err error
-		resolvedCD, err := cdutils.ResolveToComponentDescriptorList(ctx, instOp.ComponentsRegistry(), *instOp.ComponentDescriptor, instOp.Context().External.RepositoryContext)
+		resolvedCD, err := cdutils.ResolveToComponentDescriptorList(ctx, instOp.ComponentsRegistry(), *instOp.ComponentDescriptor, instOp.Context().External.RepositoryContext, instOp.Context().External.Overwriter)
 		if err != nil {
 			return nil, err
 		}
