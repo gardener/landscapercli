@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/apis/core/v1alpha1/targettypes"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -34,7 +34,7 @@ func NewKubernetesClusterCommand(ctx context.Context) *cobra.Command {
 		Aliases: []string{"k8s-cluster"},
 		Example: "landscaper-cli targets create kubernetes-cluster --name my-target --namespace my-namespace " +
 			"--target-kubeconfig  kubeconfig.yaml",
-		Short: "create a target of type " + string(lsv1alpha1.KubernetesClusterTargetType),
+		Short: "create a target of type " + string(targettypes.KubernetesClusterTargetType),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				cmd.PrintErr(err.Error())

@@ -652,6 +652,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*ResolvedTarget)(nil), (*core.ResolvedTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ResolvedTarget_To_core_ResolvedTarget(a.(*ResolvedTarget), b.(*core.ResolvedTarget), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.ResolvedTarget)(nil), (*ResolvedTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_ResolvedTarget_To_v1alpha1_ResolvedTarget(a.(*core.ResolvedTarget), b.(*ResolvedTarget), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*ResourceReference)(nil), (*core.ResourceReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_ResourceReference_To_core_ResourceReference(a.(*ResourceReference), b.(*core.ResourceReference), scope)
 	}); err != nil {
@@ -792,6 +802,46 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*TargetSync)(nil), (*core.TargetSync)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_TargetSync_To_core_TargetSync(a.(*TargetSync), b.(*core.TargetSync), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.TargetSync)(nil), (*TargetSync)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_TargetSync_To_v1alpha1_TargetSync(a.(*core.TargetSync), b.(*TargetSync), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*TargetSyncList)(nil), (*core.TargetSyncList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_TargetSyncList_To_core_TargetSyncList(a.(*TargetSyncList), b.(*core.TargetSyncList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.TargetSyncList)(nil), (*TargetSyncList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_TargetSyncList_To_v1alpha1_TargetSyncList(a.(*core.TargetSyncList), b.(*TargetSyncList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*TargetSyncSpec)(nil), (*core.TargetSyncSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_TargetSyncSpec_To_core_TargetSyncSpec(a.(*TargetSyncSpec), b.(*core.TargetSyncSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.TargetSyncSpec)(nil), (*TargetSyncSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_TargetSyncSpec_To_v1alpha1_TargetSyncSpec(a.(*core.TargetSyncSpec), b.(*TargetSyncSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*TargetSyncStatus)(nil), (*core.TargetSyncStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_TargetSyncStatus_To_core_TargetSyncStatus(a.(*TargetSyncStatus), b.(*core.TargetSyncStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.TargetSyncStatus)(nil), (*TargetSyncStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_TargetSyncStatus_To_v1alpha1_TargetSyncStatus(a.(*core.TargetSyncStatus), b.(*TargetSyncStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*TargetTemplate)(nil), (*core.TargetTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_TargetTemplate_To_core_TargetTemplate(a.(*TargetTemplate), b.(*core.TargetTemplate), scope)
 	}); err != nil {
@@ -809,6 +859,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*core.TemplateExecutor)(nil), (*TemplateExecutor)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_core_TemplateExecutor_To_v1alpha1_TemplateExecutor(a.(*core.TemplateExecutor), b.(*TemplateExecutor), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*TokenRotation)(nil), (*core.TokenRotation)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_TokenRotation_To_core_TokenRotation(a.(*TokenRotation), b.(*core.TokenRotation), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.TokenRotation)(nil), (*TokenRotation)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_TokenRotation_To_v1alpha1_TokenRotation(a.(*core.TokenRotation), b.(*TokenRotation), scope)
 	}); err != nil {
 		return err
 	}
@@ -2583,6 +2643,28 @@ func Convert_core_Requirement_To_v1alpha1_Requirement(in *core.Requirement, out 
 	return autoConvert_core_Requirement_To_v1alpha1_Requirement(in, out, s)
 }
 
+func autoConvert_v1alpha1_ResolvedTarget_To_core_ResolvedTarget(in *ResolvedTarget, out *core.ResolvedTarget, s conversion.Scope) error {
+	out.Target = (*core.Target)(unsafe.Pointer(in.Target))
+	out.Content = in.Content
+	return nil
+}
+
+// Convert_v1alpha1_ResolvedTarget_To_core_ResolvedTarget is an autogenerated conversion function.
+func Convert_v1alpha1_ResolvedTarget_To_core_ResolvedTarget(in *ResolvedTarget, out *core.ResolvedTarget, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ResolvedTarget_To_core_ResolvedTarget(in, out, s)
+}
+
+func autoConvert_core_ResolvedTarget_To_v1alpha1_ResolvedTarget(in *core.ResolvedTarget, out *ResolvedTarget, s conversion.Scope) error {
+	out.Target = (*Target)(unsafe.Pointer(in.Target))
+	out.Content = in.Content
+	return nil
+}
+
+// Convert_core_ResolvedTarget_To_v1alpha1_ResolvedTarget is an autogenerated conversion function.
+func Convert_core_ResolvedTarget_To_v1alpha1_ResolvedTarget(in *core.ResolvedTarget, out *ResolvedTarget, s conversion.Scope) error {
+	return autoConvert_core_ResolvedTarget_To_v1alpha1_ResolvedTarget(in, out, s)
+}
+
 func autoConvert_v1alpha1_ResourceReference_To_core_ResourceReference(in *ResourceReference, out *core.ResourceReference, s conversion.Scope) error {
 	out.ComponentName = in.ComponentName
 	out.ResourceName = in.ResourceName
@@ -2895,10 +2977,8 @@ func Convert_core_TargetSelector_To_v1alpha1_TargetSelector(in *core.TargetSelec
 
 func autoConvert_v1alpha1_TargetSpec_To_core_TargetSpec(in *TargetSpec, out *core.TargetSpec, s conversion.Scope) error {
 	out.Type = core.TargetType(in.Type)
-	if err := Convert_v1alpha1_AnyJSON_To_core_AnyJSON(&in.Configuration, &out.Configuration, s); err != nil {
-		return err
-	}
-	out.SecretRef = (*core.SecretReference)(unsafe.Pointer(in.SecretRef))
+	out.Configuration = (*core.AnyJSON)(unsafe.Pointer(in.Configuration))
+	out.SecretRef = (*core.LocalSecretReference)(unsafe.Pointer(in.SecretRef))
 	return nil
 }
 
@@ -2909,16 +2989,124 @@ func Convert_v1alpha1_TargetSpec_To_core_TargetSpec(in *TargetSpec, out *core.Ta
 
 func autoConvert_core_TargetSpec_To_v1alpha1_TargetSpec(in *core.TargetSpec, out *TargetSpec, s conversion.Scope) error {
 	out.Type = TargetType(in.Type)
-	if err := Convert_core_AnyJSON_To_v1alpha1_AnyJSON(&in.Configuration, &out.Configuration, s); err != nil {
-		return err
-	}
-	out.SecretRef = (*SecretReference)(unsafe.Pointer(in.SecretRef))
+	out.Configuration = (*AnyJSON)(unsafe.Pointer(in.Configuration))
+	out.SecretRef = (*LocalSecretReference)(unsafe.Pointer(in.SecretRef))
 	return nil
 }
 
 // Convert_core_TargetSpec_To_v1alpha1_TargetSpec is an autogenerated conversion function.
 func Convert_core_TargetSpec_To_v1alpha1_TargetSpec(in *core.TargetSpec, out *TargetSpec, s conversion.Scope) error {
 	return autoConvert_core_TargetSpec_To_v1alpha1_TargetSpec(in, out, s)
+}
+
+func autoConvert_v1alpha1_TargetSync_To_core_TargetSync(in *TargetSync, out *core.TargetSync, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_TargetSyncSpec_To_core_TargetSyncSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_TargetSyncStatus_To_core_TargetSyncStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_TargetSync_To_core_TargetSync is an autogenerated conversion function.
+func Convert_v1alpha1_TargetSync_To_core_TargetSync(in *TargetSync, out *core.TargetSync, s conversion.Scope) error {
+	return autoConvert_v1alpha1_TargetSync_To_core_TargetSync(in, out, s)
+}
+
+func autoConvert_core_TargetSync_To_v1alpha1_TargetSync(in *core.TargetSync, out *TargetSync, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_core_TargetSyncSpec_To_v1alpha1_TargetSyncSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_core_TargetSyncStatus_To_v1alpha1_TargetSyncStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_core_TargetSync_To_v1alpha1_TargetSync is an autogenerated conversion function.
+func Convert_core_TargetSync_To_v1alpha1_TargetSync(in *core.TargetSync, out *TargetSync, s conversion.Scope) error {
+	return autoConvert_core_TargetSync_To_v1alpha1_TargetSync(in, out, s)
+}
+
+func autoConvert_v1alpha1_TargetSyncList_To_core_TargetSyncList(in *TargetSyncList, out *core.TargetSyncList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]core.TargetSync)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_TargetSyncList_To_core_TargetSyncList is an autogenerated conversion function.
+func Convert_v1alpha1_TargetSyncList_To_core_TargetSyncList(in *TargetSyncList, out *core.TargetSyncList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_TargetSyncList_To_core_TargetSyncList(in, out, s)
+}
+
+func autoConvert_core_TargetSyncList_To_v1alpha1_TargetSyncList(in *core.TargetSyncList, out *TargetSyncList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]TargetSync)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_core_TargetSyncList_To_v1alpha1_TargetSyncList is an autogenerated conversion function.
+func Convert_core_TargetSyncList_To_v1alpha1_TargetSyncList(in *core.TargetSyncList, out *TargetSyncList, s conversion.Scope) error {
+	return autoConvert_core_TargetSyncList_To_v1alpha1_TargetSyncList(in, out, s)
+}
+
+func autoConvert_v1alpha1_TargetSyncSpec_To_core_TargetSyncSpec(in *TargetSyncSpec, out *core.TargetSyncSpec, s conversion.Scope) error {
+	out.SourceNamespace = in.SourceNamespace
+	if err := Convert_v1alpha1_LocalSecretReference_To_core_LocalSecretReference(&in.SecretRef, &out.SecretRef, s); err != nil {
+		return err
+	}
+	out.SecretNameExpression = in.SecretNameExpression
+	out.TokenRotation = (*core.TokenRotation)(unsafe.Pointer(in.TokenRotation))
+	return nil
+}
+
+// Convert_v1alpha1_TargetSyncSpec_To_core_TargetSyncSpec is an autogenerated conversion function.
+func Convert_v1alpha1_TargetSyncSpec_To_core_TargetSyncSpec(in *TargetSyncSpec, out *core.TargetSyncSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_TargetSyncSpec_To_core_TargetSyncSpec(in, out, s)
+}
+
+func autoConvert_core_TargetSyncSpec_To_v1alpha1_TargetSyncSpec(in *core.TargetSyncSpec, out *TargetSyncSpec, s conversion.Scope) error {
+	out.SourceNamespace = in.SourceNamespace
+	if err := Convert_core_LocalSecretReference_To_v1alpha1_LocalSecretReference(&in.SecretRef, &out.SecretRef, s); err != nil {
+		return err
+	}
+	out.SecretNameExpression = in.SecretNameExpression
+	out.TokenRotation = (*TokenRotation)(unsafe.Pointer(in.TokenRotation))
+	return nil
+}
+
+// Convert_core_TargetSyncSpec_To_v1alpha1_TargetSyncSpec is an autogenerated conversion function.
+func Convert_core_TargetSyncSpec_To_v1alpha1_TargetSyncSpec(in *core.TargetSyncSpec, out *TargetSyncSpec, s conversion.Scope) error {
+	return autoConvert_core_TargetSyncSpec_To_v1alpha1_TargetSyncSpec(in, out, s)
+}
+
+func autoConvert_v1alpha1_TargetSyncStatus_To_core_TargetSyncStatus(in *TargetSyncStatus, out *core.TargetSyncStatus, s conversion.Scope) error {
+	out.ObservedGeneration = in.ObservedGeneration
+	out.LastUpdateTime = (*metav1.Time)(unsafe.Pointer(in.LastUpdateTime))
+	out.LastErrors = *(*[]string)(unsafe.Pointer(&in.LastErrors))
+	out.LastTokenRotationTime = (*metav1.Time)(unsafe.Pointer(in.LastTokenRotationTime))
+	return nil
+}
+
+// Convert_v1alpha1_TargetSyncStatus_To_core_TargetSyncStatus is an autogenerated conversion function.
+func Convert_v1alpha1_TargetSyncStatus_To_core_TargetSyncStatus(in *TargetSyncStatus, out *core.TargetSyncStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_TargetSyncStatus_To_core_TargetSyncStatus(in, out, s)
+}
+
+func autoConvert_core_TargetSyncStatus_To_v1alpha1_TargetSyncStatus(in *core.TargetSyncStatus, out *TargetSyncStatus, s conversion.Scope) error {
+	out.ObservedGeneration = in.ObservedGeneration
+	out.LastUpdateTime = (*metav1.Time)(unsafe.Pointer(in.LastUpdateTime))
+	out.LastErrors = *(*[]string)(unsafe.Pointer(&in.LastErrors))
+	out.LastTokenRotationTime = (*metav1.Time)(unsafe.Pointer(in.LastTokenRotationTime))
+	return nil
+}
+
+// Convert_core_TargetSyncStatus_To_v1alpha1_TargetSyncStatus is an autogenerated conversion function.
+func Convert_core_TargetSyncStatus_To_v1alpha1_TargetSyncStatus(in *core.TargetSyncStatus, out *TargetSyncStatus, s conversion.Scope) error {
+	return autoConvert_core_TargetSyncStatus_To_v1alpha1_TargetSyncStatus(in, out, s)
 }
 
 func autoConvert_v1alpha1_TargetTemplate_To_core_TargetTemplate(in *TargetTemplate, out *core.TargetTemplate, s conversion.Scope) error {
@@ -2977,6 +3165,26 @@ func autoConvert_core_TemplateExecutor_To_v1alpha1_TemplateExecutor(in *core.Tem
 // Convert_core_TemplateExecutor_To_v1alpha1_TemplateExecutor is an autogenerated conversion function.
 func Convert_core_TemplateExecutor_To_v1alpha1_TemplateExecutor(in *core.TemplateExecutor, out *TemplateExecutor, s conversion.Scope) error {
 	return autoConvert_core_TemplateExecutor_To_v1alpha1_TemplateExecutor(in, out, s)
+}
+
+func autoConvert_v1alpha1_TokenRotation_To_core_TokenRotation(in *TokenRotation, out *core.TokenRotation, s conversion.Scope) error {
+	out.Enabled = in.Enabled
+	return nil
+}
+
+// Convert_v1alpha1_TokenRotation_To_core_TokenRotation is an autogenerated conversion function.
+func Convert_v1alpha1_TokenRotation_To_core_TokenRotation(in *TokenRotation, out *core.TokenRotation, s conversion.Scope) error {
+	return autoConvert_v1alpha1_TokenRotation_To_core_TokenRotation(in, out, s)
+}
+
+func autoConvert_core_TokenRotation_To_v1alpha1_TokenRotation(in *core.TokenRotation, out *TokenRotation, s conversion.Scope) error {
+	out.Enabled = in.Enabled
+	return nil
+}
+
+// Convert_core_TokenRotation_To_v1alpha1_TokenRotation is an autogenerated conversion function.
+func Convert_core_TokenRotation_To_v1alpha1_TokenRotation(in *core.TokenRotation, out *TokenRotation, s conversion.Scope) error {
+	return autoConvert_core_TokenRotation_To_v1alpha1_TokenRotation(in, out, s)
 }
 
 func autoConvert_v1alpha1_TypedObjectReference_To_core_TypedObjectReference(in *TypedObjectReference, out *core.TypedObjectReference, s conversion.Scope) error {
