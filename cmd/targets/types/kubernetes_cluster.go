@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -38,11 +37,6 @@ func NewKubernetesClusterCommand(ctx context.Context) *cobra.Command {
 			"--target-kubeconfig  kubeconfig.yaml",
 		Short: "create a target of type " + string(targettypes.KubernetesClusterTargetType),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := opts.Complete(args); err != nil {
-				cmd.PrintErr(err.Error())
-				os.Exit(1)
-			}
-
 			if err := opts.run(ctx, cmd, logger.Log); err != nil {
 				cmd.PrintErr(err.Error())
 				os.Exit(1)
@@ -53,20 +47,10 @@ func NewKubernetesClusterCommand(ctx context.Context) *cobra.Command {
 	cmd.SetOut(os.Stdout)
 
 	opts.AddFlags(cmd.Flags())
+	cmd.MarkFlagRequired("name")
+	cmd.MarkFlagRequired("target-kubeconfig")
 
 	return cmd
-}
-
-func (o *kubernetesClusterOpts) Complete(args []string) error {
-	if o.name == "" {
-		return errors.New("--name must be defined")
-	}
-
-	if o.targetKubeconfigPath == "" {
-		return errors.New("--target-kubeconfig must be defined")
-	}
-
-	return nil
 }
 
 func (o *kubernetesClusterOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logger) error {
