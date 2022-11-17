@@ -19,6 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const NoSecretIdentifier = "<none>"
+
 // CheckConditionPeriodically checks the success of a function peridically. Returns timeout(bool) to indicate the success of the function
 // and propagates possible errors of the function.
 func CheckConditionPeriodically(conditionFunc func() (bool, error), sleepTime time.Duration, maxRetries int) (bool, error) {
@@ -214,10 +216,10 @@ func gracefullyDeleteNamespace(k8sClient client.Client, namespace string, sleepT
 	return false, nil
 }
 
-func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath string) (*lsv1alpha1.Target, error) {
+func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath, secretName string) (*lsv1alpha1.Target, *corev1.Secret, error) {
 	kubeconfigContent, err := os.ReadFile(kubeconfigPath)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read kubeconfig: %w", err)
+		return nil, nil, fmt.Errorf("cannot read kubeconfig: %w", err)
 	}
 
 	config := targettypes.KubernetesClusterTargetConfig{
@@ -228,7 +230,7 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath string) (*lsv1
 
 	marshalledConfig, err := json.Marshal(config)
 	if err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return nil, nil, fmt.Errorf("%w", err)
 	}
 
 	target := &lsv1alpha1.Target{
@@ -241,12 +243,38 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath string) (*lsv1
 			Namespace: namespace,
 		},
 		Spec: lsv1alpha1.TargetSpec{
-			Type:          targettypes.KubernetesClusterTargetType,
-			Configuration: lsv1alpha1.NewAnyJSONPointer(marshalledConfig),
+			Type: targettypes.KubernetesClusterTargetType,
 		},
 	}
 
-	return target, nil
+	var secret *corev1.Secret
+	secretKeyName := "config"
+	if secretName != NoSecretIdentifier {
+		if secretName == "" {
+			secretName = name
+		}
+		secret = &corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Kind:       "Secret",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: namespace,
+			},
+			Data: map[string][]byte{
+				secretKeyName: marshalledConfig,
+			},
+		}
+		target.Spec.SecretRef = &lsv1alpha1.LocalSecretReference{
+			Name: secretName,
+			Key:  secretKeyName,
+		}
+	} else {
+		target.Spec.Configuration = lsv1alpha1.NewAnyJSONPointer(marshalledConfig)
+	}
+
+	return target, secret, nil
 }
 
 func GetBlueprintResource(cd *cdv2.ComponentDescriptor, blueprintResourceName string) (*cdv2.Resource, error) {
