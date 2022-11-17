@@ -12,7 +12,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-//GetK8sClientFromCurrentConfiguredCluster returns a k8sClient and a namespace from the current context of the kubectl program.
+// GetK8sClientFromCurrentConfiguredCluster returns a k8sClient and a namespace from the current context of the kubectl program.
 func GetK8sClientFromCurrentConfiguredCluster() (client.Client, string, error) {
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	rules.DefaultClientConfig = &clientcmd.DefaultClientConfig

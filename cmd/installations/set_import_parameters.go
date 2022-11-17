@@ -29,7 +29,7 @@ type importParametersOptions struct {
 	outputPath string
 }
 
-//NewSetImportParametersCommand sets input parameters from an installation to hardcoded values (as importDataMappings)
+// NewSetImportParametersCommand sets input parameters from an installation to hardcoded values (as importDataMappings)
 func NewSetImportParametersCommand(ctx context.Context) *cobra.Command {
 	opts := &importParametersOptions{}
 	cmd := &cobra.Command{

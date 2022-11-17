@@ -14,7 +14,7 @@ const (
 
 const terminalWidth = 120
 
-//PrintableTreeNode contains the structure for a printable tree.
+// PrintableTreeNode contains the structure for a printable tree.
 type PrintableTreeNode struct {
 	Headline    string
 	WideData    string // will be displayed in '-o wide' mode
@@ -56,7 +56,7 @@ func (node *PrintableTreeNode) print(output *strings.Builder, preFix string, isL
 	}
 }
 
-//PrintTrees turns the given PrintableTreeNodes into a formated tree as strings.Builder.
+// PrintTrees turns the given PrintableTreeNodes into a formated tree as strings.Builder.
 func PrintTrees(nodes []PrintableTreeNode) strings.Builder {
 	output := strings.Builder{}
 	for _, node := range nodes {
