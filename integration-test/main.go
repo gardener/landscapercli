@@ -5,7 +5,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"text/template"
@@ -245,7 +244,7 @@ func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigP
 }
 
 func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
-	tempDir1, err := ioutil.TempDir(".", "landscaper-chart-tmp1-*")
+	tempDir1, err := os.MkdirTemp(".", "landscaper-chart-tmp1-*")
 	if err != nil {
 		return "", err
 	}
@@ -264,7 +263,7 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 		}
 	}()
 
-	tempDir2, err := ioutil.TempDir(".", "landscaper-chart-tmp2-*")
+	tempDir2, err := os.MkdirTemp(".", "landscaper-chart-tmp2-*")
 	if err != nil {
 		return "", err
 	}
@@ -311,7 +310,7 @@ func runQuickstartInstall(config *inttestutil.Config) error {
 		return fmt.Errorf("cannot template landscaper values: %w", err)
 	}
 
-	tmpFile, err := ioutil.TempFile(".", "landscaper-values-")
+	tmpFile, err := os.CreateTemp(".", "landscaper-values-")
 	if err != nil {
 		return fmt.Errorf("cannot create temporary file: %w", err)
 	}
@@ -321,7 +320,7 @@ func runQuickstartInstall(config *inttestutil.Config) error {
 		}
 	}()
 
-	if err := ioutil.WriteFile(tmpFile.Name(), []byte(landscaperValues), os.ModePerm); err != nil {
+	if err := os.WriteFile(tmpFile.Name(), []byte(landscaperValues), os.ModePerm); err != nil {
 		return fmt.Errorf("cannot write to file: %w", err)
 	}
 

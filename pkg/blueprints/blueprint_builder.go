@@ -114,11 +114,11 @@ func (b *BlueprintBuilder) AddDeployExecution(deployItemName string) {
 
 // AddExportExecution adds one export executions for all export parameters of one deployitem:
 // exportExecutions:
-// - name: [name of the export execution, here equal to the deployitem name]
-//   type: GoTemplate
-//   template: |
+//   - name: [name of the export execution, here equal to the deployitem name]
+//     type: GoTemplate
+//     template: |
 //     exports:
-//       [parameter name]: {{ index .values "deployitems" "[deployitem name]" "[internal parameter name]" }}
+//     [parameter name]: {{ index .values "deployitems" "[deployitem name]" "[internal parameter name]" }}
 func (b *BlueprintBuilder) AddExportExecution(deployItemName string, exportDefinitions map[string]*v1alpha1.ExportDefinition) {
 	if len(exportDefinitions) == 0 {
 		return

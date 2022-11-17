@@ -9,13 +9,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//Collector is responsible for collecting CR (installations, executions, deployItems) from a cluster using the K8sClient.
+// Collector is responsible for collecting CR (installations, executions, deployItems) from a cluster using the K8sClient.
 type Collector struct {
 	K8sClient client.Client
 }
 
-//CollectInstallationsInCluster collects a single installation (including all referenced executions and deployitems)
-//or all installations if name is empty.
+// CollectInstallationsInCluster collects a single installation (including all referenced executions and deployitems)
+// or all installations if name is empty.
 func (c *Collector) CollectInstallationsInCluster(name string, namespace string) ([]*InstallationTree, error) {
 	if name != "" {
 		installation, err := c.collectInstallationTree(name, namespace)

@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-//Transformer can transform from []*InstallationTree to printable []PrintableTreeNodes with different transformation options.
+// Transformer can transform from []*InstallationTree to printable []PrintableTreeNodes with different transformation options.
 type Transformer struct {
 	DetailedMode   bool
 	ShowExecutions bool
@@ -20,7 +20,7 @@ type Transformer struct {
 	WideMode       bool
 }
 
-//TransformToPrintableTrees transform a []*InstallationTree to []PrintableTreeNodes for the Printer.
+// TransformToPrintableTrees transform a []*InstallationTree to []PrintableTreeNodes for the Printer.
 func (t Transformer) TransformToPrintableTrees(installationTrees []*InstallationTree) ([]PrintableTreeNode, error) {
 	var printableTrees []PrintableTreeNode
 

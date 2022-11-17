@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -314,7 +313,7 @@ func (t *componentCreateTest) setBaseURL(ctx context.Context) error {
 
 	componentDescriptorPath := filepath.Join(t.componentDir, "component-descriptor.yaml")
 
-	data, err := ioutil.ReadFile(componentDescriptorPath)
+	data, err := os.ReadFile(componentDescriptorPath)
 	if err != nil {
 		return fmt.Errorf("could not read component descriptor: %w", err)
 	}
@@ -323,7 +322,7 @@ func (t *componentCreateTest) setBaseURL(ctx context.Context) error {
 	baseURLElement := fmt.Sprintf(`baseUrl: "%s"`, t.config.RegistryBaseURL)
 	newCdString := strings.Replace(oldCdString, `baseUrl: ""`, baseURLElement, 1)
 
-	err = ioutil.WriteFile(componentDescriptorPath, []byte(newCdString), 0755)
+	err = os.WriteFile(componentDescriptorPath, []byte(newCdString), 0755)
 	if err != nil {
 		return fmt.Errorf("could not write component descriptor: %w", err)
 	}
@@ -423,12 +422,12 @@ func (t *componentCreateTest) createInstallation(ctx context.Context) error {
 				},
 			},
 			ImportDataMappings: map[string]lsv1alpha1.AnyJSON{
-				"nginx-namespace": lsv1alpha1.AnyJSON{RawMessage: []byte(`"` + t.config.TestNamespace + `"`)},
-				"password-1":      lsv1alpha1.AnyJSON{RawMessage: []byte(`"pw1"`)},
-				"password-2":      lsv1alpha1.AnyJSON{RawMessage: []byte(`"pw2"`)},
-				"word":            lsv1alpha1.AnyJSON{RawMessage: []byte(`"test"`)},
-				"sleepTimeBefore": lsv1alpha1.AnyJSON{RawMessage: []byte(`0`)},
-				"sleepTimeAfter":  lsv1alpha1.AnyJSON{RawMessage: []byte(`0`)},
+				"nginx-namespace": {RawMessage: []byte(`"` + t.config.TestNamespace + `"`)},
+				"password-1":      {RawMessage: []byte(`"pw1"`)},
+				"password-2":      {RawMessage: []byte(`"pw2"`)},
+				"word":            {RawMessage: []byte(`"test"`)},
+				"sleepTimeBefore": {RawMessage: []byte(`0`)},
+				"sleepTimeAfter":  {RawMessage: []byte(`0`)},
 			},
 		},
 	}

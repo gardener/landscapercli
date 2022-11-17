@@ -1,7 +1,7 @@
 package components
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/gardener/landscapercli/pkg/util"
 
@@ -22,7 +22,7 @@ func NewComponentDescriptorReader(componentPath string) *ComponentDescriptorRead
 
 func (r *ComponentDescriptorReader) Read() (*cd.ComponentDescriptor, error) {
 	componentDescriptorFilePath := util.ComponentDescriptorFilePath(r.componentPath)
-	data, err := ioutil.ReadFile(componentDescriptorFilePath)
+	data, err := os.ReadFile(componentDescriptorFilePath)
 	if err != nil {
 		return nil, err
 	}

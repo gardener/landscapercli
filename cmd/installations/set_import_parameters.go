@@ -3,7 +3,6 @@ package installations
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -30,7 +29,7 @@ type importParametersOptions struct {
 	outputPath string
 }
 
-//NewSetImportParametersCommand sets input parameters from an installation to hardcoded values (as importDataMappings)
+// NewSetImportParametersCommand sets input parameters from an installation to hardcoded values (as importDataMappings)
 func NewSetImportParametersCommand(ctx context.Context) *cobra.Command {
 	opts := &importParametersOptions{}
 	cmd := &cobra.Command{
@@ -155,7 +154,7 @@ func createJSONRawMessageValueWithStringOrNumericType(parameter string) lsv1alph
 }
 
 func readInstallationFromFile(o *importParametersOptions, installation *lsv1alpha1.Installation) error {
-	installationFileData, err := ioutil.ReadFile(o.installationPath)
+	installationFileData, err := os.ReadFile(o.installationPath)
 	if err != nil {
 		return err
 	}

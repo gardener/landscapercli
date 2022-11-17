@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
@@ -214,7 +214,7 @@ func gracefullyDeleteNamespace(k8sClient client.Client, namespace string, sleepT
 }
 
 func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath string) (*lsv1alpha1.Target, error) {
-	kubeconfigContent, err := ioutil.ReadFile(kubeconfigPath)
+	kubeconfigContent, err := os.ReadFile(kubeconfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read kubeconfig: %w", err)
 	}

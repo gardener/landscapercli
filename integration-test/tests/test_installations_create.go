@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -122,7 +121,7 @@ func (t *installationsCreateTest) run() error {
 }
 
 func (t *installationsCreateTest) writeInstallationToFile(cmdOutput *bytes.Buffer) error {
-	installationDir, err := ioutil.TempDir(".", "dummy-installation-*")
+	installationDir, err := os.MkdirTemp(".", "dummy-installation-*")
 	if err != nil {
 		return fmt.Errorf("cannot create temp directory: %w", err)
 	}
@@ -136,7 +135,7 @@ func (t *installationsCreateTest) writeInstallationToFile(cmdOutput *bytes.Buffe
 	// However, we must set the URL to the first one for the installation to work
 	installationStr := strings.Replace(cmdOutput.String(), "localhost:5000", t.config.RegistryBaseURL, -1)
 
-	err = ioutil.WriteFile(path.Join(t.installationDir, "installation-generated.yaml"), []byte(installationStr), os.ModePerm)
+	err = os.WriteFile(path.Join(t.installationDir, "installation-generated.yaml"), []byte(installationStr), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("cannot write to file: %w", err)
 	}
@@ -224,7 +223,7 @@ func (t *installationsCreateTest) applyToCluster() error {
 	ctx := context.TODO()
 
 	fmt.Printf("Preparing installation")
-	installationFileData, err := ioutil.ReadFile(path.Join(t.installationDir, "installation-set-import-params.yaml"))
+	installationFileData, err := os.ReadFile(path.Join(t.installationDir, "installation-set-import-params.yaml"))
 	if err != nil {
 		return fmt.Errorf("cannot read temp installation file: %w", err)
 	}
@@ -385,7 +384,7 @@ func (t *installationsCreateTest) createAndUploadComponent() error {
 
 	ctx := context.TODO()
 
-	cdDir, err := ioutil.TempDir(".", "dummy-cd-*")
+	cdDir, err := os.MkdirTemp(".", "dummy-cd-*")
 	if err != nil {
 		return fmt.Errorf("cannot create component descriptor directory: %w", err)
 	}
@@ -402,7 +401,7 @@ func (t *installationsCreateTest) createAndUploadComponent() error {
 	if err != nil {
 		return fmt.Errorf("cannot marshal component descriptor: %w", err)
 	}
-	err = ioutil.WriteFile(path.Join(cdDir, "component-descriptor.yaml"), marshaledCd, os.ModePerm)
+	err = os.WriteFile(path.Join(cdDir, "component-descriptor.yaml"), marshaledCd, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("cannot write component descriptor file: %w", err)
 	}
@@ -415,7 +414,7 @@ func (t *installationsCreateTest) createAndUploadComponent() error {
 
 	marshaledBp := t.createBlueprint()
 
-	err = ioutil.WriteFile(path.Join(bpDir, "blueprint.yaml"), []byte(marshaledBp), os.ModePerm)
+	err = os.WriteFile(path.Join(bpDir, "blueprint.yaml"), []byte(marshaledBp), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("cannot write blueprint.yaml: %w", err)
 	}
@@ -442,7 +441,7 @@ access:
 `, t.blueprintName, t.componentVersion, t.config.RegistryBaseURL)
 
 	resourceFile := path.Join(cdDir, "resources.yaml")
-	err = ioutil.WriteFile(resourceFile, []byte(resourcesYaml), os.ModePerm)
+	err = os.WriteFile(resourceFile, []byte(resourcesYaml), os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("cannot write component descriptor resources file: %w", err)
 	}
