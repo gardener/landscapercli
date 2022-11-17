@@ -74,7 +74,7 @@ github.com/evanphx/json-patch/v5
 # github.com/fsnotify/fsnotify v1.6.0
 ## explicit; go 1.16
 github.com/fsnotify/fsnotify
-# github.com/gardener/component-cli v0.44.0
+# github.com/gardener/component-cli v0.47.0
 ## explicit; go 1.18
 github.com/gardener/component-cli/cmd/component-cli/app
 github.com/gardener/component-cli/ociclient

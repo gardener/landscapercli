@@ -1,6 +1,6 @@
 ## landscaper-cli component-cli component-archive signatures sign signing-server
 
-fetch the component descriptor from an oci registry, sign it with a signature provided from a signing server, and re-upload
+fetch the component descriptor from an oci registry or local filesystem, sign it with a signature provided from a signing server, and re-upload
 
 ```
 landscaper-cli component-cli component-archive signatures sign signing-server BASE_URL COMPONENT_NAME VERSION [flags]
