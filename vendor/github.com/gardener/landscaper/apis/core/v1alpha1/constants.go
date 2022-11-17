@@ -31,6 +31,10 @@ const (
 	// uninstalling the deployed artifacts
 	DeleteWithoutUninstallAnnotation = LandscaperDomain + "/delete-without-uninstall"
 
+	// DeleteIgnoreSuccessors is the annotation that specifies that an installation is deleted even if there
+	// are dependent installations.
+	DeleteIgnoreSuccessors = LandscaperDomain + "/delete-ignore-successors"
+
 	// ReconcileTimestampAnnotation is used to recognize timeouts in deployitems
 	ReconcileTimestampAnnotation = LandscaperDomain + "/reconcile-time"
 
@@ -43,6 +47,9 @@ const (
 
 	// TouchAnnotation can be used to trigger a reconciliation event for a landscaper resource.
 	TouchAnnotation = LandscaperDomain + "/touch"
+
+	// RotateTokenAnnotation is the annotation that specifies to rotate a token (used e.g. in the context of TargetSyncObjects)
+	RotateTokenAnnotation = LandscaperDomain + "/rotate-token"
 
 	// Labels
 

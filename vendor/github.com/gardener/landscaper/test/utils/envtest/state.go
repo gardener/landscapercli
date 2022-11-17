@@ -8,8 +8,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/gardener/landscaper/hack/testcluster/pkg/utils"
 
 	"github.com/pkg/errors"
 
@@ -35,33 +38,43 @@ type State struct {
 	mux           sync.Mutex
 	Client        client.Client
 	Namespace     string
+	Namespace2    string
 	Installations map[string]*lsv1alpha1.Installation
 	Executions    map[string]*lsv1alpha1.Execution
 	DeployItems   map[string]*lsv1alpha1.DeployItem
 	DataObjects   map[string]*lsv1alpha1.DataObject
 	Targets       map[string]*lsv1alpha1.Target
+	TargetSyncs   map[string]*lsv1alpha1.TargetSync
 	Secrets       map[string]*corev1.Secret
 	ConfigMaps    map[string]*corev1.ConfigMap
 	Generic       map[string]client.Object
+	log           utils.Logger
 }
 
 // NewState initializes a new state.
-func NewState() *State {
+func NewState(log utils.Logger) *State {
+
+	if log == nil {
+		log = utils.NewDiscardLogger()
+	}
+
 	return &State{
 		Installations: make(map[string]*lsv1alpha1.Installation),
 		Executions:    make(map[string]*lsv1alpha1.Execution),
 		DeployItems:   make(map[string]*lsv1alpha1.DeployItem),
 		DataObjects:   make(map[string]*lsv1alpha1.DataObject),
 		Targets:       make(map[string]*lsv1alpha1.Target),
+		TargetSyncs:   make(map[string]*lsv1alpha1.TargetSync),
 		Secrets:       make(map[string]*corev1.Secret),
 		ConfigMaps:    make(map[string]*corev1.ConfigMap),
 		Generic:       make(map[string]client.Object),
+		log:           log,
 	}
 }
 
 // NewStateWithClient initializes a new state with a client.
-func NewStateWithClient(kubeClient client.Client) *State {
-	s := NewState()
+func NewStateWithClient(log utils.Logger, kubeClient client.Client) *State {
+	s := NewState(log)
 	s.Client = kubeClient
 	return s
 }
@@ -87,6 +100,8 @@ func (s *State) AddResources(objects ...client.Object) error {
 			s.DataObjects[types.NamespacedName{Name: o.Name, Namespace: o.Namespace}.String()] = o.DeepCopy()
 		case *lsv1alpha1.Target:
 			s.Targets[types.NamespacedName{Name: o.Name, Namespace: o.Namespace}.String()] = o.DeepCopy()
+		case *lsv1alpha1.TargetSync:
+			s.TargetSyncs[types.NamespacedName{Name: o.Name, Namespace: o.Namespace}.String()] = o.DeepCopy()
 		case *corev1.Secret:
 			// add stringdata and data
 			if o.Data == nil {
@@ -132,7 +147,6 @@ func (s UpdateStatus) ApplyOption(options *CreateOptions) error {
 	return nil
 }
 
-// CreateWithClient creates or updates a kubernetes resources and adds it to the current state
 func (s *State) CreateWithClient(ctx context.Context, c client.Client, obj client.Object, opts ...CreateOption) error {
 	options := &CreateOptions{}
 	if err := options.ApplyOptions(opts...); err != nil {
@@ -140,6 +154,13 @@ func (s *State) CreateWithClient(ctx context.Context, c client.Client, obj clien
 	}
 	tmp := obj.DeepCopyObject().(client.Object)
 	if err := c.Create(ctx, obj); err != nil {
+		if s.checkIfSporadicError(err) {
+			s.log.Logln("state CreateWithClient-create failed but retried: " + err.Error())
+			if err := c.Create(ctx, obj); err != nil {
+				return err
+			}
+
+		}
 		return err
 	}
 
@@ -154,6 +175,60 @@ func (s *State) CreateWithClient(ctx context.Context, c client.Client, obj clien
 			if !apierrors.IsNotFound(err) {
 				return err
 			}
+
+			if strings.Contains(err.Error(), "connection refused") {
+				s.log.Logln("state CreateWithClient-update failed but retried: " + err.Error())
+				if err := c.Status().Update(ctx, tmp); err != nil {
+					if !apierrors.IsNotFound(err) {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return s.AddResources(tmp)
+}
+
+// CreateWithClient creates or updates a kubernetes resource and adds it to the current state
+func (s *State) CreateWithClientAndRetries(ctx context.Context, c client.Client, obj client.Object, opts ...CreateOption) error {
+	options := &CreateOptions{}
+	if err := options.ApplyOptions(opts...); err != nil {
+		return err
+	}
+	tmp := obj.DeepCopyObject().(client.Object)
+
+	for i := 0; i < 10; i++ {
+		err := c.Create(ctx, obj)
+		if err == nil {
+			break
+		} else if s.checkIfSporadicError(err) {
+			s.log.Logln("state CreateWithClient-create failed but retried: " + err.Error())
+			time.Sleep(5 * time.Second)
+		} else {
+			return err
+		}
+	}
+
+	tmp.SetName(obj.GetName())
+	tmp.SetNamespace(obj.GetNamespace())
+	tmp.SetResourceVersion(obj.GetResourceVersion())
+	tmp.SetGeneration(obj.GetGeneration())
+	tmp.SetUID(obj.GetUID())
+	tmp.SetCreationTimestamp(obj.GetCreationTimestamp())
+	if options.UpdateStatus {
+		if err := c.Status().Update(ctx, tmp); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return err
+			}
+
+			if strings.Contains(err.Error(), "connection refused") {
+				s.log.Logln("state CreateWithClient-update failed but retried: " + err.Error())
+				if err := c.Status().Update(ctx, tmp); err != nil {
+					if !apierrors.IsNotFound(err) {
+						return err
+					}
+				}
+			}
 		}
 	}
 	return s.AddResources(tmp)
@@ -161,7 +236,27 @@ func (s *State) CreateWithClient(ctx context.Context, c client.Client, obj clien
 
 // Create creates or updates a kubernetes resources and adds it to the current state
 func (s *State) Create(ctx context.Context, obj client.Object, opts ...CreateOption) error {
-	return s.CreateWithClient(ctx, s.Client, obj, opts...)
+	return s.CreateWithClientAndRetries(ctx, s.Client, obj, opts...)
+}
+
+// Update a kubernetes resources
+func (s *State) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+	return s.UpdateWithClient(ctx, s.Client, obj, opts...)
+}
+
+func (s *State) UpdateWithClient(ctx context.Context, cl client.Client, obj client.Object, opts ...client.UpdateOption) error {
+	for i := 0; i < 10; i++ {
+		err := cl.Update(ctx, obj, opts...)
+		if err == nil {
+			break
+		} else if s.checkIfSporadicError(err) {
+			s.log.Logln("state Update failed but retried: " + err.Error())
+			time.Sleep(5 * time.Second)
+		} else {
+			return err
+		}
+	}
+	return nil
 }
 
 // InitResourcesWithClient creates a new isolated environment with its own namespace.
@@ -327,7 +422,7 @@ func (s *State) CleanupStateWithClient(ctx context.Context, c client.Client, opt
 		}
 	}
 	for _, obj := range s.Installations {
-		if err := CleanupForInstallation(ctx, c, obj, *timeout); err != nil {
+		if err := s.CleanupForInstallation(ctx, c, obj, *timeout); err != nil {
 			return err
 		}
 	}
@@ -337,6 +432,11 @@ func (s *State) CleanupStateWithClient(ctx context.Context, c client.Client, opt
 		}
 	}
 	for _, obj := range s.Targets {
+		if err := CleanupForObject(ctx, c, obj, *timeout); err != nil {
+			return err
+		}
+	}
+	for _, obj := range s.TargetSyncs {
 		if err := CleanupForObject(ctx, c, obj, *timeout); err != nil {
 			return err
 		}
@@ -369,8 +469,22 @@ func (s *State) CleanupStateWithClient(ctx context.Context, c client.Client, opt
 		}
 	}
 
+	if err := s.cleanupNamespace(ctx, c, s.Namespace, options, timeout); err != nil {
+		return err
+	}
+
+	if len(s.Namespace2) > 0 {
+		if err := s.cleanupNamespace(ctx, c, s.Namespace2, options, timeout); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *State) cleanupNamespace(ctx context.Context, c client.Client, namespace string, options *CleanupOptions, timeout *time.Duration) error {
 	ns := &corev1.Namespace{}
-	ns.Name = s.Namespace
+	ns.Name = namespace
 	if err := c.Delete(ctx, ns); err != nil {
 		return err
 	}
@@ -392,6 +506,12 @@ func (s *State) CleanupStateWithClient(ctx context.Context, c client.Client, opt
 // todo: remove finalizers of all objects in state
 func (s *State) CleanupState(ctx context.Context, opts ...CleanupOption) error {
 	return s.CleanupStateWithClient(ctx, s.Client, opts...)
+}
+
+func (s *State) checkIfSporadicError(err error) bool {
+	return strings.Contains(err.Error(), "connection refused") ||
+		strings.Contains(err.Error(), "context deadline exceeded") ||
+		strings.Contains(err.Error(), "failed to call webhook")
 }
 
 // CleanupForObject cleans up a object from a cluster
@@ -418,7 +538,7 @@ func CleanupForObject(ctx context.Context, c client.Client, obj client.Object, t
 }
 
 // CleanupForInstallation cleans up an installation from a cluster
-func CleanupForInstallation(ctx context.Context, c client.Client, obj *lsv1alpha1.Installation, timeout time.Duration) error {
+func (s *State) CleanupForInstallation(ctx context.Context, c client.Client, obj *lsv1alpha1.Installation, timeout time.Duration) error {
 	if err := c.Get(ctx, client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}, obj); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
@@ -434,8 +554,8 @@ func CleanupForInstallation(ctx context.Context, c client.Client, obj *lsv1alpha
 	}
 
 	var innerErr error
-	if err := wait.PollImmediate(2*time.Second, 10*time.Second, func() (done bool, err error) {
-		innerErr = addReconcileAnnotation(ctx, c, obj)
+	if err := wait.PollImmediate(1*time.Second, 10*time.Second, func() (done bool, err error) {
+		innerErr = s.addReconcileAnnotation(ctx, c, obj)
 		return innerErr == nil, nil
 	}); err != nil {
 		if innerErr != nil {
@@ -510,7 +630,7 @@ func CleanupForDeployItem(ctx context.Context, c client.Client, obj *lsv1alpha1.
 	return nil
 }
 
-func addReconcileAnnotation(ctx context.Context, c client.Client, obj *lsv1alpha1.Installation) error {
+func (s *State) addReconcileAnnotation(ctx context.Context, c client.Client, obj *lsv1alpha1.Installation) error {
 	if err := c.Get(ctx, kutil.ObjectKeyFromObject(obj), obj); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
@@ -520,7 +640,7 @@ func addReconcileAnnotation(ctx context.Context, c client.Client, obj *lsv1alpha
 
 	if obj != nil && !lsv1alpha1helper.HasOperation(obj.ObjectMeta, lsv1alpha1.ReconcileOperation) {
 		lsv1alpha1helper.SetOperation(&obj.ObjectMeta, lsv1alpha1.ReconcileOperation)
-		if err := c.Update(ctx, obj); err != nil {
+		if err := s.UpdateWithClient(ctx, c, obj); err != nil {
 			if readError := c.Get(ctx, kutil.ObjectKeyFromObject(obj), obj); apierrors.IsNotFound(readError) {
 				return nil
 			}
@@ -540,9 +660,9 @@ func updateJobIdForDeployItem(ctx context.Context, c client.Client, obj *lsv1alp
 		return err
 	}
 
-	if obj != nil && obj.Status.JobID == obj.Status.JobIDFinished {
+	if obj != nil && obj.Status.GetJobID() == obj.Status.JobIDFinished {
 		time := v1.Now()
-		obj.Status.JobID = obj.Status.JobID + "-1"
+		obj.Status.SetJobID(obj.Status.GetJobID() + "-1")
 		obj.Status.JobIDGenerationTime = &time
 		if err := c.Status().Update(ctx, obj); err != nil {
 			if readError := c.Get(ctx, kutil.ObjectKeyFromObject(obj), obj); apierrors.IsNotFound(readError) {
@@ -584,7 +704,7 @@ func WaitForObjectToBeDeleted(ctx context.Context, c client.Client, obj client.O
 		lastErr error
 		uObj    client.Object
 	)
-	err := wait.PollImmediate(2*time.Second, timeout, func() (done bool, err error) {
+	err := wait.PollImmediate(1*time.Second, timeout, func() (done bool, err error) {
 		uObj = obj.DeepCopyObject().(client.Object)
 		if err := c.Get(ctx, client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}, uObj); err != nil {
 			if apierrors.IsNotFound(err) {

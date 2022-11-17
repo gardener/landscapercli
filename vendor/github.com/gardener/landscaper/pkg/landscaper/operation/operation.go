@@ -6,7 +6,6 @@ package operation
 
 import (
 	"github.com/gardener/component-spec/bindings-go/ctf"
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,7 +21,6 @@ type RegistriesAccessor interface {
 
 // Operation is the type that is used to share common operational data across the landscaper reconciler
 type Operation struct {
-	log               logr.Logger
 	client            client.Client
 	scheme            *runtime.Scheme
 	eventRecorder     record.EventRecorder
@@ -31,9 +29,8 @@ type Operation struct {
 
 // NewOperation creates a new internal installation Operation object.
 // DEPRECATED: use the Builder instead.
-func NewOperation(log logr.Logger, c client.Client, scheme *runtime.Scheme, recorder record.EventRecorder) *Operation {
+func NewOperation(c client.Client, scheme *runtime.Scheme, recorder record.EventRecorder) *Operation {
 	return &Operation{
-		log:           log,
 		client:        c,
 		scheme:        scheme,
 		eventRecorder: recorder,
@@ -43,16 +40,10 @@ func NewOperation(log logr.Logger, c client.Client, scheme *runtime.Scheme, reco
 // Copy creates a new operation with the same client, scheme and component resolver
 func (o *Operation) Copy() *Operation {
 	return &Operation{
-		log:               o.log,
 		client:            o.client,
 		scheme:            o.scheme,
 		componentRegistry: o.componentRegistry,
 	}
-}
-
-// Log returns a logging instance
-func (o *Operation) Log() logr.Logger {
-	return o.log
 }
 
 // Client returns a controller runtime client.Registry
@@ -61,7 +52,7 @@ func (o *Operation) Client() client.Client {
 }
 
 func (o *Operation) Writer() *read_write_layer.Writer {
-	return read_write_layer.NewWriter(o.log, o.client)
+	return read_write_layer.NewWriter(o.client)
 }
 
 // Scheme returns a kubernetes scheme

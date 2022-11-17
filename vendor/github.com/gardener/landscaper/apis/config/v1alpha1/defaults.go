@@ -34,7 +34,6 @@ func SetDefaults_LandscaperConfiguration(obj *LandscaperConfiguration) {
 	SetDefaults_CommonControllerConfig(&obj.Controllers.Installations.CommonControllerConfig)
 	SetDefaults_CommonControllerConfig(&obj.Controllers.Executions.CommonControllerConfig)
 	SetDefaults_CommonControllerConfig(&obj.Controllers.DeployItems.CommonControllerConfig)
-	SetDefaults_CommonControllerConfig(&obj.Controllers.ComponentOverwrites.CommonControllerConfig)
 	SetDefaults_CommonControllerConfig(&obj.Controllers.Contexts.CommonControllerConfig)
 
 	if len(obj.DeployerManagement.Namespace) == 0 {
@@ -70,6 +69,9 @@ func SetDefaults_LandscaperConfiguration(obj *LandscaperConfiguration) {
 	}
 	if len(obj.DeployerManagement.Agent.Namespace) == 0 {
 		obj.DeployerManagement.Agent.Namespace = obj.DeployerManagement.Namespace
+	}
+	if len(obj.DeployerManagement.Agent.LandscaperNamespace) == 0 {
+		obj.DeployerManagement.Agent.LandscaperNamespace = obj.DeployerManagement.Namespace
 	}
 	if obj.DeployerManagement.Agent.OCI == nil {
 		obj.DeployerManagement.Agent.OCI = obj.Registry.OCI
@@ -107,6 +109,9 @@ func SetDefaults_CommonControllerConfig(obj *CommonControllerConfig) {
 func SetDefaults_AgentConfiguration(obj *AgentConfiguration) {
 	if len(obj.Namespace) == 0 {
 		obj.Namespace = "ls-system"
+	}
+	if len(obj.LandscaperNamespace) == 0 {
+		obj.LandscaperNamespace = "ls-system"
 	}
 }
 

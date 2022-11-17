@@ -8,18 +8,17 @@ import (
 	"context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	lserrors "github.com/gardener/landscaper/apis/errors"
-	kutil "github.com/gardener/landscaper/controller-utils/pkg/kubernetes"
-	"github.com/gardener/landscaper/pkg/utils/read_write_layer"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	lsv1alpha1helper "github.com/gardener/landscaper/apis/core/v1alpha1/helper"
+	lserrors "github.com/gardener/landscaper/apis/errors"
+	kutil "github.com/gardener/landscaper/controller-utils/pkg/kubernetes"
+	"github.com/gardener/landscaper/controller-utils/pkg/logging"
 	"github.com/gardener/landscaper/pkg/api"
 	"github.com/gardener/landscaper/pkg/landscaper/dataobjects"
 	"github.com/gardener/landscaper/pkg/landscaper/operation"
+	"github.com/gardener/landscaper/pkg/utils/read_write_layer"
 )
 
 // Operation contains all execution operations
@@ -61,8 +60,6 @@ func (o *Operation) UpdateDeployItems(ctx context.Context) lserrors.LsError {
 }
 
 func (o *Operation) TriggerDeployItems(ctx context.Context) (*DeployItemClassification, lserrors.LsError) {
-	op := "TriggerDeployItems"
-
 	items, orphaned, lsErr := o.getDeployItems(ctx)
 	if lsErr != nil {
 		return nil, lsErr
@@ -79,17 +76,8 @@ func (o *Operation) TriggerDeployItems(ctx context.Context) (*DeployItemClassifi
 		if !classificationOfOrphans.HasFailedItems() {
 			deletableItems := classificationOfOrphans.GetRunnableItems()
 			for _, item := range deletableItems {
-				key := kutil.ObjectKeyFromObject(item.DeployItem)
-				di := &lsv1alpha1.DeployItem{}
-				if err := read_write_layer.GetDeployItem(ctx, o.Client(), key, di); err != nil {
-					return nil, lserrors.NewWrappedError(err, op, "GetDeployItem", err.Error())
-				}
-
-				di.Status.JobID = o.exec.Status.JobID
-				now := metav1.Now()
-				di.Status.JobIDGenerationTime = &now
-				if err := o.Writer().UpdateDeployItemStatus(ctx, read_write_layer.W000090, di); err != nil {
-					return nil, lserrors.NewWrappedError(err, op, "UpdateDeployItemStatus", err.Error())
+				if err := o.triggerDeployItem(ctx, item.DeployItem); err != nil {
+					return nil, err
 				}
 			}
 		}
@@ -107,17 +95,8 @@ func (o *Operation) TriggerDeployItems(ctx context.Context) (*DeployItemClassifi
 	if !classification.HasFailedItems() {
 		runnableItems := classification.GetRunnableItems()
 		for _, item := range runnableItems {
-			key := kutil.ObjectKeyFromObject(item.DeployItem)
-			di := &lsv1alpha1.DeployItem{}
-			if err := read_write_layer.GetDeployItem(ctx, o.Client(), key, di); err != nil {
-				return nil, lserrors.NewWrappedError(err, op, "GetDeployItem", err.Error())
-			}
-
-			di.Status.JobID = o.exec.Status.JobID
-			now := metav1.Now()
-			di.Status.JobIDGenerationTime = &now
-			if err := o.Writer().UpdateDeployItemStatus(ctx, read_write_layer.W000089, di); err != nil {
-				return nil, lserrors.NewWrappedError(err, op, "UpdateDeployItemStatus", err.Error())
+			if err := o.triggerDeployItem(ctx, item.DeployItem); err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -152,22 +131,37 @@ func (o *Operation) TriggerDeployItemsForDelete(ctx context.Context) (*DeployIte
 	if !classification.HasFailedItems() {
 		deletableItems := classification.GetRunnableItems()
 		for _, item := range deletableItems {
-			key := kutil.ObjectKeyFromObject(item.DeployItem)
-			di := &lsv1alpha1.DeployItem{}
-			if err := read_write_layer.GetDeployItem(ctx, o.Client(), key, di); err != nil {
-				return nil, lserrors.NewWrappedError(err, op, "GetDeployItem", err.Error())
-			}
-
-			di.Status.JobID = o.exec.Status.JobID
-			now := metav1.Now()
-			di.Status.JobIDGenerationTime = &now
-			if err := o.Writer().UpdateDeployItemStatus(ctx, read_write_layer.W000090, di); err != nil {
-				return nil, lserrors.NewWrappedError(err, op, "UpdateDeployItemStatus", err.Error())
+			if err := o.triggerDeployItem(ctx, item.DeployItem); err != nil {
+				return nil, err
 			}
 		}
 	}
 
 	return classification, nil
+}
+
+func (o *Operation) triggerDeployItem(ctx context.Context, di *lsv1alpha1.DeployItem) lserrors.LsError {
+	op := "TriggerDeployItem"
+
+	key := kutil.ObjectKeyFromObject(di)
+	di = &lsv1alpha1.DeployItem{}
+	if err := read_write_layer.GetDeployItem(ctx, o.Client(), key, di); err != nil {
+		return lserrors.NewWrappedError(err, op, "GetDeployItem", err.Error())
+	}
+
+	lsv1alpha1helper.RemoveAbortOperationAndTimestamp(&di.ObjectMeta)
+	if err := o.Writer().UpdateDeployItem(ctx, read_write_layer.W000109, di); err != nil {
+		return lserrors.NewWrappedError(err, op, "UpdateDeployItem", err.Error())
+	}
+
+	di.Status.SetJobID(o.exec.Status.JobID)
+	now := metav1.Now()
+	di.Status.JobIDGenerationTime = &now
+	if err := o.Writer().UpdateDeployItemStatus(ctx, read_write_layer.W000090, di); err != nil {
+		return lserrors.NewWrappedError(err, op, "UpdateDeployItemStatus", err.Error())
+	}
+
+	return nil
 }
 
 func (o *Operation) getDeployItems(ctx context.Context) ([]*executionItem, []lsv1alpha1.DeployItem, lserrors.LsError) {
@@ -183,11 +177,12 @@ func (o *Operation) getDeployItems(ctx context.Context) ([]*executionItem, []lsv
 }
 
 // UpdateStatus updates the status of a execution
-func (o *Operation) UpdateStatus(ctx context.Context, phase lsv1alpha1.ExecutionPhase, updatedConditions ...lsv1alpha1.Condition) error {
-	o.exec.Status.Phase = phase
+func (o *Operation) UpdateStatus(ctx context.Context, updatedConditions ...lsv1alpha1.Condition) error {
+	logger, ctx := logging.FromContextOrNew(ctx, nil)
+
 	o.exec.Status.Conditions = lsv1alpha1helper.MergeConditions(o.exec.Status.Conditions, updatedConditions...)
 	if err := o.Writer().UpdateExecutionStatus(ctx, read_write_layer.W000032, o.exec); err != nil {
-		o.Log().Error(err, "unable to set installation status")
+		logger.Error(err, "unable to set installation status")
 		return err
 	}
 	return nil
@@ -219,5 +214,5 @@ func (o *Operation) CreateOrUpdateExportReference(ctx context.Context, values in
 		Name:      raw.Name,
 		Namespace: raw.Namespace,
 	}
-	return o.UpdateStatus(ctx, o.exec.Status.Phase)
+	return o.UpdateStatus(ctx)
 }

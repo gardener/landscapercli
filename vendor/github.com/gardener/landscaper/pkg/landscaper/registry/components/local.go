@@ -11,14 +11,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/gardener/landscaper/controller-utils/pkg/logging"
+	lc "github.com/gardener/landscaper/controller-utils/pkg/logging/constants"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/component-spec/bindings-go/codec"
 	"github.com/gardener/component-spec/bindings-go/ctf"
-	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/osfs"
 	"github.com/mandelsoft/vfs/pkg/projectionfs"
 	"github.com/mandelsoft/vfs/pkg/vfs"
@@ -84,19 +85,17 @@ func (a *FilesystemBlobAccess) SetData(bytes []byte) error {
 // A ComponentDescriptor is resolved by traversing the given paths and decode every found file as component descriptor.
 // todo: build cache to not read every file with every resolve attempt.
 type localClient struct {
-	log logr.Logger
-	fs  vfs.FileSystem
+	fs vfs.FileSystem
 }
 
 // NewLocalClient creates a new local registry from a root.
-func NewLocalClient(log logr.Logger, rootPath string) (TypedRegistry, error) {
+func NewLocalClient(rootPath string) (TypedRegistry, error) {
 	fs, err := projectionfs.New(osfs.New(), rootPath)
 	if err != nil {
 		return nil, err
 	}
 	return &localClient{
-		log: log,
-		fs:  fs,
+		fs: fs,
 	}, nil
 }
 
@@ -106,12 +105,12 @@ func (c *localClient) Type() string {
 }
 
 // Resolve resolves a reference and returns the component descriptor.
-func (c *localClient) Resolve(_ context.Context, repoCtx cdv2.Repository, name, version string) (*cdv2.ComponentDescriptor, error) {
+func (c *localClient) Resolve(ctx context.Context, repoCtx cdv2.Repository, name, version string) (*cdv2.ComponentDescriptor, error) {
 	if repoCtx.GetType() != LocalRepositoryType {
 		return nil, fmt.Errorf("unsupported type %s expected %s", repoCtx.GetType(), LocalRepositoryType)
 	}
 
-	cd, _, err := c.searchInFs(name, version)
+	cd, _, err := c.searchInFs(ctx, name, version)
 	if err != nil {
 		return nil, err
 	}
@@ -119,12 +118,12 @@ func (c *localClient) Resolve(_ context.Context, repoCtx cdv2.Repository, name, 
 }
 
 // ResolveWithBlobResolver resolves a reference and returns the component descriptor.
-func (c *localClient) ResolveWithBlobResolver(_ context.Context, repoCtx cdv2.Repository, name, version string) (*cdv2.ComponentDescriptor, ctf.BlobResolver, error) {
+func (c *localClient) ResolveWithBlobResolver(ctx context.Context, repoCtx cdv2.Repository, name, version string) (*cdv2.ComponentDescriptor, ctf.BlobResolver, error) {
 	if repoCtx.GetType() != LocalRepositoryType {
 		return nil, nil, fmt.Errorf("unsupported type %s expected %s", repoCtx.GetType(), LocalRepositoryType)
 	}
 
-	cd, localFilesystemBlobResolver, err := c.searchInFs(name, version)
+	cd, localFilesystemBlobResolver, err := c.searchInFs(ctx, name, version)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -135,14 +134,16 @@ func (c *localClient) ResolveWithBlobResolver(_ context.Context, repoCtx cdv2.Re
 	return cd, aggBlobResolver, err
 }
 
-func (c *localClient) searchInFs(name, version string) (*cdv2.ComponentDescriptor, ctf.BlobResolver, error) {
+func (c *localClient) searchInFs(ctx context.Context, name, version string) (*cdv2.ComponentDescriptor, ctf.BlobResolver, error) {
+	logger, _ := logging.FromContextOrNew(ctx, []interface{}{lc.KeyMethod, "searchInFs"}, lc.KeyCDName, name)
+
 	foundErr := errors.New("comp found")
 	var cd *cdv2.ComponentDescriptor
 	var resolver ctf.BlobResolver
 	err := vfs.Walk(c.fs, "/", func(path string, info os.FileInfo, err error) error {
 		// ignore errors
 		if err != nil {
-			c.log.V(3).Info(err.Error())
+			logger.Debug(err.Error())
 			return nil
 		}
 
@@ -329,7 +330,7 @@ func (res *BaseFilesystemBlobResolver) ResolveFromFs(blobpath string) (*ctf.Blob
 			MediaType: "",
 			Digest:    digest.FromBytes(data.Bytes()).String(),
 			Size:      int64(data.Len()),
-		}, ioutil.NopCloser(&data), nil
+		}, io.NopCloser(&data), nil
 	}
 	file, err := res.fs.Open(blobpath)
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/apis/core/v1alpha1/targettypes"
 	"github.com/gardener/landscaper/apis/mediatype"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -219,8 +220,8 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath string) (*lsv1
 		return nil, fmt.Errorf("cannot read kubeconfig: %w", err)
 	}
 
-	config := lsv1alpha1.KubernetesClusterTargetConfig{
-		Kubeconfig: lsv1alpha1.ValueRef{
+	config := targettypes.KubernetesClusterTargetConfig{
+		Kubeconfig: targettypes.ValueRef{
 			StrVal: pointer.StringPtr(string(kubeconfigContent)),
 		},
 	}
@@ -240,10 +241,8 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath string) (*lsv1
 			Namespace: namespace,
 		},
 		Spec: lsv1alpha1.TargetSpec{
-			Type: lsv1alpha1.KubernetesClusterTargetType,
-			Configuration: lsv1alpha1.AnyJSON{
-				RawMessage: marshalledConfig,
-			},
+			Type:          targettypes.KubernetesClusterTargetType,
+			Configuration: lsv1alpha1.NewAnyJSONPointer(marshalledConfig),
 		},
 	}
 

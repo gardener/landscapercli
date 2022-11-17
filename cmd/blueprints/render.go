@@ -41,6 +41,7 @@ import (
 	"github.com/gardener/landscaper/apis/core"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/apis/core/validation"
+	"github.com/gardener/landscaper/controller-utils/pkg/logging"
 	"github.com/gardener/landscaper/pkg/api"
 	lsutils "github.com/gardener/landscaper/pkg/utils/landscaper"
 
@@ -486,12 +487,12 @@ func (o *RenderOptions) Complete(log logr.Logger, args []string, fs vfs.FileSyst
 	}
 
 	if o.componentDescriptor == nil {
-		o.componentResolver, err = componentsregistry.NewOCIRegistryWithOCIClient(log, ociClient)
+		o.componentResolver, err = componentsregistry.NewOCIRegistryWithOCIClient(logging.Wrap(log), ociClient)
 		if err != nil {
 			return err
 		}
 	} else {
-		o.componentResolver, err = componentsregistry.NewOCIRegistryWithOCIClient(log, ociClient, o.componentDescriptor)
+		o.componentResolver, err = componentsregistry.NewOCIRegistryWithOCIClient(logging.Wrap(log), ociClient, o.componentDescriptor)
 		if err != nil {
 			return err
 		}

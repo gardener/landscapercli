@@ -11,10 +11,11 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/gardener/landscaper/hack/testcluster/pkg/utils"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -90,12 +91,13 @@ func (e *Environment) Stop() error {
 
 // InitState creates a new isolated environment with its own namespace.
 func (e *Environment) InitState(ctx context.Context) (*State, error) {
-	return InitStateWithNamespace(ctx, e.Client)
+	return InitStateWithNamespace(ctx, e.Client, nil, false)
 }
 
 // InitStateWithNamespace creates a new isolated environment with its own namespace.
-func InitStateWithNamespace(ctx context.Context, c client.Client) (*State, error) {
-	state := NewStateWithClient(c)
+func InitStateWithNamespace(ctx context.Context, c client.Client, log utils.Logger, createSecondNamespace bool) (*State, error) {
+	state := NewStateWithClient(log, c)
+
 	// create a new testing namespace
 	ns := &corev1.Namespace{}
 	ns.GenerateName = "tests-"
@@ -103,12 +105,32 @@ func InitStateWithNamespace(ctx context.Context, c client.Client) (*State, error
 		return nil, err
 	}
 	state.Namespace = ns.Name
+
+	if createSecondNamespace {
+		// create a second testing namespace
+		ns2 := &corev1.Namespace{}
+		ns2.GenerateName = "tests-"
+		if err := c.Create(ctx, ns2); err != nil {
+			return nil, err
+		}
+		state.Namespace2 = ns2.Name
+	}
+
 	return state, nil
 }
 
 // InitResources creates a new isolated environment with its own namespace.
 func (e *Environment) InitResources(ctx context.Context, resourcesPath string) (*State, error) {
-	state, err := e.InitState(ctx)
+	return e.initResources(ctx, resourcesPath, false)
+}
+
+func (e *Environment) InitResourcesWithTwoNamespaces(ctx context.Context, resourcesPath string) (*State, error) {
+	return e.initResources(ctx, resourcesPath, true)
+}
+
+// InitResources creates a new isolated environment with its own namespace.
+func (e *Environment) initResources(ctx context.Context, resourcesPath string, createSecondNamespace bool) (*State, error) {
+	state, err := InitStateWithNamespace(ctx, e.Client, nil, createSecondNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +167,7 @@ func parseResources(path string, state *State) ([]client.Object, error) {
 			return nil
 		}
 
-		data, err := ioutil.ReadFile(path)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			return errors.Wrapf(err, "unable to read file %s", path)
 		}
@@ -156,7 +178,7 @@ func parseResources(path string, state *State) ([]client.Object, error) {
 			return err
 		}
 		buf := bytes.NewBuffer([]byte{})
-		if err := tmpl.Execute(buf, map[string]string{"Namespace": state.Namespace}); err != nil {
+		if err := tmpl.Execute(buf, map[string]string{"Namespace": state.Namespace, "Namespace2": state.Namespace2}); err != nil {
 			return err
 		}
 
@@ -231,6 +253,13 @@ func decodeAndAppendLSObject(data []byte, objects []client.Object, state *State)
 		}
 		state.Targets[types.NamespacedName{Name: target.Name, Namespace: target.Namespace}.String()] = target
 		return append(objects, target), nil
+	case TargetSyncGVK.Kind:
+		targetSync := &lsv1alpha1.TargetSync{}
+		if _, _, err := decoder.Decode(data, nil, targetSync); err != nil {
+			return nil, fmt.Errorf("unable to decode file as target: %w", err)
+		}
+		state.TargetSyncs[types.NamespacedName{Name: targetSync.Name, Namespace: targetSync.Namespace}.String()] = targetSync
+		return append(objects, targetSync), nil
 	case ContextGVK.Kind:
 		context := &lsv1alpha1.Context{}
 		if _, _, err := decoder.Decode(data, nil, context); err != nil {

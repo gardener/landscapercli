@@ -1,14 +1,15 @@
 module github.com/gardener/landscapercli
 
-go 1.18
+go 1.19
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/gardener/component-cli v0.44.0
 	github.com/gardener/component-spec/bindings-go v0.0.66
-	github.com/gardener/landscaper v0.29.0
-	github.com/gardener/landscaper/apis v0.29.0
+	github.com/gardener/landscaper v0.40.0
+	github.com/gardener/landscaper/apis v0.40.0
+	github.com/gardener/landscaper/controller-utils v0.40.0
 	github.com/go-logr/logr v1.2.3
 	github.com/go-logr/zapr v1.2.3
 	github.com/golang/mock v1.6.0
@@ -45,7 +46,6 @@ require (
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gardener/image-vector v0.10.0 // indirect
-	github.com/gardener/landscaper/controller-utils v0.29.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect

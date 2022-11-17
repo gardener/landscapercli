@@ -37,9 +37,16 @@ type TargetSpec struct {
 	// Type is the type of the target that defines its data structure.
 	// The actual schema may be defined by a target type crd in the future.
 	Type TargetType `json:"type"`
+
 	// Configuration contains the target type specific configuration.
+	// Exactly one of the fields Configuration and SecretRef must be set
 	// +optional
-	Configuration AnyJSON `json:"config,omitempty"`
+	Configuration *AnyJSON `json:"config,omitempty"`
+
+	// Reference to a secret containing the target type specific configuration.
+	// Exactly one of the fields Configuration and SecretRef must be set
+	// +optional
+	SecretRef *LocalSecretReference `json:"secretRef,omitempty"`
 }
 
 // TargetTemplate exposes specific parts of a target that are used in the exports
@@ -60,4 +67,15 @@ type TargetTemplate struct {
 	// More info: http://kubernetes.io/docs/user-guide/annotations
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+// ResolvedTarget is a helper struct to store a target together with the content of its resolved secret reference.
+type ResolvedTarget struct {
+	// Target contains the original target.
+	*Target `json:"target"`
+
+	// Content contains the content of the target.
+	// If the target has a secret reference, this field should be filled by a TargetResolver.
+	// Otherwise, the inline configuration of the target is put here.
+	Content string `json:"content"`
 }

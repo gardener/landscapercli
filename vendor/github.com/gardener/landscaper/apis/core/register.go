@@ -50,12 +50,14 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ContextList{},
 		&LsHealthCheck{},
 		&LsHealthCheckList{},
-		&ComponentOverwrites{},
-		&ComponentOverwritesList{},
+		&ComponentVersionOverwrites{},
+		&ComponentVersionOverwritesList{},
 		&Environment{},
 		&EnvironmentList{},
 		&DeployerRegistration{},
 		&DeployerRegistrationList{},
+		&TargetSync{},
+		&TargetSyncList{},
 	)
 	return nil
 }

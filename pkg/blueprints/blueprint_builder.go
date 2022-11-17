@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/apis/core/v1alpha1/targettypes"
 
 	"github.com/gardener/landscapercli/pkg/util"
 )
@@ -71,7 +72,7 @@ func (b *BlueprintBuilder) AddImportForTarget(paramName string) {
 	importDefinition := &v1alpha1.ImportDefinition{
 		FieldValueDefinition: v1alpha1.FieldValueDefinition{
 			Name:       paramName,
-			TargetType: string(v1alpha1.KubernetesClusterTargetType),
+			TargetType: string(targettypes.KubernetesClusterTargetType),
 		},
 		Required: &required,
 	}

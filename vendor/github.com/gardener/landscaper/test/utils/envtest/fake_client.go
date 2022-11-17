@@ -7,7 +7,6 @@ package envtest
 import (
 	"bytes"
 	"html/template"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -23,7 +22,7 @@ import (
 // NewFakeClientFromPath reads all landscaper related files from the given path adds them to the controller runtime's fake client.
 func NewFakeClientFromPath(path string) (client.Client, *State, error) {
 	objects := make([]client.Object, 0)
-	state := NewState()
+	state := NewState(nil)
 	if len(path) != 0 {
 		err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -33,7 +32,7 @@ func NewFakeClientFromPath(path string) (client.Client, *State, error) {
 				return nil
 			}
 
-			data, err := ioutil.ReadFile(path)
+			data, err := os.ReadFile(path)
 			if err != nil {
 				return errors.Wrapf(err, "unable to read file %s", path)
 			}

@@ -55,12 +55,14 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ContextList{},
 		&LsHealthCheck{},
 		&LsHealthCheckList{},
-		&ComponentOverwrites{},
-		&ComponentOverwritesList{},
+		&ComponentVersionOverwrites{},
+		&ComponentVersionOverwritesList{},
 		&Environment{},
 		&EnvironmentList{},
 		&DeployerRegistration{},
 		&DeployerRegistrationList{},
+		&TargetSync{},
+		&TargetSyncList{},
 	)
 	if err := RegisterConversions(scheme); err != nil {
 		return err
@@ -86,7 +88,8 @@ var ResourceDefinition = func() lsschema.CustomResourceDefinitions {
 			LsHealthCheckDefinition,
 			DeployerRegistrationDefinition,
 			EnvironmentDefinition,
-			ComponentOverwritesDefinition,
+			ComponentVersionOverwritesDefinition,
+			TargetSyncDefinition,
 		},
 	}
 }()

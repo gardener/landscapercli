@@ -85,6 +85,12 @@ func NewAnyJSON(data []byte) AnyJSON {
 	}
 }
 
+// NewAnyJSONPointer returns a pointer to a new any json object.
+func NewAnyJSONPointer(data []byte) *AnyJSON {
+	tmp := NewAnyJSON(data)
+	return &tmp
+}
+
 // MarshalJSON implements the json marshaling for a JSON
 func (s AnyJSON) MarshalJSON() ([]byte, error) {
 	return s.RawMessage.MarshalJSON()
@@ -150,6 +156,10 @@ const (
 	ErrorTimeout ErrorCode = "ERR_TIMEOUT"
 	// ErrorCyclicDependencies indicates that there are cyclic dependencies between multiple installations/deployitems.
 	ErrorCyclicDependencies ErrorCode = "ERR_CYCLIC_DEPENDENCIES"
+	// ErrorWebhook indicates that there is an intermediate problem with the webhook.
+	ErrorWebhook ErrorCode = "ERR_WEBHOOK"
+	// ErrorUnfinished indicates that there are unfinished sub-objects.
+	ErrorUnfinished ErrorCode = "ERR_UNFINISHED"
 )
 
 // Condition holds the information about the state of a resource.
@@ -191,14 +201,11 @@ type Error struct {
 type Operation string
 
 const (
-	// ReconcileOperation is an annotation for the landscaper to reconcile resources (installations, subinstallations,
-	// executions, deploy items). If set at an installations/execution it triggers a reconcile for all dependent
-	// resources for which something has changed (spec or imports) or which are in a failed state with a save strategy
-	// (e.g. no predecessor is running).
-	// If set at a deploy item it triggers a reconcile even if nothing has changed or the phase is not failed.
+	// ReconcileOperation is an annotation for the landscaper to reconcile root installations.
+	// If set it triggers a reconciliation for all dependent resources.
 	ReconcileOperation Operation = "reconcile"
 
-	// ForceReconcileOperation is an annotation for the landscaper to force the reconcile of  to not wait for children (executions nor subinstallations) to be completed.
+	// ForceReconcileOperation is currently not used.
 	ForceReconcileOperation Operation = "force-reconcile"
 
 	// AbortOperation is the annotation to let the landscaper abort all currently running children and itself.
@@ -208,6 +215,10 @@ const (
 	// installation and its subinstallations. It differs from abort by not waiting some time such that the responsible
 	// deployer could do some cleanup.
 	InterruptOperation Operation = "interrupt"
+
+	// TestReconcileOperation is only used for test purposes. If set at a DeployItem, it triggers a reconciliation
+	// of that DeployItem. It must not be used in a productive scenario.
+	TestReconcileOperation Operation = "test-reconcile"
 )
 
 // ObjectReference is the reference to a kubernetes object.
@@ -272,6 +283,15 @@ type VersionedNamedObjectReference struct {
 // The secret can also be in a different namespace.
 type SecretReference struct {
 	ObjectReference `json:",inline"`
+	// Key is the name of the key in the secret that holds the data.
+	// +optional
+	Key string `json:"key"`
+}
+
+// LocalSecretReference is a reference to data in a secret.
+type LocalSecretReference struct {
+	// Name is the name of the secret
+	Name string `json:"name"`
 	// Key is the name of the key in the secret that holds the data.
 	// +optional
 	Key string `json:"key"`

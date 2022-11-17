@@ -5,6 +5,7 @@ import (
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/apis/core/v1alpha1/targettypes"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -124,7 +125,7 @@ func TestBuildInstallation(t *testing.T) {
 			{
 				FieldValueDefinition: lsv1alpha1.FieldValueDefinition{
 					Name:       "test-target",
-					TargetType: string(lsv1alpha1.KubernetesClusterTargetType),
+					TargetType: string(targettypes.KubernetesClusterTargetType),
 				},
 			},
 			{
