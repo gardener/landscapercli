@@ -16,9 +16,6 @@ landscaper-cli targets create kubernetes-cluster --name my-target --namespace my
 
 ```
   -h, --help                       help for kubernetes-cluster
-      --name string                name of the target
-      --namespace string           namespace of the target (optional)
-  -o, --output-file string         file path for the resulting target yaml
       --target-kubeconfig string   path to the kubeconfig where the created target object will point to
 ```
 
@@ -30,6 +27,10 @@ landscaper-cli targets create kubernetes-cluster --name my-target --namespace my
       --disable-caller       disable the caller of logs (default true)
       --disable-stacktrace   disable the stacktrace of error logs (default true)
       --disable-timestamp    disable timestamp output (default true)
+      --name string          name of the target (required)
+  -n, --namespace string     namespace of the target
+  -o, --output-file string   file path for the resulting target yaml, leave empty for stdout
+  -s, --secret string        name of the secret to store the target's content in (content will be stored in target spec directly, if empty)
   -v, --verbosity int        number for the log level verbosity (default 1)
 ```
 

@@ -19,8 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const NoSecretIdentifier = "<none>"
-
 // CheckConditionPeriodically checks the success of a function peridically. Returns timeout(bool) to indicate the success of the function
 // and propagates possible errors of the function.
 func CheckConditionPeriodically(conditionFunc func() (bool, error), sleepTime time.Duration, maxRetries int) (bool, error) {
@@ -216,23 +214,7 @@ func gracefullyDeleteNamespace(k8sClient client.Client, namespace string, sleepT
 	return false, nil
 }
 
-func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath, secretName string) (*lsv1alpha1.Target, *corev1.Secret, error) {
-	kubeconfigContent, err := os.ReadFile(kubeconfigPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot read kubeconfig: %w", err)
-	}
-
-	config := targettypes.KubernetesClusterTargetConfig{
-		Kubeconfig: targettypes.ValueRef{
-			StrVal: pointer.StringPtr(string(kubeconfigContent)),
-		},
-	}
-
-	marshalledConfig, err := json.Marshal(config)
-	if err != nil {
-		return nil, nil, fmt.Errorf("%w", err)
-	}
-
+func BuildTargetWithContent(name, namespace string, targetType lsv1alpha1.TargetType, content []byte, secretName string) (*lsv1alpha1.Target, *corev1.Secret) {
 	target := &lsv1alpha1.Target{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: lsv1alpha1.SchemeGroupVersion.String(),
@@ -243,16 +225,13 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath, secretName st
 			Namespace: namespace,
 		},
 		Spec: lsv1alpha1.TargetSpec{
-			Type: targettypes.KubernetesClusterTargetType,
+			Type: targetType,
 		},
 	}
 
 	var secret *corev1.Secret
 	secretKeyName := "config"
-	if secretName != NoSecretIdentifier {
-		if secretName == "" {
-			secretName = name
-		}
+	if secretName != "" {
 		secret = &corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: corev1.SchemeGroupVersion.String(),
@@ -263,7 +242,7 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath, secretName st
 				Namespace: namespace,
 			},
 			Data: map[string][]byte{
-				secretKeyName: marshalledConfig,
+				secretKeyName: content,
 			},
 		}
 		target.Spec.SecretRef = &lsv1alpha1.LocalSecretReference{
@@ -271,10 +250,40 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath, secretName st
 			Key:  secretKeyName,
 		}
 	} else {
-		target.Spec.Configuration = lsv1alpha1.NewAnyJSONPointer(marshalledConfig)
+		target.Spec.Configuration = lsv1alpha1.NewAnyJSONPointer(content)
 	}
 
+	return target, secret
+}
+
+func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath, secretName string) (*lsv1alpha1.Target, *corev1.Secret, error) {
+	marshalledConfig, err := GetKubernetesClusterTargetContent(kubeconfigPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	target, secret := BuildTargetWithContent(name, namespace, targettypes.KubernetesClusterTargetType, marshalledConfig, secretName)
+
 	return target, secret, nil
+}
+
+func GetKubernetesClusterTargetContent(kubeconfigPath string) ([]byte, error) {
+	kubeconfigContent, err := os.ReadFile(kubeconfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read kubeconfig: %w", err)
+	}
+
+	config := targettypes.KubernetesClusterTargetConfig{
+		Kubeconfig: targettypes.ValueRef{
+			StrVal: pointer.StringPtr(string(kubeconfigContent)),
+		},
+	}
+
+	marshalledConfig, err := json.Marshal(config)
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
+	}
+
+	return marshalledConfig, nil
 }
 
 func GetBlueprintResource(cd *cdv2.ComponentDescriptor, blueprintResourceName string) (*cdv2.Resource, error) {

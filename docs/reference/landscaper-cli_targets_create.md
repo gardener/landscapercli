@@ -5,7 +5,11 @@ command for creating different types of targets
 ### Options
 
 ```
-  -h, --help   help for create
+  -h, --help                 help for create
+      --name string          name of the target (required)
+  -n, --namespace string     namespace of the target
+  -o, --output-file string   file path for the resulting target yaml, leave empty for stdout
+  -s, --secret string        name of the secret to store the target's content in (content will be stored in target spec directly, if empty)
 ```
 
 ### Options inherited from parent commands
