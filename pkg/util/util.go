@@ -214,7 +214,59 @@ func gracefullyDeleteNamespace(k8sClient client.Client, namespace string, sleepT
 	return false, nil
 }
 
-func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath string) (*lsv1alpha1.Target, error) {
+func BuildTargetWithContent(name, namespace string, targetType lsv1alpha1.TargetType, content []byte, secretName string) (*lsv1alpha1.Target, *corev1.Secret) {
+	target := &lsv1alpha1.Target{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: lsv1alpha1.SchemeGroupVersion.String(),
+			Kind:       "Target",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: lsv1alpha1.TargetSpec{
+			Type: targetType,
+		},
+	}
+
+	var secret *corev1.Secret
+	secretKeyName := "config"
+	if secretName != "" {
+		secret = &corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Kind:       "Secret",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: namespace,
+			},
+			Data: map[string][]byte{
+				secretKeyName: content,
+			},
+		}
+		target.Spec.SecretRef = &lsv1alpha1.LocalSecretReference{
+			Name: secretName,
+			Key:  secretKeyName,
+		}
+	} else {
+		target.Spec.Configuration = lsv1alpha1.NewAnyJSONPointer(content)
+	}
+
+	return target, secret
+}
+
+func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath, secretName string) (*lsv1alpha1.Target, *corev1.Secret, error) {
+	marshalledConfig, err := GetKubernetesClusterTargetContent(kubeconfigPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	target, secret := BuildTargetWithContent(name, namespace, targettypes.KubernetesClusterTargetType, marshalledConfig, secretName)
+
+	return target, secret, nil
+}
+
+func GetKubernetesClusterTargetContent(kubeconfigPath string) ([]byte, error) {
 	kubeconfigContent, err := os.ReadFile(kubeconfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read kubeconfig: %w", err)
@@ -231,22 +283,7 @@ func BuildKubernetesClusterTarget(name, namespace, kubeconfigPath string) (*lsv1
 		return nil, fmt.Errorf("%w", err)
 	}
 
-	target := &lsv1alpha1.Target{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: lsv1alpha1.SchemeGroupVersion.String(),
-			Kind:       "Target",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: lsv1alpha1.TargetSpec{
-			Type:          targettypes.KubernetesClusterTargetType,
-			Configuration: lsv1alpha1.NewAnyJSONPointer(marshalledConfig),
-		},
-	}
-
-	return target, nil
+	return marshalledConfig, nil
 }
 
 func GetBlueprintResource(cd *cdv2.ComponentDescriptor, blueprintResourceName string) (*cdv2.Resource, error) {

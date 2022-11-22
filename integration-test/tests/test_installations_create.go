@@ -193,12 +193,13 @@ func (t *installationsCreateTest) createTarget() error {
 	ctx := context.TODO()
 
 	fmt.Println("Executing landscaper-cli targets create kubernetes-cluster")
-	cmdTargetCreate := types.NewKubernetesClusterCommand(ctx)
+	cmdTargetCreate := types.NewKubernetesClusterCommand(ctx, &types.TargetCreateOpts{
+		Name:      t.targetName,
+		Namespace: t.config.TestNamespace,
+	})
 	outBufTargetCreate := &bytes.Buffer{}
 	cmdTargetCreate.SetOut(outBufTargetCreate)
 	argsTargetCreateParams := []string{
-		"--name=" + t.targetName,
-		"--namespace=" + t.config.TestNamespace,
 		"--target-kubeconfig=" + t.config.Kubeconfig,
 	}
 	cmdTargetCreate.SetArgs(argsTargetCreateParams)
