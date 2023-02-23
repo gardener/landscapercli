@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"sigs.k8s.io/yaml"
 )
 
 func TestComplete(t *testing.T) {
@@ -220,4 +221,55 @@ func TestCheckConfiguration(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGenerateLandscaperValuesOverride(t *testing.T) {
+	opts := installOptions{
+		instOCIRegistry:     true,
+		instRegistryIngress: false,
+		landscaperValues: landscaperValues{
+			Landscaper: landscaperconfig{
+				Landscaper: landscaper{
+					RegistryConfig: registryConfig{
+						AllowPlainHttpRegistries: true,
+						Secrets: secrets{
+							Defaults: defaults{
+								Auths: map[string]interface{}{},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// verify that default deployers are added if not specified
+	lsvo, err := opts.generateLandscaperValuesOverride()
+	assert.NoError(t, err)
+	data := map[string]interface{}{}
+	err = yaml.Unmarshal(lsvo, &data)
+	assert.NoError(t, err)
+	config, ok := data["landscaper"]
+	assert.True(t, ok)
+	data, ok = config.(map[string]interface{})
+	assert.True(t, ok)
+	config, ok = data["deployers"]
+	assert.True(t, ok)
+	depList, ok := config.([]interface{})
+	assert.True(t, ok)
+	assert.EqualValues(t, []interface{}{"container", "helm", "manifest"}, depList)
+
+	// verify that deployers are not overwritten if specified
+	opts.landscaperValues.Landscaper.Landscaper.Deployers = []string{"mock"}
+	lsvo, err = opts.generateLandscaperValuesOverride()
+	assert.NoError(t, err)
+	data = map[string]interface{}{}
+	err = yaml.Unmarshal(lsvo, &data)
+	assert.NoError(t, err)
+	config, ok = data["landscaper"]
+	assert.True(t, ok)
+	data, ok = config.(map[string]interface{})
+	assert.True(t, ok)
+	_, ok = data["deployers"]
+	assert.False(t, ok)
 }

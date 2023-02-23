@@ -57,6 +57,7 @@ type landscaperconfig struct {
 
 type landscaper struct {
 	RegistryConfig registryConfig `json:"registryConfig"`
+	Deployers      []string       `json:"deployers,omitempty"`
 }
 
 type registryConfig struct {
@@ -257,6 +258,57 @@ func (o *installOptions) Complete(args []string) error {
 	return nil
 }
 
+func (o *installOptions) generateLandscaperValuesOverride() ([]byte, error) {
+	defaultDeployers := ""
+	if len(o.landscaperValues.Landscaper.Landscaper.Deployers) == 0 {
+		defaultDeployers = `
+  deployers:
+  - container
+  - helm
+  - manifest`
+	}
+
+	landscaperValuesOverride := fmt.Sprintf(`
+landscaper:%s
+  landscaper:
+    deployerManagement:
+      namespace: %s
+      agent:
+        namespace: %s
+`, defaultDeployers, o.namespace, o.namespace)
+
+	if o.instRegistryIngress {
+		// when installing the ingress, we must add the registry credentials to the Landscaper values file
+		// also, we must keep any other set of credentials that might have been configured for another registry
+
+		credentials := fmt.Sprintf("%s:%s", o.registryUsername, o.registryPassword)
+		encodedCredentials := base64.StdEncoding.EncodeToString([]byte(credentials))
+
+		if o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths == nil {
+			o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths = map[string]interface{}{}
+		}
+		registryAuths := o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths
+		registryAuths[o.registryIngressHost] = map[string]interface{}{
+			"auth": encodedCredentials,
+		}
+
+		marshaledRegistryAuths, err := json.Marshal(registryAuths)
+		if err != nil {
+			return nil, fmt.Errorf("cannot marshal registry auths: %w", err)
+		}
+
+		landscaperValuesOverride = fmt.Sprintf(`%s
+    registryConfig:
+      secrets:
+        default: {
+          "auths": %s
+        }
+`, landscaperValuesOverride, string(marshaledRegistryAuths))
+	}
+
+	return []byte(landscaperValuesOverride), nil
+}
+
 func (o *installOptions) installLandscaper(ctx context.Context) error {
 	fmt.Println("Installing Landscaper")
 
@@ -286,46 +338,9 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 	}
 	chartPath := path.Join(tempDir, fileInfos[0].Name())
 
-	landscaperValuesOverride := fmt.Sprintf(`
-landscaper:
-  landscaper:
-    deployers:
-    - container
-    - helm
-    - manifest
-    deployerManagement:
-      namespace: %s
-      agent:
-        namespace: %s
-`, o.namespace, o.namespace)
-
-	if o.instRegistryIngress {
-		// when installing the ingress, we must add the registry credentials to the Landscaper values file
-		// also, we must keep any other set of credentials that might have been configured for another registry
-
-		credentials := fmt.Sprintf("%s:%s", o.registryUsername, o.registryPassword)
-		encodedCredentials := base64.StdEncoding.EncodeToString([]byte(credentials))
-
-		if o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths == nil {
-			o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths = map[string]interface{}{}
-		}
-		registryAuths := o.landscaperValues.Landscaper.Landscaper.RegistryConfig.Secrets.Defaults.Auths
-		registryAuths[o.registryIngressHost] = map[string]interface{}{
-			"auth": encodedCredentials,
-		}
-
-		marshaledRegistryAuths, err := json.Marshal(registryAuths)
-		if err != nil {
-			return fmt.Errorf("cannot marshal registry auths: %w", err)
-		}
-
-		landscaperValuesOverride = fmt.Sprintf(`%s
-    registryConfig:
-      secrets:
-        default: {
-          "auths": %s
-        }
-`, landscaperValuesOverride, string(marshaledRegistryAuths))
+	landscaperValuesOverride, err := o.generateLandscaperValuesOverride()
+	if err != nil {
+		return fmt.Errorf("error generating landscaper values override: %w", err)
 	}
 
 	tmpFile, err := os.CreateTemp(".", "landscaper-values-override-")
@@ -338,7 +353,7 @@ landscaper:
 		}
 	}()
 
-	if err := os.WriteFile(tmpFile.Name(), []byte(landscaperValuesOverride), os.ModePerm); err != nil {
+	if err := os.WriteFile(tmpFile.Name(), landscaperValuesOverride, os.ModePerm); err != nil {
 		return fmt.Errorf("cannot write to file: %w", err)
 	}
 
