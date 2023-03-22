@@ -87,7 +87,7 @@ func CheckAndWaitUntilLandscaperInstallationSucceeded(k8sClient client.Client, k
 			return false, fmt.Errorf("cannot get installation: %w", err)
 		}
 
-		return inst.Status.InstallationPhase == lsv1alpha1.InstallationPhaseSucceeded, nil
+		return inst.Status.InstallationPhase == lsv1alpha1.InstallationPhases.Succeeded, nil
 	}
 
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
@@ -274,7 +274,7 @@ func GetKubernetesClusterTargetContent(kubeconfigPath string) ([]byte, error) {
 
 	config := targettypes.KubernetesClusterTargetConfig{
 		Kubeconfig: targettypes.ValueRef{
-			StrVal: pointer.StringPtr(string(kubeconfigContent)),
+			StrVal: pointer.String(string(kubeconfigContent)),
 		},
 	}
 

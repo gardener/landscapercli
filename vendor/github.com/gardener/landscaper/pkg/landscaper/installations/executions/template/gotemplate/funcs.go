@@ -21,7 +21,10 @@ import (
 	"github.com/mandelsoft/vfs/pkg/vfs"
 	"sigs.k8s.io/yaml"
 
+	"github.com/gardener/landscaper/apis/core/v1alpha1"
 	lstmpl "github.com/gardener/landscaper/pkg/landscaper/installations/executions/template"
+	"github.com/gardener/landscaper/pkg/utils/targetresolver"
+	"github.com/gardener/landscaper/pkg/utils/token"
 )
 
 // LandscaperSprigFuncMap returns the sanitized spring function map.
@@ -34,7 +37,9 @@ func LandscaperSprigFuncMap() gotmpl.FuncMap {
 
 // LandscaperTplFuncMap contains all additional landscaper functions that are
 // available in the executors templates.
-func LandscaperTplFuncMap(fs vfs.FileSystem, cd *cdv2.ComponentDescriptor, cdList *cdv2.ComponentDescriptorList, blobResolver ctf.BlobResolver) map[string]interface{} {
+func LandscaperTplFuncMap(fs vfs.FileSystem, cd *cdv2.ComponentDescriptor, cdList *cdv2.ComponentDescriptorList,
+	blobResolver ctf.BlobResolver, targetResolver targetresolver.TargetResolver) map[string]interface{} {
+
 	funcs := map[string]interface{}{
 		"readFile": readFileFunc(fs),
 		"readDir":  readDir(fs),
@@ -50,6 +55,10 @@ func LandscaperTplFuncMap(fs vfs.FileSystem, cd *cdv2.ComponentDescriptor, cdLis
 		"getResources":         getResourcesGoFunc(cd),
 		"getComponent":         getComponentGoFunc(cd, cdList),
 		"getRepositoryContext": getEffectiveRepositoryContextGoFunc,
+
+		"getShootAdminKubeconfig":     getShootAdminKubeconfigGoFunc(targetResolver),
+		"getServiceAccountKubeconfig": getServiceAccountKubeconfigGoFunc(targetResolver),
+		"getOidcKubeconfig":           getOidcKubeconfigGoFunc(targetResolver),
 
 		"generateImageOverwrite": generateImageVectorGoFunc(cd, cdList),
 	}
@@ -280,5 +289,145 @@ func generateImageVectorGoFunc(cd *cdv2.ComponentDescriptor, list *cdv2.Componen
 			panic(err)
 		}
 		return parsedImageVector
+	}
+}
+
+func getShootAdminKubeconfigGoFunc(targetResolver targetresolver.TargetResolver) func(args ...interface{}) (string, error) {
+	return func(args ...interface{}) (string, error) {
+		if len(args) != 4 {
+			return "", fmt.Errorf("templating function getShootAdminKubeconfig expects 4 arguments: shoot name, shoot namespace, expiration seconds, and target for garden project ")
+		}
+
+		shootName, ok := args[0].(string)
+		if !ok {
+			return "", fmt.Errorf("templating function getShootAdminKubeconfig expects a string as 1st argument, namely the shoot name")
+		}
+
+		shootNamespace, ok := args[1].(string)
+		if !ok {
+			return "", fmt.Errorf("templating function getShootAdminKubeconfig expects a string as 2nd argument, namely the shoot namespace")
+		}
+
+		expirationSeconds, err := toInt64(args[2])
+		if err != nil {
+			return "", fmt.Errorf("templating function getShootAdminKubeconfig expects an integer as 3rd argument, namely the expiration seconds: %w", err)
+		}
+
+		targetObj := args[3]
+		targetBytes, err := json.Marshal(targetObj)
+		if err != nil {
+			return "", fmt.Errorf("templating function getShootAdminKubeconfig expects a target object as 4th argument: error during marshaling: %w", err)
+		}
+
+		target := &v1alpha1.Target{}
+		err = json.Unmarshal(targetBytes, target)
+		if err != nil {
+			return "", fmt.Errorf("templating function getShootAdminKubeconfig expects a target object as 4th argument: error during unmarshaling: %w", err)
+		}
+
+		ctx := context.Background()
+		shootClient, err := token.NewShootClientFromTarget(ctx, target, targetResolver)
+		if err != nil {
+			return "", err
+		}
+
+		return shootClient.GetShootAdminKubeconfig(ctx, shootName, shootNamespace, expirationSeconds)
+	}
+}
+
+func getServiceAccountKubeconfigGoFunc(targetResolver targetresolver.TargetResolver) func(args ...interface{}) (string, error) {
+	return func(args ...interface{}) (string, error) {
+		if len(args) != 4 {
+			return "", fmt.Errorf("templating function getServiceAccountToken expects 4 arguments: service account name, service account namespace, expiration seconds, and target")
+		}
+
+		serviceAccountName, ok := args[0].(string)
+		if !ok {
+			return "", fmt.Errorf("templating function getServiceAccountToken expects a string as 1st argument, namely the service account name")
+		}
+
+		serviceAccountNamespace, ok := args[1].(string)
+		if !ok {
+			return "", fmt.Errorf("templating function getServiceAccountToken expects a string as 2nd argument, namely the service account namespace")
+		}
+
+		expirationSeconds, err := toInt64(args[2])
+		if err != nil {
+			return "", fmt.Errorf("templating function getServiceAccountToken expects an integer as 3rd argument, namely the expiration seconds: %w", err)
+		}
+
+		targetObj := args[3]
+		targetBytes, err := json.Marshal(targetObj)
+		if err != nil {
+			return "", fmt.Errorf("templating function getServiceAccountToken expects a target object as 4th argument: error during marshaling: %w", err)
+		}
+
+		target := &v1alpha1.Target{}
+		err = json.Unmarshal(targetBytes, target)
+		if err != nil {
+			return "", fmt.Errorf("templating function getServiceAccountToken expects a target object as 4th argument: error during unmarshaling: %w", err)
+		}
+
+		ctx := context.Background()
+		tokenClient, err := token.NewTokenClientFromTarget(ctx, target, targetResolver)
+		if err != nil {
+			return "", err
+		}
+
+		return tokenClient.GetServiceAccountKubeconfig(ctx, serviceAccountName, serviceAccountNamespace, expirationSeconds)
+	}
+}
+
+func getOidcKubeconfigGoFunc(targetResolver targetresolver.TargetResolver) func(args ...interface{}) (string, error) {
+	return func(args ...interface{}) (string, error) {
+		if len(args) != 3 {
+			return "", fmt.Errorf("templating function getOidcKubeconfigGoFunc expects 3 arguments: issuer url, client id, and target")
+		}
+
+		issuerURL, ok := args[0].(string)
+		if !ok {
+			return "", fmt.Errorf("templating function getOidcKubeconfigGoFunc expects a string as 1st argument, namely the issuer url")
+		}
+
+		clientID, ok := args[1].(string)
+		if !ok {
+			return "", fmt.Errorf("templating function getOidcKubeconfigGoFunc expects a string as 2nd argument, namely the client id")
+		}
+
+		targetObj := args[2]
+		targetBytes, err := json.Marshal(targetObj)
+		if err != nil {
+			return "", fmt.Errorf("templating function getOidcKubeconfigGoFunc expects a target object as 3rd argument: error during marshaling: %w", err)
+		}
+
+		target := &v1alpha1.Target{}
+		err = json.Unmarshal(targetBytes, target)
+		if err != nil {
+			return "", fmt.Errorf("templating function getOidcKubeconfigGoFunc expects a target object as 3rd argument: error during unmarshaling: %w", err)
+		}
+
+		ctx := context.Background()
+		return token.BuildOIDCKubeconfig(ctx, issuerURL, clientID, target, targetResolver)
+	}
+}
+
+func toInt64(value interface{}) (int64, error) {
+	switch n := value.(type) {
+	case int64:
+		return n, nil
+	case int32:
+		return int64(n), nil
+	case int16:
+		return int64(n), nil
+	case int8:
+		return int64(n), nil
+	case int:
+		return int64(n), nil
+	case float64:
+		return int64(n), nil
+	case float32:
+		return int64(n), nil
+	default:
+		return 0, fmt.Errorf("unsupported type %T", value)
 	}
 }

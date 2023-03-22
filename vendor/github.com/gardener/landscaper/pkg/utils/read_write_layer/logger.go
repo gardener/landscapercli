@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	historyLogLevel          logging.LogLevel = logging.INFO
-	keySecondDeployItemPhase                  = "landscaperDeployItemPhase"
+	historyLogLevel logging.LogLevel = logging.INFO
 )
 
 // getLogger tries to fetch the most up-to-date logger from the context
@@ -168,7 +167,6 @@ func (w *Writer) logDeployItemUpdate(ctx context.Context, writeID WriteID, msg s
 			lc.KeyResource, fmt.Sprintf("%s/%s", deployItem.Namespace, deployItem.Name),
 		).Log(historyLogLevel, msg,
 			lc.KeyWriteID, writeID,
-			keySecondDeployItemPhase, deployItem.Status.DeployItemPhase,
 			lc.KeyDeployItemPhase, deployItem.Status.Phase,
 			lc.KeyJobID, deployItem.Status.GetJobID(),
 			lc.KeyJobIDFinished, deployItem.Status.JobIDFinished,
@@ -184,7 +182,6 @@ func (w *Writer) logDeployItemUpdate(ctx context.Context, writeID WriteID, msg s
 			lc.KeyResource, fmt.Sprintf("%s/%s", deployItem.Namespace, deployItem.Name),
 		).Error(err, msg,
 			lc.KeyWriteID, writeID,
-			keySecondDeployItemPhase, deployItem.Status.DeployItemPhase,
 			lc.KeyDeployItemPhase, deployItem.Status.Phase,
 			lc.KeyJobID, deployItem.Status.GetJobID(),
 			lc.KeyJobIDFinished, deployItem.Status.JobIDFinished,

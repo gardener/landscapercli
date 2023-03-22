@@ -90,7 +90,7 @@ type RenderOptions struct {
 
 	OCIOptions ociclientopts.Options
 
-	outputResources         sets.String
+	outputResources         sets.Set[string]
 	blueprint               *lsv1alpha1.Blueprint
 	blueprintFs             vfs.FileSystem
 	componentDescriptor     *cdv2.ComponentDescriptor
@@ -207,7 +207,7 @@ func (c SimulatorCallbacks) OnExports(installationPath string, exports map[strin
 }
 
 func (o *RenderOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
-	log.V(3).Info(fmt.Sprintf("rendering %s", strings.Join(o.outputResources.List(), ", ")))
+	log.V(3).Info(fmt.Sprintf("rendering %s", strings.Join(sets.List(o.outputResources), ", ")))
 
 	overlayFs := layerfs.New(memoryfs.New(), fs)
 	if err := overlayFs.MkdirAll("/apptmp", os.ModePerm); err != nil {
@@ -521,14 +521,14 @@ func (o *RenderOptions) Validate() error {
 }
 
 func (o *RenderOptions) parseOutputResources(args []string) error {
-	allResources := sets.NewString(OutputResourceDeployItems, OutputResourceSubinstallations, OutputResourceImports, OutputResourceExports)
+	allResources := sets.New(OutputResourceDeployItems, OutputResourceSubinstallations, OutputResourceImports, OutputResourceExports)
 	if len(args) == 1 {
 		o.outputResources = allResources
 		return nil
 	}
 	if len(args) > 1 {
 		resources := strings.Split(args[1], ",")
-		o.outputResources = sets.NewString()
+		o.outputResources = sets.New[string]()
 		for _, res := range resources {
 			if OutputResourceAllTerms.Has(res) {
 				o.outputResources = allResources
