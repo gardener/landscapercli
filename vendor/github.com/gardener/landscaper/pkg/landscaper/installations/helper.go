@@ -143,7 +143,8 @@ func GetDataImport(ctx context.Context,
 		}
 	}
 	if dataImport.SecretRef != nil {
-		_, data, gen, err := lsutils.ResolveSecretReference(ctx, kubeClient, dataImport.SecretRef)
+		secretRef := lsutils.SecretRefFromLocalRef(dataImport.SecretRef, inst.GetInstallation().GetNamespace())
+		_, data, gen, err := lsutils.ResolveSecretReference(ctx, kubeClient, secretRef)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -153,7 +154,8 @@ func GetDataImport(ctx context.Context,
 		rawDataObject.SetGeneration(gen)
 	}
 	if dataImport.ConfigMapRef != nil {
-		_, data, gen, err := lsutils.ResolveConfigMapReference(ctx, kubeClient, dataImport.ConfigMapRef)
+		configMapRef := lsutils.ConfigMapRefFromLocalRef(dataImport.ConfigMapRef, inst.GetInstallation().GetNamespace())
+		_, data, gen, err := lsutils.ResolveConfigMapReference(ctx, kubeClient, configMapRef)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -179,7 +181,6 @@ func GetTargets(ctx context.Context,
 	contextName string,
 	inst *lsv1alpha1.Installation,
 	targetImport lsv1alpha1.TargetImport) ([]*dataobjects.TargetExtension, []string, error) {
-	// get deploy item from current context
 	var targets []*dataobjects.TargetExtension
 	var targetImportReferences []string
 	if len(targetImport.Target) != 0 {
@@ -215,7 +216,6 @@ func GetTargets(ctx context.Context,
 
 // GetTargetImport fetches the target import from the cluster.
 func GetTargetImport(ctx context.Context, kubeClient client.Client, contextName string, inst *lsv1alpha1.Installation, targetImport lsv1alpha1.TargetImport) (*dataobjects.TargetExtension, error) {
-	// get deploy item from current context
 	targetName := targetImport.Target
 	target := &lsv1alpha1.Target{}
 	targetName = lsv1alpha1helper.GenerateDataObjectName(contextName, targetName)

@@ -42,6 +42,26 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*AutomaticReconcile)(nil), (*core.AutomaticReconcile)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_AutomaticReconcile_To_core_AutomaticReconcile(a.(*AutomaticReconcile), b.(*core.AutomaticReconcile), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.AutomaticReconcile)(nil), (*AutomaticReconcile)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_AutomaticReconcile_To_v1alpha1_AutomaticReconcile(a.(*core.AutomaticReconcile), b.(*AutomaticReconcile), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*AutomaticReconcileStatus)(nil), (*core.AutomaticReconcileStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_AutomaticReconcileStatus_To_core_AutomaticReconcileStatus(a.(*AutomaticReconcileStatus), b.(*core.AutomaticReconcileStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.AutomaticReconcileStatus)(nil), (*AutomaticReconcileStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_AutomaticReconcileStatus_To_v1alpha1_AutomaticReconcileStatus(a.(*core.AutomaticReconcileStatus), b.(*AutomaticReconcileStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*Blueprint)(nil), (*core.Blueprint)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_Blueprint_To_core_Blueprint(a.(*Blueprint), b.(*core.Blueprint), scope)
 	}); err != nil {
@@ -452,6 +472,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*FailedReconcile)(nil), (*core.FailedReconcile)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_FailedReconcile_To_core_FailedReconcile(a.(*FailedReconcile), b.(*core.FailedReconcile), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.FailedReconcile)(nil), (*FailedReconcile)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_FailedReconcile_To_v1alpha1_FailedReconcile(a.(*core.FailedReconcile), b.(*FailedReconcile), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*FieldValueDefinition)(nil), (*core.FieldValueDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_FieldValueDefinition_To_core_FieldValueDefinition(a.(*FieldValueDefinition), b.(*core.FieldValueDefinition), scope)
 	}); err != nil {
@@ -579,6 +609,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*core.JSONSchemaDefinition)(nil), (*JSONSchemaDefinition)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_core_JSONSchemaDefinition_To_v1alpha1_JSONSchemaDefinition(a.(*core.JSONSchemaDefinition), b.(*JSONSchemaDefinition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*LocalConfigMapReference)(nil), (*core.LocalConfigMapReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_LocalConfigMapReference_To_core_LocalConfigMapReference(a.(*LocalConfigMapReference), b.(*core.LocalConfigMapReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.LocalConfigMapReference)(nil), (*LocalConfigMapReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_LocalConfigMapReference_To_v1alpha1_LocalConfigMapReference(a.(*core.LocalConfigMapReference), b.(*LocalConfigMapReference), scope)
 	}); err != nil {
 		return err
 	}
@@ -719,6 +759,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*core.SubinstallationTemplate)(nil), (*SubinstallationTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_core_SubinstallationTemplate_To_v1alpha1_SubinstallationTemplate(a.(*core.SubinstallationTemplate), b.(*SubinstallationTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*SucceededReconcile)(nil), (*core.SucceededReconcile)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_SucceededReconcile_To_core_SucceededReconcile(a.(*SucceededReconcile), b.(*core.SucceededReconcile), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.SucceededReconcile)(nil), (*SucceededReconcile)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_SucceededReconcile_To_v1alpha1_SucceededReconcile(a.(*core.SucceededReconcile), b.(*SucceededReconcile), scope)
 	}); err != nil {
 		return err
 	}
@@ -953,6 +1003,54 @@ func autoConvert_core_AnyJSON_To_v1alpha1_AnyJSON(in *core.AnyJSON, out *AnyJSON
 // Convert_core_AnyJSON_To_v1alpha1_AnyJSON is an autogenerated conversion function.
 func Convert_core_AnyJSON_To_v1alpha1_AnyJSON(in *core.AnyJSON, out *AnyJSON, s conversion.Scope) error {
 	return autoConvert_core_AnyJSON_To_v1alpha1_AnyJSON(in, out, s)
+}
+
+func autoConvert_v1alpha1_AutomaticReconcile_To_core_AutomaticReconcile(in *AutomaticReconcile, out *core.AutomaticReconcile, s conversion.Scope) error {
+	out.SucceededReconcile = (*core.SucceededReconcile)(unsafe.Pointer(in.SucceededReconcile))
+	out.FailedReconcile = (*core.FailedReconcile)(unsafe.Pointer(in.FailedReconcile))
+	return nil
+}
+
+// Convert_v1alpha1_AutomaticReconcile_To_core_AutomaticReconcile is an autogenerated conversion function.
+func Convert_v1alpha1_AutomaticReconcile_To_core_AutomaticReconcile(in *AutomaticReconcile, out *core.AutomaticReconcile, s conversion.Scope) error {
+	return autoConvert_v1alpha1_AutomaticReconcile_To_core_AutomaticReconcile(in, out, s)
+}
+
+func autoConvert_core_AutomaticReconcile_To_v1alpha1_AutomaticReconcile(in *core.AutomaticReconcile, out *AutomaticReconcile, s conversion.Scope) error {
+	out.SucceededReconcile = (*SucceededReconcile)(unsafe.Pointer(in.SucceededReconcile))
+	out.FailedReconcile = (*FailedReconcile)(unsafe.Pointer(in.FailedReconcile))
+	return nil
+}
+
+// Convert_core_AutomaticReconcile_To_v1alpha1_AutomaticReconcile is an autogenerated conversion function.
+func Convert_core_AutomaticReconcile_To_v1alpha1_AutomaticReconcile(in *core.AutomaticReconcile, out *AutomaticReconcile, s conversion.Scope) error {
+	return autoConvert_core_AutomaticReconcile_To_v1alpha1_AutomaticReconcile(in, out, s)
+}
+
+func autoConvert_v1alpha1_AutomaticReconcileStatus_To_core_AutomaticReconcileStatus(in *AutomaticReconcileStatus, out *core.AutomaticReconcileStatus, s conversion.Scope) error {
+	out.Generation = in.Generation
+	out.NumberOfReconciles = in.NumberOfReconciles
+	out.LastReconcileTime = in.LastReconcileTime
+	out.OnFailed = in.OnFailed
+	return nil
+}
+
+// Convert_v1alpha1_AutomaticReconcileStatus_To_core_AutomaticReconcileStatus is an autogenerated conversion function.
+func Convert_v1alpha1_AutomaticReconcileStatus_To_core_AutomaticReconcileStatus(in *AutomaticReconcileStatus, out *core.AutomaticReconcileStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_AutomaticReconcileStatus_To_core_AutomaticReconcileStatus(in, out, s)
+}
+
+func autoConvert_core_AutomaticReconcileStatus_To_v1alpha1_AutomaticReconcileStatus(in *core.AutomaticReconcileStatus, out *AutomaticReconcileStatus, s conversion.Scope) error {
+	out.Generation = in.Generation
+	out.NumberOfReconciles = in.NumberOfReconciles
+	out.LastReconcileTime = in.LastReconcileTime
+	out.OnFailed = in.OnFailed
+	return nil
+}
+
+// Convert_core_AutomaticReconcileStatus_To_v1alpha1_AutomaticReconcileStatus is an autogenerated conversion function.
+func Convert_core_AutomaticReconcileStatus_To_v1alpha1_AutomaticReconcileStatus(in *core.AutomaticReconcileStatus, out *AutomaticReconcileStatus, s conversion.Scope) error {
+	return autoConvert_core_AutomaticReconcileStatus_To_v1alpha1_AutomaticReconcileStatus(in, out, s)
 }
 
 func autoConvert_v1alpha1_Blueprint_To_core_Blueprint(in *Blueprint, out *core.Blueprint, s conversion.Scope) error {
@@ -1367,8 +1465,8 @@ func autoConvert_v1alpha1_DataImport_To_core_DataImport(in *DataImport, out *cor
 	out.Name = in.Name
 	out.DataRef = in.DataRef
 	out.Version = in.Version
-	out.SecretRef = (*core.SecretReference)(unsafe.Pointer(in.SecretRef))
-	out.ConfigMapRef = (*core.ConfigMapReference)(unsafe.Pointer(in.ConfigMapRef))
+	out.SecretRef = (*core.LocalSecretReference)(unsafe.Pointer(in.SecretRef))
+	out.ConfigMapRef = (*core.LocalConfigMapReference)(unsafe.Pointer(in.ConfigMapRef))
 	return nil
 }
 
@@ -1381,8 +1479,8 @@ func autoConvert_core_DataImport_To_v1alpha1_DataImport(in *core.DataImport, out
 	out.Name = in.Name
 	out.DataRef = in.DataRef
 	out.Version = in.Version
-	out.SecretRef = (*SecretReference)(unsafe.Pointer(in.SecretRef))
-	out.ConfigMapRef = (*ConfigMapReference)(unsafe.Pointer(in.ConfigMapRef))
+	out.SecretRef = (*LocalSecretReference)(unsafe.Pointer(in.SecretRef))
+	out.ConfigMapRef = (*LocalConfigMapReference)(unsafe.Pointer(in.ConfigMapRef))
 	return nil
 }
 
@@ -1524,6 +1622,7 @@ func autoConvert_v1alpha1_DeployItemSpec_To_core_DeployItemSpec(in *DeployItemSp
 	out.Configuration = (*runtime.RawExtension)(unsafe.Pointer(in.Configuration))
 	out.RegistryPullSecrets = *(*[]core.ObjectReference)(unsafe.Pointer(&in.RegistryPullSecrets))
 	out.Timeout = (*core.Duration)(unsafe.Pointer(in.Timeout))
+	out.UpdateOnChangeOnly = in.UpdateOnChangeOnly
 	return nil
 }
 
@@ -1539,6 +1638,7 @@ func autoConvert_core_DeployItemSpec_To_v1alpha1_DeployItemSpec(in *core.DeployI
 	out.Configuration = (*runtime.RawExtension)(unsafe.Pointer(in.Configuration))
 	out.RegistryPullSecrets = *(*[]ObjectReference)(unsafe.Pointer(&in.RegistryPullSecrets))
 	out.Timeout = (*Duration)(unsafe.Pointer(in.Timeout))
+	out.UpdateOnChangeOnly = in.UpdateOnChangeOnly
 	return nil
 }
 
@@ -1548,7 +1648,7 @@ func Convert_core_DeployItemSpec_To_v1alpha1_DeployItemSpec(in *core.DeployItemS
 }
 
 func autoConvert_v1alpha1_DeployItemStatus_To_core_DeployItemStatus(in *DeployItemStatus, out *core.DeployItemStatus, s conversion.Scope) error {
-	out.Phase = core.ExecutionPhase(in.Phase)
+	out.Phase = core.DeployItemPhase(in.Phase)
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Conditions = *(*[]core.Condition)(unsafe.Pointer(&in.Conditions))
 	out.LastError = (*core.Error)(unsafe.Pointer(in.LastError))
@@ -1563,7 +1663,7 @@ func autoConvert_v1alpha1_DeployItemStatus_To_core_DeployItemStatus(in *DeployIt
 	out.JobID = in.JobID
 	out.JobIDFinished = in.JobIDFinished
 	out.JobIDGenerationTime = (*metav1.Time)(unsafe.Pointer(in.JobIDGenerationTime))
-	out.DeployItemPhase = core.DeployItemPhase(in.DeployItemPhase)
+	out.DeployerPhase = (*string)(unsafe.Pointer(in.DeployerPhase))
 	return nil
 }
 
@@ -1573,7 +1673,7 @@ func Convert_v1alpha1_DeployItemStatus_To_core_DeployItemStatus(in *DeployItemSt
 }
 
 func autoConvert_core_DeployItemStatus_To_v1alpha1_DeployItemStatus(in *core.DeployItemStatus, out *DeployItemStatus, s conversion.Scope) error {
-	out.Phase = ExecutionPhase(in.Phase)
+	out.Phase = DeployItemPhase(in.Phase)
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Conditions = *(*[]Condition)(unsafe.Pointer(&in.Conditions))
 	out.LastError = (*Error)(unsafe.Pointer(in.LastError))
@@ -1588,7 +1688,7 @@ func autoConvert_core_DeployItemStatus_To_v1alpha1_DeployItemStatus(in *core.Dep
 	out.JobID = in.JobID
 	out.JobIDFinished = in.JobIDFinished
 	out.JobIDGenerationTime = (*metav1.Time)(unsafe.Pointer(in.JobIDGenerationTime))
-	out.DeployItemPhase = DeployItemPhase(in.DeployItemPhase)
+	out.DeployerPhase = (*string)(unsafe.Pointer(in.DeployerPhase))
 	return nil
 }
 
@@ -1604,6 +1704,8 @@ func autoConvert_v1alpha1_DeployItemTemplate_To_core_DeployItemTemplate(in *Depl
 	out.Labels = *(*map[string]string)(unsafe.Pointer(&in.Labels))
 	out.Configuration = (*runtime.RawExtension)(unsafe.Pointer(in.Configuration))
 	out.DependsOn = *(*[]string)(unsafe.Pointer(&in.DependsOn))
+	out.Timeout = (*core.Duration)(unsafe.Pointer(in.Timeout))
+	out.UpdateOnChangeOnly = in.UpdateOnChangeOnly
 	return nil
 }
 
@@ -1619,6 +1721,8 @@ func autoConvert_core_DeployItemTemplate_To_v1alpha1_DeployItemTemplate(in *core
 	out.Labels = *(*map[string]string)(unsafe.Pointer(&in.Labels))
 	out.Configuration = (*runtime.RawExtension)(unsafe.Pointer(in.Configuration))
 	out.DependsOn = *(*[]string)(unsafe.Pointer(&in.DependsOn))
+	out.Timeout = (*Duration)(unsafe.Pointer(in.Timeout))
+	out.UpdateOnChangeOnly = in.UpdateOnChangeOnly
 	return nil
 }
 
@@ -2036,7 +2140,7 @@ func autoConvert_v1alpha1_ExecutionStatus_To_core_ExecutionStatus(in *ExecutionS
 	out.ExecutionGenerations = *(*[]core.ExecutionGeneration)(unsafe.Pointer(&in.ExecutionGenerations))
 	out.JobID = in.JobID
 	out.JobIDFinished = in.JobIDFinished
-	out.ExecutionPhase = core.ExecPhase(in.ExecutionPhase)
+	out.ExecutionPhase = core.ExecutionPhase(in.ExecutionPhase)
 	return nil
 }
 
@@ -2054,7 +2158,7 @@ func autoConvert_core_ExecutionStatus_To_v1alpha1_ExecutionStatus(in *core.Execu
 	out.ExecutionGenerations = *(*[]ExecutionGeneration)(unsafe.Pointer(&in.ExecutionGenerations))
 	out.JobID = in.JobID
 	out.JobIDFinished = in.JobIDFinished
-	out.ExecutionPhase = ExecPhase(in.ExecutionPhase)
+	out.ExecutionPhase = ExecutionPhase(in.ExecutionPhase)
 	return nil
 }
 
@@ -2087,6 +2191,28 @@ func autoConvert_core_ExportDefinition_To_v1alpha1_ExportDefinition(in *core.Exp
 // Convert_core_ExportDefinition_To_v1alpha1_ExportDefinition is an autogenerated conversion function.
 func Convert_core_ExportDefinition_To_v1alpha1_ExportDefinition(in *core.ExportDefinition, out *ExportDefinition, s conversion.Scope) error {
 	return autoConvert_core_ExportDefinition_To_v1alpha1_ExportDefinition(in, out, s)
+}
+
+func autoConvert_v1alpha1_FailedReconcile_To_core_FailedReconcile(in *FailedReconcile, out *core.FailedReconcile, s conversion.Scope) error {
+	out.NumberOfReconciles = (*int)(unsafe.Pointer(in.NumberOfReconciles))
+	out.Interval = (*core.Duration)(unsafe.Pointer(in.Interval))
+	return nil
+}
+
+// Convert_v1alpha1_FailedReconcile_To_core_FailedReconcile is an autogenerated conversion function.
+func Convert_v1alpha1_FailedReconcile_To_core_FailedReconcile(in *FailedReconcile, out *core.FailedReconcile, s conversion.Scope) error {
+	return autoConvert_v1alpha1_FailedReconcile_To_core_FailedReconcile(in, out, s)
+}
+
+func autoConvert_core_FailedReconcile_To_v1alpha1_FailedReconcile(in *core.FailedReconcile, out *FailedReconcile, s conversion.Scope) error {
+	out.NumberOfReconciles = (*int)(unsafe.Pointer(in.NumberOfReconciles))
+	out.Interval = (*Duration)(unsafe.Pointer(in.Interval))
+	return nil
+}
+
+// Convert_core_FailedReconcile_To_v1alpha1_FailedReconcile is an autogenerated conversion function.
+func Convert_core_FailedReconcile_To_v1alpha1_FailedReconcile(in *core.FailedReconcile, out *FailedReconcile, s conversion.Scope) error {
+	return autoConvert_core_FailedReconcile_To_v1alpha1_FailedReconcile(in, out, s)
 }
 
 func autoConvert_v1alpha1_FieldValueDefinition_To_core_FieldValueDefinition(in *FieldValueDefinition, out *core.FieldValueDefinition, s conversion.Scope) error {
@@ -2322,6 +2448,7 @@ func autoConvert_v1alpha1_InstallationSpec_To_core_InstallationSpec(in *Installa
 		return err
 	}
 	out.ExportDataMappings = *(*map[string]core.AnyJSON)(unsafe.Pointer(&in.ExportDataMappings))
+	out.AutomaticReconcile = (*core.AutomaticReconcile)(unsafe.Pointer(in.AutomaticReconcile))
 	return nil
 }
 
@@ -2345,6 +2472,7 @@ func autoConvert_core_InstallationSpec_To_v1alpha1_InstallationSpec(in *core.Ins
 		return err
 	}
 	out.ExportDataMappings = *(*map[string]AnyJSON)(unsafe.Pointer(&in.ExportDataMappings))
+	out.AutomaticReconcile = (*AutomaticReconcile)(unsafe.Pointer(in.AutomaticReconcile))
 	return nil
 }
 
@@ -2365,6 +2493,7 @@ func autoConvert_v1alpha1_InstallationStatus_To_core_InstallationStatus(in *Inst
 	out.JobIDFinished = in.JobIDFinished
 	out.InstallationPhase = core.InstallationPhase(in.InstallationPhase)
 	out.ImportsHash = in.ImportsHash
+	out.AutomaticReconcileStatus = (*core.AutomaticReconcileStatus)(unsafe.Pointer(in.AutomaticReconcileStatus))
 	return nil
 }
 
@@ -2385,6 +2514,7 @@ func autoConvert_core_InstallationStatus_To_v1alpha1_InstallationStatus(in *core
 	out.JobIDFinished = in.JobIDFinished
 	out.InstallationPhase = InstallationPhase(in.InstallationPhase)
 	out.ImportsHash = in.ImportsHash
+	out.AutomaticReconcileStatus = (*AutomaticReconcileStatus)(unsafe.Pointer(in.AutomaticReconcileStatus))
 	return nil
 }
 
@@ -2479,6 +2609,28 @@ func autoConvert_core_JSONSchemaDefinition_To_v1alpha1_JSONSchemaDefinition(in *
 // Convert_core_JSONSchemaDefinition_To_v1alpha1_JSONSchemaDefinition is an autogenerated conversion function.
 func Convert_core_JSONSchemaDefinition_To_v1alpha1_JSONSchemaDefinition(in *core.JSONSchemaDefinition, out *JSONSchemaDefinition, s conversion.Scope) error {
 	return autoConvert_core_JSONSchemaDefinition_To_v1alpha1_JSONSchemaDefinition(in, out, s)
+}
+
+func autoConvert_v1alpha1_LocalConfigMapReference_To_core_LocalConfigMapReference(in *LocalConfigMapReference, out *core.LocalConfigMapReference, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Key = in.Key
+	return nil
+}
+
+// Convert_v1alpha1_LocalConfigMapReference_To_core_LocalConfigMapReference is an autogenerated conversion function.
+func Convert_v1alpha1_LocalConfigMapReference_To_core_LocalConfigMapReference(in *LocalConfigMapReference, out *core.LocalConfigMapReference, s conversion.Scope) error {
+	return autoConvert_v1alpha1_LocalConfigMapReference_To_core_LocalConfigMapReference(in, out, s)
+}
+
+func autoConvert_core_LocalConfigMapReference_To_v1alpha1_LocalConfigMapReference(in *core.LocalConfigMapReference, out *LocalConfigMapReference, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Key = in.Key
+	return nil
+}
+
+// Convert_core_LocalConfigMapReference_To_v1alpha1_LocalConfigMapReference is an autogenerated conversion function.
+func Convert_core_LocalConfigMapReference_To_v1alpha1_LocalConfigMapReference(in *core.LocalConfigMapReference, out *LocalConfigMapReference, s conversion.Scope) error {
+	return autoConvert_core_LocalConfigMapReference_To_v1alpha1_LocalConfigMapReference(in, out, s)
 }
 
 func autoConvert_v1alpha1_LocalSecretReference_To_core_LocalSecretReference(in *LocalSecretReference, out *core.LocalSecretReference, s conversion.Scope) error {
@@ -2805,6 +2957,26 @@ func Convert_core_SubinstallationTemplate_To_v1alpha1_SubinstallationTemplate(in
 	return autoConvert_core_SubinstallationTemplate_To_v1alpha1_SubinstallationTemplate(in, out, s)
 }
 
+func autoConvert_v1alpha1_SucceededReconcile_To_core_SucceededReconcile(in *SucceededReconcile, out *core.SucceededReconcile, s conversion.Scope) error {
+	out.Interval = (*core.Duration)(unsafe.Pointer(in.Interval))
+	return nil
+}
+
+// Convert_v1alpha1_SucceededReconcile_To_core_SucceededReconcile is an autogenerated conversion function.
+func Convert_v1alpha1_SucceededReconcile_To_core_SucceededReconcile(in *SucceededReconcile, out *core.SucceededReconcile, s conversion.Scope) error {
+	return autoConvert_v1alpha1_SucceededReconcile_To_core_SucceededReconcile(in, out, s)
+}
+
+func autoConvert_core_SucceededReconcile_To_v1alpha1_SucceededReconcile(in *core.SucceededReconcile, out *SucceededReconcile, s conversion.Scope) error {
+	out.Interval = (*Duration)(unsafe.Pointer(in.Interval))
+	return nil
+}
+
+// Convert_core_SucceededReconcile_To_v1alpha1_SucceededReconcile is an autogenerated conversion function.
+func Convert_core_SucceededReconcile_To_v1alpha1_SucceededReconcile(in *core.SucceededReconcile, out *SucceededReconcile, s conversion.Scope) error {
+	return autoConvert_core_SucceededReconcile_To_v1alpha1_SucceededReconcile(in, out, s)
+}
+
 func autoConvert_v1alpha1_TLSClientConfig_To_core_TLSClientConfig(in *TLSClientConfig, out *core.TLSClientConfig, s conversion.Scope) error {
 	out.Insecure = in.Insecure
 	out.ServerName = in.ServerName
@@ -3058,7 +3230,10 @@ func autoConvert_v1alpha1_TargetSyncSpec_To_core_TargetSyncSpec(in *TargetSyncSp
 	if err := Convert_v1alpha1_LocalSecretReference_To_core_LocalSecretReference(&in.SecretRef, &out.SecretRef, s); err != nil {
 		return err
 	}
+	out.CreateTargetToSource = in.CreateTargetToSource
+	out.TargetToSourceName = in.TargetToSourceName
 	out.SecretNameExpression = in.SecretNameExpression
+	out.ShootNameExpression = in.ShootNameExpression
 	out.TokenRotation = (*core.TokenRotation)(unsafe.Pointer(in.TokenRotation))
 	return nil
 }
@@ -3073,7 +3248,10 @@ func autoConvert_core_TargetSyncSpec_To_v1alpha1_TargetSyncSpec(in *core.TargetS
 	if err := Convert_core_LocalSecretReference_To_v1alpha1_LocalSecretReference(&in.SecretRef, &out.SecretRef, s); err != nil {
 		return err
 	}
+	out.CreateTargetToSource = in.CreateTargetToSource
+	out.TargetToSourceName = in.TargetToSourceName
 	out.SecretNameExpression = in.SecretNameExpression
+	out.ShootNameExpression = in.ShootNameExpression
 	out.TokenRotation = (*TokenRotation)(unsafe.Pointer(in.TokenRotation))
 	return nil
 }

@@ -225,20 +225,20 @@ func (t Transformer) transformDeployItem(deployItem *DeployItemLeaf) (*Printable
 
 func formatStatus(status string) string {
 	switch status {
-	case string(lsv1alpha1.InstallationPhaseSucceeded):
+	case string(lsv1alpha1.InstallationPhases.Succeeded):
 		return "✅ " + status
 
-	case string(lsv1alpha1.InstallationPhaseInit),
-		string(lsv1alpha1.InstallationPhaseObjectsCreated),
-		string(lsv1alpha1.InstallationPhaseProgressing),
-		string(lsv1alpha1.InstallationPhaseCompleting),
-		string(lsv1alpha1.InstallationPhaseInitDelete),
-		string(lsv1alpha1.InstallationPhaseTriggerDelete),
-		string(lsv1alpha1.InstallationPhaseDeleting):
+	case string(lsv1alpha1.InstallationPhases.Init),
+		string(lsv1alpha1.InstallationPhases.ObjectsCreated),
+		string(lsv1alpha1.InstallationPhases.Progressing),
+		string(lsv1alpha1.InstallationPhases.Completing),
+		string(lsv1alpha1.InstallationPhases.InitDelete),
+		string(lsv1alpha1.InstallationPhases.TriggerDelete),
+		string(lsv1alpha1.InstallationPhases.Deleting):
 		return "🏗️ " + status
 
-	case string(lsv1alpha1.InstallationPhaseFailed),
-		string(lsv1alpha1.InstallationPhaseDeleteFailed):
+	case string(lsv1alpha1.InstallationPhases.Failed),
+		string(lsv1alpha1.InstallationPhases.DeleteFailed):
 		return "❌ " + status
 
 	default:

@@ -82,6 +82,44 @@ type InstallationSpec struct {
 	// Example: namespace: (( blueprint.exports.namespace ))
 	// +optional
 	ExportDataMappings map[string]AnyJSON `json:"exportDataMappings,omitempty"`
+
+	// AutomaticReconcile allows to configure automatically repeated reconciliations.
+	// +optional
+	AutomaticReconcile *AutomaticReconcile `json:"automaticReconcile,omitempty"`
+}
+
+// AutomaticReconcile allows to configure automatically repeated reconciliations.
+type AutomaticReconcile struct {
+	// SucceededReconcile allows to configure automatically repeated reconciliations for succeeded installations.
+	// If not set, no such automatically repeated reconciliations are triggered.
+	// +optional
+	SucceededReconcile *SucceededReconcile `json:"succeededReconcile,omitempty"`
+
+	// FailedReconcile allows to configure automatically repeated reconciliations for failed installations.
+	// If not set, no such automatically repeated reconciliations are triggered.
+	// +optional
+	FailedReconcile *FailedReconcile `json:"failedReconcile,omitempty"`
+}
+
+// SucceededReconcile allows to configure automatically repeated reconciliations for succeeded installations
+type SucceededReconcile struct {
+	// Interval specifies the interval between two subsequent repeated reconciliations. If not set, a default of
+	// 24 hours is used.
+	// +optional
+	Interval *Duration `json:"interval,omitempty"`
+}
+
+// FailedReconcile allows to configure automatically repeated reconciliations for failed installations
+type FailedReconcile struct {
+	// NumberOfReconciles specifies the maximal number of automatically repeated reconciliations. If not set, no upper
+	// limit exists.
+	// +optional
+	NumberOfReconciles *int `json:"numberOfReconciles,omitempty"`
+
+	// Interval specifies the interval between two subsequent repeated reconciliations. If not set, a default
+	// of 5 minutes is used.
+	// +optional
+	Interval *Duration `json:"interval,omitempty"`
 }
 
 // InstallationStatus contains the current status of a Installation.
@@ -120,6 +158,26 @@ type InstallationStatus struct {
 
 	// ImportsHash is the hash of the import data.
 	ImportsHash string `json:"importsHash,omitempty"`
+
+	// AutomaticReconcileStatus describes the status of automatically triggered reconciles.
+	// +optional
+	AutomaticReconcileStatus *AutomaticReconcileStatus `json:"automaticReconcileStatus,omitempty"`
+}
+
+// AutomaticReconcileStatus describes the status of automatically triggered reconciles.
+type AutomaticReconcileStatus struct {
+	// Generation describes the generation of the installation for which the status holds.
+	// +optional
+	Generation int64 `json:"generation,omitempty"`
+	// NumberOfReconciles is the number of automatic reconciles for the installation with the stored generation.
+	// +optional
+	NumberOfReconciles int `json:"numberOfReconciles,omitempty"`
+	// LastReconcileTime is the time of the last automatically triggered reconcile.
+	// +optional
+	LastReconcileTime metav1.Time `json:"lastReconcileTime,omitempty"`
+	// OnFailed is true if the last automatically triggered reconcile was done for a failed installation.
+	// +optional
+	OnFailed bool `json:"onFailed,omitempty"`
 }
 
 // InstallationImports defines import of data objects and targets.
@@ -160,12 +218,12 @@ type DataImport struct {
 	// SecretRef defines a data reference from a secret.
 	// This method is not allowed in installation templates.
 	// +optional
-	SecretRef *SecretReference `json:"secretRef,omitempty"`
+	SecretRef *LocalSecretReference `json:"secretRef,omitempty"`
 
 	// ConfigMapRef defines a data reference from a configmap.
 	// This method is not allowed in installation templates.
 	// +optional
-	ConfigMapRef *ConfigMapReference `json:"configMapRef,omitempty"`
+	ConfigMapRef *LocalConfigMapReference `json:"configMapRef,omitempty"`
 }
 
 // DataExport is a data object export.

@@ -32,27 +32,60 @@ const ReconcileDeployItemsCondition ConditionType = "ReconcileDeployItems"
 
 type ExecutionPhase string
 
-const (
-	ExecutionPhaseInit        ExecutionPhase = "Init"
-	ExecutionPhaseProgressing ExecutionPhase = "Progressing"
-	ExecutionPhaseDeleting    ExecutionPhase = "Deleting"
-	ExecutionPhaseSucceeded   ExecutionPhase = "Succeeded"
-	ExecutionPhaseFailed      ExecutionPhase = "Failed"
-)
+func (p ExecutionPhase) String() string {
+	return string(p)
+}
 
-type ExecPhase string
+func (p ExecutionPhase) IsFinal() bool {
+	switch p {
+	case ExecutionPhases.Succeeded, ExecutionPhases.Failed, ExecutionPhases.DeleteFailed:
+		return true
+	}
+	return false
+}
 
-const (
-	ExecPhaseInit        ExecPhase = "Init"
-	ExecPhaseProgressing ExecPhase = "Progressing"
-	ExecPhaseCompleting  ExecPhase = "Completing"
-	ExecPhaseSucceeded   ExecPhase = "Succeeded"
-	ExecPhaseFailed      ExecPhase = "Failed"
+func (p ExecutionPhase) IsDeletion() bool {
+	switch p {
+	case ExecutionPhases.InitDelete, ExecutionPhases.TriggerDelete, ExecutionPhases.Deleting, ExecutionPhases.DeleteFailed:
+		return true
+	}
+	return false
+}
 
-	ExecPhaseInitDelete    ExecPhase = "InitDelete"
-	ExecPhaseTriggerDelete ExecPhase = "TriggerDelete"
-	ExecPhaseDeleting      ExecPhase = "Deleting"
-	ExecPhaseDeleteFailed  ExecPhase = "DeleteFailed"
+func (p ExecutionPhase) IsFailed() bool {
+	switch p {
+	case ExecutionPhases.Failed, ExecutionPhases.DeleteFailed:
+		return true
+	}
+	return false
+}
+
+func (p ExecutionPhase) IsEmpty() bool {
+	return p.String() == ""
+}
+
+var (
+	ExecutionPhases = struct {
+		Init,
+		Progressing,
+		Completing,
+		Succeeded,
+		Failed,
+		InitDelete,
+		TriggerDelete,
+		Deleting,
+		DeleteFailed ExecutionPhase
+	}{
+		Init:          ExecutionPhase(PhaseStringInit),
+		Progressing:   ExecutionPhase(PhaseStringProgressing),
+		Completing:    ExecutionPhase(PhaseStringCompleting),
+		Succeeded:     ExecutionPhase(PhaseStringSucceeded),
+		Failed:        ExecutionPhase(PhaseStringFailed),
+		InitDelete:    ExecutionPhase(PhaseStringInitDelete),
+		TriggerDelete: ExecutionPhase(PhaseStringTriggerDelete),
+		Deleting:      ExecutionPhase(PhaseStringDeleting),
+		DeleteFailed:  ExecutionPhase(PhaseStringDeleteFailed),
+	}
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -169,7 +202,7 @@ type ExecutionStatus struct {
 	JobIDFinished string `json:"jobIDFinished,omitempty"`
 
 	// ExecutionPhase is the current phase of the execution.
-	ExecutionPhase ExecPhase `json:"phase,omitempty"`
+	ExecutionPhase ExecutionPhase `json:"phase,omitempty"`
 }
 
 // ExecutionGeneration links a deployitem to the generation of the execution when it was applied.
@@ -205,4 +238,16 @@ type DeployItemTemplate struct {
 
 	// DependsOn lists deploy items that need to be executed before this one
 	DependsOn []string `json:"dependsOn,omitempty"`
+
+	// Timeout specifies how long the deployer may take to apply the deploy item.
+	// When the time is exceeded, the landscaper will add the abort annotation to the deploy item
+	// and later put it in 'Failed' if the deployer doesn't handle the abort properly.
+	// Value has to be parsable by time.ParseDuration (or 'none' to deactivate the timeout).
+	// Defaults to ten minutes if not specified.
+	// +optional
+	Timeout *Duration `json:"timeout,omitempty"`
+
+	// UpdateOnChangeOnly specifies if redeployment is executed only if the specification of the deploy item has changed.
+	// +optional
+	UpdateOnChangeOnly bool `json:"updateOnChangeOnly,omitempty"`
 }
