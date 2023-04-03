@@ -22,6 +22,6 @@ command to sign component descriptors
 ### SEE ALSO
 
 * [landscaper-cli component-cli component-archive signatures](landscaper-cli_component-cli_component-archive_signatures.md)	 - command to work with signatures and digests in component descriptors
-* [landscaper-cli component-cli component-archive signatures sign rsa](landscaper-cli_component-cli_component-archive_signatures_sign_rsa.md)	 - fetch the component descriptor from an oci registry, sign it using RSASSA-PKCS1-V1_5, and re-upload
-* [landscaper-cli component-cli component-archive signatures sign signing-server](landscaper-cli_component-cli_component-archive_signatures_sign_signing-server.md)	 - fetch the component descriptor from an oci registry, sign it with a signature provided from a signing server, and re-upload
+* [landscaper-cli component-cli component-archive signatures sign rsa](landscaper-cli_component-cli_component-archive_signatures_sign_rsa.md)	 - fetch the component descriptor from an oci registry or local filesystem, sign it using RSASSA-PKCS1-V1_5, and re-upload
+* [landscaper-cli component-cli component-archive signatures sign signing-server](landscaper-cli_component-cli_component-archive_signatures_sign_signing-server.md)	 - fetch the component descriptor from an oci registry or local filesystem, sign it with a signature provided from a signing server, and re-upload
 

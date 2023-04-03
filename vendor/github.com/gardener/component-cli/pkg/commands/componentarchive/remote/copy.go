@@ -195,7 +195,7 @@ func (o *CopyOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.TargetArtifactRepository, "target-artifact-repository", "",
 		"target repository where the artifacts are copied to. This is only relevant if artifacts are copied by value and it will be defaulted to the target component repository")
 	fs.StringVar(&o.SourceArtifactRepository, "source-artifact-repository", "",
-		"source repository where realtiove oci artifacts are copied from. This is only relevant if artifacts are copied by value and it will be defaulted to the source component repository")
+		"source repository where relative oci artifacts are copied from. This is only relevant if artifacts are copied by value and it will be defaulted to the source component repository")
 	fs.BoolVar(&o.ConvertToRelativeOCIReferences, "relative-urls", false, "converts all copied oci artifacts to relative urls")
 	fs.StringSliceVar(&o.ReplaceOCIRefs, "replace-oci-ref", []string{}, "list of replace expressions in the format left:right. For every resource with accessType == "+cdv2.OCIRegistryType+", all occurences of 'left' in the target ref are replaced with 'right' before the upload")
 	fs.Uint64Var(&o.MaxRetries, "max-retries", 0, "maximum number of retries for copying a component descriptor")

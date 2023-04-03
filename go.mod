@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/gardener/component-cli v0.44.0
+	github.com/gardener/component-cli v0.47.0
 	github.com/gardener/component-spec/bindings-go v0.0.66
 	github.com/gardener/landscaper v0.52.0
 	github.com/gardener/landscaper/apis v0.52.0

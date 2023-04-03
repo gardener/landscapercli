@@ -32,8 +32,7 @@ func NewSigningServerSignCommand(ctx context.Context) *cobra.Command {
 	opts := &SigningServerSignOptions{}
 	cmd := &cobra.Command{
 		Use:   "signing-server BASE_URL COMPONENT_NAME VERSION",
-		Args:  cobra.ExactArgs(3),
-		Short: "fetch the component descriptor from an oci registry, sign it with a signature provided from a signing server, and re-upload",
+		Short: "fetch the component descriptor from an oci registry or local filesystem, sign it with a signature provided from a signing server, and re-upload",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
