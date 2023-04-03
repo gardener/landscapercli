@@ -105,7 +105,7 @@ func WaitForDeployItemToFinish(
 			return false, err
 		}
 		*deployItem = *updated
-		if deployItem.Status.DeployItemPhase == phase {
+		if deployItem.Status.Phase == phase {
 			return true, nil
 		}
 		return false, nil
@@ -191,7 +191,7 @@ func BuildKubernetesTarget(target *lsv1alpha1.Target, restConfig *rest.Config) e
 
 	config := targettypes.KubernetesClusterTargetConfig{
 		Kubeconfig: targettypes.ValueRef{
-			StrVal: pointer.StringPtr(string(data)),
+			StrVal: pointer.String(string(data)),
 		},
 	}
 	data, err = json.Marshal(config)

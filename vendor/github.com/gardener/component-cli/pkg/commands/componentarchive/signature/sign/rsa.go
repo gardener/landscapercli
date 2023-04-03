@@ -33,8 +33,7 @@ func NewRSASignCommand(ctx context.Context) *cobra.Command {
 	opts := &RSASignOptions{}
 	cmd := &cobra.Command{
 		Use:   "rsa BASE_URL COMPONENT_NAME VERSION",
-		Args:  cobra.ExactArgs(3),
-		Short: fmt.Sprintf("fetch the component descriptor from an oci registry, sign it using %s, and re-upload", cdv2.RSAPKCS1v15),
+		Short: fmt.Sprintf("fetch the component descriptor from an oci registry or local filesystem, sign it using %s, and re-upload", cdv2.RSAPKCS1v15),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())

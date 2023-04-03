@@ -34,7 +34,7 @@ func SetDefaults_DefinitionImport(imports *ImportDefinitionList) {
 	for i := 0; i < len(*imports); i++ {
 		imp := &(*imports)[i]
 		if imp.Required == nil {
-			imp.Required = pointer.BoolPtr(true)
+			imp.Required = pointer.Bool(true)
 		}
 		SetDefaults_DefinitionImport(&imp.ConditionalImports)
 		if imp.Schema != nil && len(imp.TargetType) != 0 {
@@ -89,20 +89,6 @@ func SetDefaults_Installation(obj *Installation) {
 	if len(obj.Spec.Context) == 0 {
 		obj.Spec.Context = DefaultContextName
 	}
-
-	// default the namespace of imports
-	for i, dataImport := range obj.Spec.Imports.Data {
-		if dataImport.ConfigMapRef != nil {
-			if len(dataImport.ConfigMapRef.Namespace) == 0 {
-				obj.Spec.Imports.Data[i].ConfigMapRef.Namespace = obj.GetNamespace()
-			}
-		}
-		if dataImport.SecretRef != nil {
-			if len(dataImport.SecretRef.Namespace) == 0 {
-				obj.Spec.Imports.Data[i].SecretRef.Namespace = obj.GetNamespace()
-			}
-		}
-	}
 }
 
 // SetDefaults_Execution sets default values for Execution objects
@@ -119,4 +105,6 @@ func SetDefaults_DeployItem(obj *DeployItem) {
 	if len(obj.Spec.Context) == 0 {
 		obj.Spec.Context = DefaultContextName
 	}
+	// migration - can be removed, after .Status.DeployerPhase has been removed
+	obj.Status.DeployerPhase = nil
 }

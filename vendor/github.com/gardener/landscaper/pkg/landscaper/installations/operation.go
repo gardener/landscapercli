@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -220,9 +221,11 @@ func (o *Operation) GetImportedDataObjects(ctx context.Context) (map[string]*dat
 		if len(def.DataRef) != 0 {
 			importStatus.DataRef = def.DataRef
 		} else if def.SecretRef != nil {
-			importStatus.SecretRef = fmt.Sprintf("%s#%s", def.SecretRef.NamespacedName().String(), def.SecretRef.Key)
+			secretRef := lsutil.SecretRefFromLocalRef(def.SecretRef, o.Inst.GetInstallation().Namespace)
+			importStatus.SecretRef = fmt.Sprintf("%s#%s", secretRef.NamespacedName().String(), secretRef.Key)
 		} else if def.ConfigMapRef != nil {
-			importStatus.ConfigMapRef = fmt.Sprintf("%s#%s", def.ConfigMapRef.NamespacedName().String(), def.ConfigMapRef.Key)
+			configMapRef := lsutil.ConfigMapRefFromLocalRef(def.ConfigMapRef, o.Inst.GetInstallation().Namespace)
+			importStatus.ConfigMapRef = fmt.Sprintf("%s#%s", configMapRef.NamespacedName().String(), configMapRef.Key)
 		}
 
 		o.Inst.ImportStatus().Update(importStatus)
@@ -567,6 +570,7 @@ func (o *Operation) createOrUpdateTargetImport(ctx context.Context, src string, 
 	targetExtension.SetNamespace(o.Inst.GetInstallation().Namespace).
 		SetContext(src).
 		SetKey(importDef.Name).
+		SetIndex(nil).
 		SetSource(src).SetSourceType(lsv1alpha1.ImportDataObjectSourceType)
 
 	targetForUpdate := &lsv1alpha1.Target{}
@@ -609,6 +613,7 @@ func (o *Operation) createOrUpdateTargetListImport(ctx context.Context, src stri
 		tar.SetNamespace(o.Inst.GetInstallation().Namespace).
 			SetContext(src).
 			SetKey(importDef.Name).
+			SetIndex(pointer.Int(i)).
 			SetSource(src).SetSourceType(lsv1alpha1.ImportDataObjectSourceType)
 	}
 

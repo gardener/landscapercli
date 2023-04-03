@@ -25,7 +25,7 @@ func (i *InstallationTree) filterForFailedInstallation() *InstallationTree {
 		i.Execution = i.Execution.filterForFailedExecution()
 	}
 
-	if len(filteredSubInstallations) > 0 || i.Execution != nil || i.Installation.Status.InstallationPhase == v1alpha1.InstallationPhaseFailed {
+	if len(filteredSubInstallations) > 0 || i.Execution != nil || i.Installation.Status.InstallationPhase == v1alpha1.InstallationPhases.Failed {
 		return i
 	}
 	return nil
@@ -48,7 +48,7 @@ func (e *ExecutionTree) filterForFailedExecution() *ExecutionTree {
 
 	e.DeployItems = filteredDeployItems
 
-	if len(filteredDeployItems) > 0 || e.Execution.Status.ExecutionPhase == v1alpha1.ExecPhaseFailed {
+	if len(filteredDeployItems) > 0 || e.Execution.Status.ExecutionPhase == v1alpha1.ExecutionPhases.Failed {
 		return e
 	}
 	return nil
@@ -60,7 +60,7 @@ type DeployItemLeaf struct {
 }
 
 func (d *DeployItemLeaf) filterForFailedDeployItem() *DeployItemLeaf {
-	if d.DeployItem.Status.Phase == v1alpha1.ExecutionPhaseFailed {
+	if d.DeployItem.Status.Phase.IsFailed() {
 		return d
 	}
 	return nil

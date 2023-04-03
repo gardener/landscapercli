@@ -21,6 +21,7 @@ import (
 
 	ociopts "github.com/gardener/component-cli/ociclient/options"
 	"github.com/gardener/component-cli/pkg/commands/constants"
+	"github.com/gardener/component-cli/pkg/componentarchive"
 	"github.com/gardener/component-cli/pkg/components"
 	"github.com/gardener/component-cli/pkg/logger"
 	"github.com/gardener/component-cli/pkg/signatures"
@@ -46,6 +47,8 @@ type GenericSignOptions struct {
 	// Version is the component Version in the oci registry.
 	Version string
 
+	ComponentArchivePath string
+
 	// SignatureName defines the name for the generated signature
 	SignatureName string
 
@@ -63,15 +66,30 @@ type GenericSignOptions struct {
 
 	// OciOptions contains all exposed options to configure the oci client.
 	OciOptions ociopts.Options
-
-	SignedRef string
 }
 
-//Complete validates the arguments and flags from the command line
+// Complete validates the arguments and flags from the command line
 func (o *GenericSignOptions) Complete(args []string) error {
-	o.BaseUrl = args[0]
-	o.ComponentName = args[1]
-	o.Version = args[2]
+	switch len(args) {
+	case 1:
+		o.ComponentArchivePath = args[0]
+	case 3:
+		o.BaseUrl = args[0]
+		o.ComponentName = args[1]
+		o.Version = args[2]
+
+		if len(o.BaseUrl) == 0 {
+			return errors.New("a base url must be provided")
+		}
+		if len(o.ComponentName) == 0 {
+			return errors.New("a component name must be provided")
+		}
+		if len(o.Version) == 0 {
+			return errors.New("a component version must be provided")
+		}
+	default:
+		return fmt.Errorf("illegal number of arguments: %d", len(args))
+	}
 
 	cliHomeDir, err := constants.CliHomeDir()
 	if err != nil {
@@ -83,27 +101,12 @@ func (o *GenericSignOptions) Complete(args []string) error {
 		return fmt.Errorf("unable to create cache directory %s: %w", o.OciOptions.CacheDir, err)
 	}
 
-	if len(o.BaseUrl) == 0 {
-		return errors.New("a base url must be provided")
-	}
-	if len(o.ComponentName) == 0 {
-		return errors.New("a component name must be provided")
-	}
-	if len(o.Version) == 0 {
-		return errors.New("a component version must be provided")
-	}
 	if o.UploadBaseUrlForSigned == "" {
 		return errors.New("a upload base url must be provided")
 	}
 	if o.SignatureName == "" {
 		return errors.New("a signature name must be provided")
 	}
-
-	signedRef, err := components.OCIRef(cdv2.NewOCIRegistryRepository(o.UploadBaseUrlForSigned, ""), o.ComponentName, o.Version)
-	if err != nil {
-		return fmt.Errorf("invalid reference for signed component descriptor: %w", err)
-	}
-	o.SignedRef = signedRef
 
 	return nil
 }
@@ -118,17 +121,40 @@ func (o *GenericSignOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 func (o *GenericSignOptions) SignAndUploadWithSigner(ctx context.Context, log logr.Logger, fs vfs.FileSystem, signer cdv2Sign.Signer) error {
-	repoCtx := cdv2.NewOCIRegistryRepository(o.BaseUrl, "")
-
 	ociClient, cache, err := o.OciOptions.Build(log, fs)
 	if err != nil {
 		return fmt.Errorf("unable to build oci client: %s", err.Error())
 	}
 
-	cdresolver := cdoci.NewResolver(ociClient)
-	cd, blobResolver, err := cdresolver.ResolveWithBlobResolver(ctx, repoCtx, o.ComponentName, o.Version)
+	var cd cdv2.ComponentDescriptor
+	var blobResolver ctf.BlobResolver
+	var repoCtx *cdv2.OCIRegistryRepository
+	if o.ComponentArchivePath != "" {
+		archive, _, err := componentarchive.Parse(fs, o.ComponentArchivePath)
+		if err != nil {
+			return fmt.Errorf("unable to open component archive : %w", err)
+		}
+		cd = *archive.ComponentDescriptor
+		blobResolver = archive.BlobResolver
+		_repoCtx, err := components.GetOCIRepositoryContext(cd.GetEffectiveRepositoryContext())
+		if err != nil {
+			return fmt.Errorf("unable to create repository context: %w", err)
+		}
+		repoCtx = &_repoCtx
+	} else {
+		repoCtx = cdv2.NewOCIRegistryRepository(o.BaseUrl, "")
+		cdresolver := cdoci.NewResolver(ociClient)
+		_cd, _blobResolver, err := cdresolver.ResolveWithBlobResolver(ctx, repoCtx, o.ComponentName, o.Version)
+		if err != nil {
+			return fmt.Errorf("unable to to fetch component descriptor %s:%s: %w", o.ComponentName, o.Version, err)
+		}
+		cd = *_cd
+		blobResolver = _blobResolver
+	}
+
+	signedRef, err := components.OCIRef(cdv2.NewOCIRegistryRepository(o.UploadBaseUrlForSigned, ""), cd.Name, cd.Version)
 	if err != nil {
-		return fmt.Errorf("unable to to fetch component descriptor %s:%s: %w", o.ComponentName, o.Version, err)
+		return fmt.Errorf("invalid reference for signed component descriptor: %w", err)
 	}
 
 	blobResolvers := map[string]ctf.BlobResolver{}
@@ -139,7 +165,7 @@ func (o *GenericSignOptions) SignAndUploadWithSigner(ctx context.Context, log lo
 		skipAccessTypesMap[v] = true
 	}
 
-	digestedCds, err := signatures.RecursivelyAddDigestsToCd(cd, *repoCtx, ociClient, blobResolvers, context.TODO(), skipAccessTypesMap)
+	digestedCds, err := signatures.RecursivelyAddDigestsToCd(&cd, *repoCtx, ociClient, blobResolvers, context.TODO(), skipAccessTypesMap)
 	if err != nil {
 		return fmt.Errorf("unable to add digests to component descriptor: %w", err)
 	}
@@ -170,18 +196,18 @@ func (o *GenericSignOptions) SignAndUploadWithSigner(ctx context.Context, log lo
 			return fmt.Errorf("unable to create hasher: %w", err)
 		}
 
-		if err := cdv2Sign.SignComponentDescriptor(cd, signer, *hasher, o.SignatureName); err != nil {
+		if err := cdv2Sign.SignComponentDescriptor(&cd, signer, *hasher, o.SignatureName); err != nil {
 			return fmt.Errorf("unable to sign component descriptor: %w", err)
 		}
 		logger.Log.Info(fmt.Sprintf("Signed component descriptor %s %s", cd.Name, cd.Version))
 
 		logger.Log.Info(fmt.Sprintf("Uploading to %s %s %s", o.UploadBaseUrlForSigned, cd.Name, cd.Version))
 
-		if err := signatures.UploadCDPreservingLocalOciBlobs(ctx, *cd, *targetRepoCtx, ociClient, cache, blobResolvers, o.Force, log); err != nil {
+		if err := signatures.UploadCDPreservingLocalOciBlobs(ctx, cd, *targetRepoCtx, ociClient, cache, blobResolvers, o.Force, log); err != nil {
 			return fmt.Errorf("unable to upload component descriptor: %w", err)
 		}
 	}
 
-	log.Info(fmt.Sprintf("Successfully uploaded signed component descriptor at %s", o.SignedRef))
+	log.Info(fmt.Sprintf("Successfully uploaded signed component descriptor at %s", signedRef))
 	return nil
 }

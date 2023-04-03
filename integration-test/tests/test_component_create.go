@@ -457,7 +457,7 @@ func (t *componentCreateTest) waitUntilInstallationSucceeded(ctx context.Context
 			return false, fmt.Errorf("failed fetching installation: %w", err)
 		}
 
-		return installation.Status.InstallationPhase == lsv1alpha1.InstallationPhaseSucceeded, nil
+		return installation.Status.InstallationPhase == lsv1alpha1.InstallationPhases.Succeeded, nil
 	}
 
 	timeout, err := util.CheckConditionPeriodically(conditionFunc, t.config.SleepTime, t.config.MaxRetries)

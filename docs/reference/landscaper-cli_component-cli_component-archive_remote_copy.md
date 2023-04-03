@@ -33,7 +33,7 @@ landscaper-cli component-cli component-archive remote copy COMPONENT_NAME VERSIO
       --registry-config string              path to the dockerconfig.json with the oci registry authentication information
       --relative-urls                       converts all copied oci artifacts to relative urls
       --replace-oci-ref strings             list of replace expressions in the format left:right. For every resource with accessType == ociRegistry, all occurences of 'left' in the target ref are replaced with 'right' before the upload
-      --source-artifact-repository string   source repository where realtiove oci artifacts are copied from. This is only relevant if artifacts are copied by value and it will be defaulted to the source component repository
+      --source-artifact-repository string   source repository where relative oci artifacts are copied from. This is only relevant if artifacts are copied by value and it will be defaulted to the source component repository
       --target-artifact-repository string   target repository where the artifacts are copied to. This is only relevant if artifacts are copied by value and it will be defaulted to the target component repository
       --to string                           target repository where the components are copied to.
 ```
