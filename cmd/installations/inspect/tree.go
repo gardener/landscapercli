@@ -1,7 +1,6 @@
 package tree
 
 import (
-	"github.com/gardener/landscaper/apis/core/v1alpha1"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 )
 
@@ -25,7 +24,7 @@ func (i *InstallationTree) filterForFailedInstallation() *InstallationTree {
 		i.Execution = i.Execution.filterForFailedExecution()
 	}
 
-	if len(filteredSubInstallations) > 0 || i.Execution != nil || i.Installation.Status.InstallationPhase == v1alpha1.InstallationPhases.Failed {
+	if len(filteredSubInstallations) > 0 || i.Execution != nil || i.Installation.Status.InstallationPhase.IsFailed() {
 		return i
 	}
 	return nil
@@ -48,7 +47,7 @@ func (e *ExecutionTree) filterForFailedExecution() *ExecutionTree {
 
 	e.DeployItems = filteredDeployItems
 
-	if len(filteredDeployItems) > 0 || e.Execution.Status.ExecutionPhase == v1alpha1.ExecutionPhases.Failed {
+	if len(filteredDeployItems) > 0 || e.Execution.Status.ExecutionPhase.IsFailed() {
 		return e
 	}
 	return nil

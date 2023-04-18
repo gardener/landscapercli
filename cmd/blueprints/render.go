@@ -250,7 +250,7 @@ func (o *RenderOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSys
 			return err
 		}
 		simulator.SetCallbacks(SimulatorCallbacks{options: o, fs: fs})
-		_, err = simulator.Run(o.componentDescriptor, blueprint, imports.Imports, imports.Imports)
+		_, err = simulator.Run(o.componentDescriptor, blueprint, imports.Imports)
 		if err != nil {
 			return err
 		}

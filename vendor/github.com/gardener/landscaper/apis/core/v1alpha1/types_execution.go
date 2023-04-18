@@ -203,6 +203,10 @@ type ExecutionStatus struct {
 
 	// ExecutionPhase is the current phase of the execution.
 	ExecutionPhase ExecutionPhase `json:"phase,omitempty"`
+
+	// PhaseTransitionTime is the time when the phase last changed.
+	// +optional
+	PhaseTransitionTime *metav1.Time `json:"phaseTransitionTime,omitempty"`
 }
 
 // ExecutionGeneration links a deployitem to the generation of the execution when it was applied.
@@ -240,8 +244,7 @@ type DeployItemTemplate struct {
 	DependsOn []string `json:"dependsOn,omitempty"`
 
 	// Timeout specifies how long the deployer may take to apply the deploy item.
-	// When the time is exceeded, the landscaper will add the abort annotation to the deploy item
-	// and later put it in 'Failed' if the deployer doesn't handle the abort properly.
+	// When the time is exceeded, the deploy item fails.
 	// Value has to be parsable by time.ParseDuration (or 'none' to deactivate the timeout).
 	// Defaults to ten minutes if not specified.
 	// +optional
