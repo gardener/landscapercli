@@ -262,15 +262,15 @@ func (o *installOptions) generateLandscaperValuesOverride() ([]byte, error) {
 	defaultDeployers := ""
 	if len(o.landscaperValues.Landscaper.Landscaper.Deployers) == 0 {
 		defaultDeployers = `
-  deployers:
-  - container
-  - helm
-  - manifest`
+    deployers:
+    - container
+    - helm
+    - manifest`
 	}
 
 	landscaperValuesOverride := fmt.Sprintf(`
-landscaper:%s
-  landscaper:
+landscaper:
+  landscaper:%s
     deployerManagement:
       namespace: %s
       agent:

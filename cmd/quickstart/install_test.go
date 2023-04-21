@@ -253,6 +253,10 @@ func TestGenerateLandscaperValuesOverride(t *testing.T) {
 	assert.True(t, ok)
 	data, ok = config.(map[string]interface{})
 	assert.True(t, ok)
+	config, ok = data["landscaper"]
+	assert.True(t, ok)
+	data, ok = config.(map[string]interface{})
+	assert.True(t, ok)
 	config, ok = data["deployers"]
 	assert.True(t, ok)
 	depList, ok := config.([]interface{})
@@ -266,6 +270,10 @@ func TestGenerateLandscaperValuesOverride(t *testing.T) {
 	data = map[string]interface{}{}
 	err = yaml.Unmarshal(lsvo, &data)
 	assert.NoError(t, err)
+	config, ok = data["landscaper"]
+	assert.True(t, ok)
+	data, ok = config.(map[string]interface{})
+	assert.True(t, ok)
 	config, ok = data["landscaper"]
 	assert.True(t, ok)
 	data, ok = config.(map[string]interface{})
