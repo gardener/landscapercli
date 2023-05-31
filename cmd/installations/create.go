@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gardener/landscaper/pkg/components/registries"
 	"os"
 	"path/filepath"
 
@@ -13,13 +14,11 @@ import (
 	ociopts "github.com/gardener/component-cli/ociclient/options"
 	"github.com/gardener/component-cli/pkg/commands/constants"
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
-	"github.com/gardener/component-spec/bindings-go/ctf"
 	cdoci "github.com/gardener/component-spec/bindings-go/oci"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
-	"github.com/gardener/landscaper/controller-utils/pkg/logging"
 	"github.com/gardener/landscaper/pkg/api"
+	"github.com/gardener/landscaper/pkg/components/model"
 	lsjsonschema "github.com/gardener/landscaper/pkg/landscaper/jsonschema"
-	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
 	"github.com/gardener/landscaper/pkg/utils/tar"
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
@@ -89,24 +88,39 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 	if err != nil {
 		return fmt.Errorf("invalid component reference: %w", err)
 	}
+	repoContext, err := cdv2.NewUnstructured(repoCtx)
+	if err != nil {
+		return fmt.Errorf("unable to create repository context: %w", err)
+	}
+
+	var registryAccess model.RegistryAccess
+	registryAccess, err = registries.NewFactory().NewRegistryAccessFromOciOptions(ctx, log, fs, o.OciOptions.AllowPlainHttp,
+		o.OciOptions.SkipTLSVerify, o.OciOptions.RegistryConfigPath, o.OciOptions.ConcourseConfigPath)
+	if err != nil {
+		return fmt.Errorf("unable to build registry access: %s", err.Error())
+	}
 
 	ociClient, _, err := o.OciOptions.Build(log, fs)
 	if err != nil {
 		return fmt.Errorf("unable to build oci client: %s", err.Error())
 	}
 
-	cdresolver := cdoci.NewResolver(ociClient)
-	cd, blobResolver, err := cdresolver.ResolveWithBlobResolver(ctx, repoCtx, o.componentName, o.version)
+	cdRef := &lsv1alpha1.ComponentDescriptorReference{
+		RepositoryContext: &repoContext,
+		ComponentName:     o.componentName,
+		Version:           o.version,
+	}
+	componentVersion, err := registryAccess.GetComponentVersion(ctx, cdRef)
 	if err != nil {
-		return fmt.Errorf("unable to to fetch component descriptor %s: %w", ociRef, err)
+		return fmt.Errorf("unable to to fetch component version %s: %w", ociRef, err)
 	}
 
-	blueprintRes, err := util.GetBlueprintResource(cd, o.blueprintResourceName)
+	blueprintResource, err := componentVersion.GetResource(o.blueprintResourceName, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to to fetch blueprint resource %s: %w", ociRef, err)
 	}
 
-	data, err := resolveBlueprint(ctx, *blueprintRes, ociClient, blobResolver)
+	data, err := resolveBlueprint(ctx, blueprintResource, ociClient, componentVersion)
 	if err != nil {
 		return fmt.Errorf("cannot resolve blueprint: %w", err)
 	}
@@ -126,22 +140,16 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		return fmt.Errorf("cannot decode blueprint: %w", err)
 	}
 
-	installation := buildInstallation(o.name, cd, *blueprintRes, blueprint)
+	installation := buildInstallation(o.name, cdRef, o.blueprintResourceName, blueprint)
 
 	var marshaledYaml []byte
 	if o.renderSchemaInfo {
-		ociRegistry, err := componentsregistry.NewOCIRegistryWithOCIClient(logging.Wrap(log), ociClient)
-		if err != nil {
-			return fmt.Errorf("cannot build oci registry: %w", err)
-		}
-
-		referenceContext := lsjsonschema.ReferenceContext{
-			LocalTypes:          blueprint.LocalTypes,
-			BlueprintFs:         memFS,
-			ComponentDescriptor: cd,
-			ComponentResolver:   ociRegistry,
-		}
-		jsonschemaResolver := lsjsonschema.NewReferenceResolver(&referenceContext)
+		jsonschemaResolver := lsjsonschema.NewReferenceResolver(&lsjsonschema.ReferenceContext{
+			LocalTypes:       blueprint.LocalTypes,
+			BlueprintFs:      memFS,
+			ComponentVersion: componentVersion,
+			RegistryAccess:   registryAccess,
+		})
 
 		commentedYaml, err := annotateInstallationWithSchemaComments(installation, blueprint, jsonschemaResolver)
 		if err != nil {
@@ -223,10 +231,11 @@ func annotateInstallationWithSchemaComments(installation *lsv1alpha1.Installatio
 	return commentedInstallationYaml, nil
 }
 
-func resolveBlueprint(ctx context.Context, blueprintRes cdv2.Resource, ociClient ociclient.Client, blobResolver ctf.BlobResolver) (*bytes.Buffer, error) {
-	var data bytes.Buffer
-	if blueprintRes.Access.GetType() == cdv2.OCIRegistryType {
-		ref, ok := blueprintRes.Access.Object["imageReference"].(string)
+func resolveBlueprint(ctx context.Context, blueprintResource model.Resource, ociClient ociclient.Client, componentVersion model.ComponentVersion) (*bytes.Buffer, error) {
+	data := bytes.Buffer{}
+
+	if blueprintResource.GetAccessType() == cdv2.OCIRegistryType {
+		ref, ok := blueprintResource.GetResource().Access.Object["imageReference"].(string)
 		if !ok {
 			return nil, fmt.Errorf("cannot parse imageReference to string")
 		}
@@ -240,7 +249,7 @@ func resolveBlueprint(ctx context.Context, blueprintRes cdv2.Resource, ociClient
 			return nil, fmt.Errorf("cannot get manifest layer: %w", err)
 		}
 	} else {
-		if _, err := blobResolver.Resolve(ctx, blueprintRes, &data); err != nil {
+		if _, err := blueprintResource.GetBlob(ctx, &data); err != nil {
 			return nil, fmt.Errorf("unable to to resolve blob of blueprint resource: %w", err)
 		}
 	}
@@ -354,7 +363,7 @@ func (o *createOpts) AddFlags(fs *pflag.FlagSet) {
 	o.OciOptions.AddFlags(fs)
 }
 
-func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes cdv2.Resource, blueprint *lsv1alpha1.Blueprint) *lsv1alpha1.Installation {
+func buildInstallation(name string, cdRef *lsv1alpha1.ComponentDescriptorReference, blueprintResourceName string, blueprint *lsv1alpha1.Blueprint) *lsv1alpha1.Installation {
 	dataImports := []lsv1alpha1.DataImport{}
 	targetImports := []lsv1alpha1.TargetImport{}
 	for _, imp := range blueprint.Imports {
@@ -400,15 +409,11 @@ func buildInstallation(name string, cd *cdv2.ComponentDescriptor, blueprintRes c
 		},
 		Spec: lsv1alpha1.InstallationSpec{
 			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
-				Reference: &lsv1alpha1.ComponentDescriptorReference{
-					RepositoryContext: cd.GetEffectiveRepositoryContext(),
-					ComponentName:     cd.ObjectMeta.Name,
-					Version:           cd.ObjectMeta.Version,
-				},
+				Reference: cdRef,
 			},
 			Blueprint: lsv1alpha1.BlueprintDefinition{
 				Reference: &lsv1alpha1.RemoteBlueprintReference{
-					ResourceName: blueprintRes.Name,
+					ResourceName: blueprintResourceName,
 				},
 			},
 			Imports: lsv1alpha1.InstallationImports{
