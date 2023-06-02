@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gardener/landscaper/pkg/components/registries"
 	"os"
 	"path/filepath"
 
@@ -18,6 +17,7 @@ import (
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/pkg/api"
 	"github.com/gardener/landscaper/pkg/components/model"
+	"github.com/gardener/landscaper/pkg/components/registries"
 	lsjsonschema "github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	"github.com/gardener/landscaper/pkg/utils/tar"
 	"github.com/go-logr/logr"
@@ -235,7 +235,12 @@ func resolveBlueprint(ctx context.Context, blueprintResource model.Resource, oci
 	data := bytes.Buffer{}
 
 	if blueprintResource.GetAccessType() == cdv2.OCIRegistryType {
-		ref, ok := blueprintResource.GetResource().Access.Object["imageReference"].(string)
+		res, err := blueprintResource.GetResource()
+		if err != nil {
+			return nil, fmt.Errorf("cannot get blueprint resource")
+		}
+
+		ref, ok := res.Access.Object["imageReference"].(string)
 		if !ok {
 			return nil, fmt.Errorf("cannot parse imageReference to string")
 		}

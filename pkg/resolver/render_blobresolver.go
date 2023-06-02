@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mandelsoft/vfs/pkg/vfs"
-
 	v2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/component-spec/bindings-go/ctf"
+	"github.com/mandelsoft/vfs/pkg/vfs"
 )
 
 func NewRenderBlobResolver(
