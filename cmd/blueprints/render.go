@@ -13,19 +13,18 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gardener/landscaper/pkg/landscaper/blueprints"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
-
-	"github.com/gardener/landscapercli/pkg/components"
-	"github.com/gardener/landscapercli/pkg/resolver"
-
 	ociclientopts "github.com/gardener/component-cli/ociclient/options"
+	"github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/component-spec/bindings-go/codec"
-	"github.com/gardener/component-spec/bindings-go/ctf"
-	componentsregistry "github.com/gardener/landscaper/pkg/landscaper/registry/components"
+	"github.com/gardener/landscaper/apis/core"
+	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/apis/core/validation"
+	"github.com/gardener/landscaper/pkg/api"
+	"github.com/gardener/landscaper/pkg/components/model"
+	"github.com/gardener/landscaper/pkg/components/registries"
+	"github.com/gardener/landscaper/pkg/landscaper/blueprints"
+	lsutils "github.com/gardener/landscaper/pkg/utils/landscaper"
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/layerfs"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
@@ -34,18 +33,14 @@ import (
 	"github.com/mandelsoft/vfs/pkg/vfs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/yaml"
 
-	"github.com/gardener/landscaper/apis/core"
-	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
-	"github.com/gardener/landscaper/apis/core/validation"
-	"github.com/gardener/landscaper/controller-utils/pkg/logging"
-	"github.com/gardener/landscaper/pkg/api"
-	lsutils "github.com/gardener/landscaper/pkg/utils/landscaper"
-
+	"github.com/gardener/landscapercli/pkg/components"
 	"github.com/gardener/landscapercli/pkg/logger"
+	"github.com/gardener/landscapercli/pkg/resolver"
 )
 
 const (
@@ -95,9 +90,10 @@ type RenderOptions struct {
 	blueprintFs             vfs.FileSystem
 	componentDescriptor     *cdv2.ComponentDescriptor
 	componentDescriptorList *cdv2.ComponentDescriptorList
-	componentResolver       ctf.ComponentResolver
-	resources               []resources.ResourceOptions
-	exportTemplates         lsutils.ExportTemplates
+	//componentResolver       ctf.ComponentResolver
+	registryAccess  model.RegistryAccess
+	resources       []resources.ResourceOptions
+	exportTemplates lsutils.ExportTemplates
 }
 
 // NewRenderCommand creates a new local command to render a blueprint instance locally
@@ -224,38 +220,70 @@ func (o *RenderOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSys
 		return err
 	}
 
-	componentDescriptorList := cdv2.ComponentDescriptorList{
-		Components: make([]cdv2.ComponentDescriptor, 0, len(o.componentDescriptorList.Components)),
+	var componentVersion model.ComponentVersion
+	if o.componentDescriptor != nil {
+		componentVersion, err = o.registryAccess.GetComponentVersion(ctx, &lsv1alpha1.ComponentDescriptorReference{
+			RepositoryContext: o.componentDescriptor.GetEffectiveRepositoryContext(),
+			ComponentName:     o.componentDescriptor.GetName(),
+			Version:           o.componentDescriptor.GetVersion(),
+		})
+		if err != nil {
+			return err
+		}
 	}
 
-	componentDescriptorList.Components = append(componentDescriptorList.Components, o.componentDescriptorList.Components...)
+	componentVersionList := model.ComponentVersionList{
+		Components: make([]model.ComponentVersion, 0, len(o.componentDescriptorList.Components)),
+	}
 
-	if o.componentDescriptor != nil {
-		for _, ref := range o.componentDescriptor.ComponentReferences {
-			if _, err := componentDescriptorList.GetComponent(ref.ComponentName, ref.Version); err != nil {
+	for _, cd := range o.componentDescriptorList.Components {
+		fmt.Printf("resolving component descriptor %s:%s\n", cd.GetName(), cd.GetVersion())
+		cv, err := o.registryAccess.GetComponentVersion(ctx, &lsv1alpha1.ComponentDescriptorReference{
+			RepositoryContext: cd.GetEffectiveRepositoryContext(),
+			ComponentName:     cd.GetName(),
+			Version:           cd.GetVersion(),
+		})
+		if err != nil {
+			return err
+		}
+		componentVersionList.Components = append(componentVersionList.Components, cv)
+	}
+
+	if componentVersion != nil {
+		refs, err := componentVersion.GetComponentReferences()
+		if err != nil {
+			return err
+		}
+
+		for _, ref := range refs {
+			if _, err := componentVersionList.GetComponentVersion(ref.ComponentName, ref.Version); err != nil {
 				// not found
 				fmt.Printf("resolving component descriptor reference %q (%s:%s)\n", ref.Name, ref.ComponentName, ref.Version)
-				cd, err := o.componentResolver.Resolve(ctx, o.componentDescriptor.GetEffectiveRepositoryContext(), ref.ComponentName, ref.Version)
+				cv, err := o.registryAccess.GetComponentVersion(ctx, &lsv1alpha1.ComponentDescriptorReference{
+					RepositoryContext: o.componentDescriptor.GetEffectiveRepositoryContext(),
+					ComponentName:     ref.ComponentName,
+					Version:           ref.Version,
+				})
 				if err != nil {
 					return err
 				}
-				componentDescriptorList.Components = append(componentDescriptorList.Components, *cd)
+				componentVersionList.Components = append(componentVersionList.Components, cv)
 			}
 		}
 	}
 
 	if len(o.ExportTemplatesPath) != 0 {
-		simulator, err := lsutils.NewInstallationSimulator(&componentDescriptorList, o.componentResolver, nil, o.exportTemplates)
+		simulator, err := lsutils.NewInstallationSimulator(&componentVersionList, o.registryAccess, nil, o.exportTemplates)
 		if err != nil {
 			return err
 		}
 		simulator.SetCallbacks(SimulatorCallbacks{options: o, fs: fs})
-		_, err = simulator.Run(o.componentDescriptor, blueprint, imports.Imports)
+		_, err = simulator.Run(componentVersion, blueprint, imports.Imports)
 		if err != nil {
 			return err
 		}
 	} else {
-		blueprintRenderer := lsutils.NewBlueprintRenderer(&componentDescriptorList, o.componentResolver, nil)
+		blueprintRenderer := lsutils.NewBlueprintRenderer(&componentVersionList, o.registryAccess, nil)
 
 		installation := &lsv1alpha1.Installation{
 			ObjectMeta: metav1.ObjectMeta{
@@ -288,9 +316,9 @@ func (o *RenderOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSys
 		}
 
 		out, err := blueprintRenderer.RenderDeployItemsAndSubInstallations(&lsutils.ResolvedInstallation{
-			ComponentDescriptor: o.componentDescriptor,
-			Installation:        installation,
-			Blueprint:           blueprint,
+			ComponentVersion: componentVersion,
+			Installation:     installation,
+			Blueprint:        blueprint,
 		}, imports.Imports)
 
 		if err != nil {
@@ -363,6 +391,8 @@ func (o *RenderOptions) setupImports(fs vfs.FileSystem) (*Imports, error) {
 }
 
 func (o *RenderOptions) Complete(log logr.Logger, args []string, fs vfs.FileSystem) error {
+	ctx := context.Background()
+
 	if len(o.ValueFiles) > 0 {
 		for i := range o.ValueFiles {
 			absPath, err := filepath.Abs(o.ValueFiles[i])
@@ -481,24 +511,23 @@ func (o *RenderOptions) Complete(log logr.Logger, args []string, fs vfs.FileSyst
 	}
 
 	// build component resolver with oci client
-	ociClient, _, err := o.OCIOptions.Build(log, fs)
+	//if o.componentDescriptor == nil {
+
+	o.registryAccess, err = registries.NewFactory().NewRegistryAccessFromOciOptions(ctx, log, fs,
+		o.OCIOptions.AllowPlainHttp, o.OCIOptions.SkipTLSVerify, o.OCIOptions.RegistryConfigPath, o.OCIOptions.ConcourseConfigPath)
 	if err != nil {
 		return err
 	}
 
-	if o.componentDescriptor == nil {
-		o.componentResolver, err = componentsregistry.NewOCIRegistryWithOCIClient(logging.Wrap(log), ociClient)
-		if err != nil {
-			return err
-		}
-	} else {
-		o.componentResolver, err = componentsregistry.NewOCIRegistryWithOCIClient(logging.Wrap(log), ociClient, o.componentDescriptor)
-		if err != nil {
-			return err
-		}
-	}
+	//} else {
+	//	o.registryAccess, err = registries.NewFactory().NewRegistryAccessFromOciOptions(ctx, log, fs,
+	//		o.OCIOptions.AllowPlainHttp, o.OCIOptions.SkipTLSVerify, o.OCIOptions.RegistryConfigPath, o.OCIOptions.ConcourseConfigPath, o.componentDescriptor)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
-	o.componentResolver = resolver.NewRenderComponentResolver(o.componentResolver, o.componentDescriptor, o.componentDescriptorList, o.ResourcesPath, fs)
+	o.registryAccess = resolver.NewRenderRegistryAccess(o.registryAccess, o.componentDescriptor, o.componentDescriptorList, o.ResourcesPath, fs)
 
 	return o.Validate()
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/gardener/component-cli/pkg/commands/componentarchive/input"
-
 	cdresources "github.com/gardener/component-cli/pkg/commands/componentarchive/resources"
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	v2 "github.com/gardener/component-spec/bindings-go/apis/v2"
