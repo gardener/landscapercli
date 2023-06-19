@@ -9,10 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gardener/landscaper/pkg/utils/dependencies"
-
-	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
-	"github.com/gardener/component-spec/bindings-go/ctf"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -20,6 +16,8 @@ import (
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	kutil "github.com/gardener/landscaper/controller-utils/pkg/kubernetes"
 	"github.com/gardener/landscaper/pkg/api"
+	"github.com/gardener/landscaper/pkg/components/model"
+	"github.com/gardener/landscaper/pkg/components/model/types"
 	"github.com/gardener/landscaper/pkg/landscaper/blueprints"
 	"github.com/gardener/landscaper/pkg/landscaper/execution"
 	"github.com/gardener/landscaper/pkg/landscaper/installations/executions/template"
@@ -27,21 +25,22 @@ import (
 	"github.com/gardener/landscaper/pkg/landscaper/installations/executions/template/spiff"
 	"github.com/gardener/landscaper/pkg/landscaper/installations/subinstallations"
 	"github.com/gardener/landscaper/pkg/landscaper/jsonschema"
+	"github.com/gardener/landscaper/pkg/utils/dependencies"
 )
 
 // BlueprintRenderer is able to render a blueprint with given import values or exports for export templates.
 type BlueprintRenderer struct {
 	// cdList is the list of local component descriptors available to the renderer.
-	cdList *cdv2.ComponentDescriptorList
-	// componentResolver is used to resolve component descriptors.
-	componentResolver ctf.ComponentResolver
+	cdList *model.ComponentVersionList
+	// registryAccess is used to resolve component descriptors.
+	registryAccess model.RegistryAccess
 	// repositoryContext is an optional repository context used to overwrite the effective repository context of component descriptors.
-	repositoryContext *cdv2.UnstructuredTypedObject
+	repositoryContext *types.UnstructuredTypedObject
 }
 
 // ResolvedInstallation contains a tuple of component descriptor, installation and blueprint.
 type ResolvedInstallation struct {
-	*cdv2.ComponentDescriptor
+	ComponentVersion model.ComponentVersion
 	*lsv1alpha1.Installation
 	*blueprints.Blueprint
 }
@@ -59,10 +58,10 @@ type RenderedDeployItemsSubInstallations struct {
 }
 
 // NewBlueprintRenderer creates a new blueprint renderer. The arguments are optional and may be nil.
-func NewBlueprintRenderer(cdList *cdv2.ComponentDescriptorList, resolver ctf.ComponentResolver, repositoryContext *cdv2.UnstructuredTypedObject) *BlueprintRenderer {
+func NewBlueprintRenderer(cdList *model.ComponentVersionList, registryAccess model.RegistryAccess, repositoryContext *types.UnstructuredTypedObject) *BlueprintRenderer {
 	renderer := &BlueprintRenderer{
 		cdList:            cdList,
-		componentResolver: resolver,
+		registryAccess:    registryAccess,
 		repositoryContext: repositoryContext,
 	}
 	return renderer
@@ -109,10 +108,8 @@ func (r *BlueprintRenderer) RenderDeployItemsAndSubInstallations(input *Resolved
 
 // RenderImportExecutions renders the export executions of the given blueprint and returns the rendered exports.
 func (r *BlueprintRenderer) RenderImportExecutions(input *ResolvedInstallation, imports map[string]interface{}) (map[string]interface{}, error) {
-	var (
-		blobResolver ctf.BlobResolver
-		ctx          context.Context
-	)
+	ctx := context.Background()
+	defer ctx.Done()
 
 	if input == nil {
 		return nil, fmt.Errorf("render input may not be nil")
@@ -127,21 +124,18 @@ func (r *BlueprintRenderer) RenderImportExecutions(input *ResolvedInstallation, 
 		return imports, nil
 	}
 
-	ctx = context.Background()
-	defer ctx.Done()
-
-	if input.ComponentDescriptor != nil && r.componentResolver != nil {
-		var err error
-		_, blobResolver, err = r.componentResolver.ResolveWithBlobResolver(ctx, r.getRepositoryContext(input), input.ComponentDescriptor.GetName(), input.ComponentDescriptor.GetVersion())
-		if err != nil {
-			return nil, fmt.Errorf("unable to get blob resolver: %w", err)
-		}
-	}
-
 	templateStateHandler := template.NewMemoryStateHandler()
 	formatter := template.NewTemplateInputFormatter(true)
-	errorList, bindings, err := template.New(gotemplate.New(blobResolver, templateStateHandler, nil).WithInputFormatter(formatter), spiff.New(templateStateHandler).WithInputFormatter(formatter)).
-		TemplateImportExecutions(template.NewBlueprintExecutionOptions(input.Installation, input.Blueprint, input.ComponentDescriptor, r.cdList, imports))
+	tmpl := template.New(
+		gotemplate.New(templateStateHandler, nil).WithInputFormatter(formatter),
+		spiff.New(templateStateHandler).WithInputFormatter(formatter))
+	errorList, bindings, err := tmpl.TemplateImportExecutions(
+		template.NewBlueprintExecutionOptions(
+			input.Installation,
+			input.Blueprint,
+			input.ComponentVersion,
+			r.cdList,
+			imports))
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to template export executions: %w", err)
@@ -150,16 +144,17 @@ func (r *BlueprintRenderer) RenderImportExecutions(input *ResolvedInstallation, 
 	if len(errorList) > 0 {
 		return nil, fmt.Errorf("the following error(s) occurred in the import executions:\n\t%s", strings.Join(errorList, "\n\t"))
 	}
+	for k, v := range bindings {
+		imports[k] = v
+	}
 
-	return bindings, nil
+	return imports, nil
 }
 
 // RenderExportExecutions renders the export executions of the given blueprint and returns the rendered exports.
 func (r *BlueprintRenderer) RenderExportExecutions(input *ResolvedInstallation, imports, installationDataImports, installationTargetImports, deployItemsExports map[string]interface{}) (map[string]interface{}, error) {
-	var (
-		blobResolver ctf.BlobResolver
-		ctx          context.Context
-	)
+	ctx := context.Background()
+	defer ctx.Done()
 
 	if input == nil {
 		return nil, fmt.Errorf("render input may not be nil")
@@ -167,17 +162,6 @@ func (r *BlueprintRenderer) RenderExportExecutions(input *ResolvedInstallation, 
 
 	if input.Blueprint == nil {
 		return nil, fmt.Errorf("blueprint may not be nil")
-	}
-
-	ctx = context.Background()
-	defer ctx.Done()
-
-	if input.ComponentDescriptor != nil && r.componentResolver != nil {
-		var err error
-		_, blobResolver, err = r.componentResolver.ResolveWithBlobResolver(ctx, r.getRepositoryContext(input), input.ComponentDescriptor.GetName(), input.ComponentDescriptor.GetVersion())
-		if err != nil {
-			return nil, fmt.Errorf("unable to get blob resolver: %w", err)
-		}
 	}
 
 	values := map[string]interface{}{
@@ -188,8 +172,17 @@ func (r *BlueprintRenderer) RenderExportExecutions(input *ResolvedInstallation, 
 
 	templateStateHandler := template.NewMemoryStateHandler()
 	formatter := template.NewTemplateInputFormatter(true)
-	exports, err := template.New(gotemplate.New(blobResolver, templateStateHandler, nil).WithInputFormatter(formatter), spiff.New(templateStateHandler).WithInputFormatter(formatter)).
-		TemplateExportExecutions(template.NewExportExecutionOptions(template.NewBlueprintExecutionOptions(input.Installation, input.Blueprint, input.ComponentDescriptor, r.cdList, imports), values))
+	tmpl := template.New(
+		gotemplate.New(templateStateHandler, nil).WithInputFormatter(formatter),
+		spiff.New(templateStateHandler).WithInputFormatter(formatter))
+	exports, err := tmpl.TemplateExportExecutions(
+		template.NewExportExecutionOptions(
+			template.NewBlueprintExecutionOptions(
+				input.Installation,
+				input.Blueprint,
+				input.ComponentVersion,
+				r.cdList,
+				imports), values))
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to template export executions: %w", err)
@@ -200,28 +193,22 @@ func (r *BlueprintRenderer) RenderExportExecutions(input *ResolvedInstallation, 
 
 // renderDeployItems renders deploy items.
 func (r *BlueprintRenderer) renderDeployItems(input *ResolvedInstallation, imports map[string]interface{}) ([]*lsv1alpha1.DeployItem, map[string][]byte, error) {
-	var (
-		blobResolver ctf.BlobResolver
-		ctx          context.Context
-	)
-
-	ctx = context.Background()
+	ctx := context.Background()
 	defer ctx.Done()
-
-	if input.ComponentDescriptor != nil && r.componentResolver != nil {
-		var err error
-		_, blobResolver, err = r.componentResolver.ResolveWithBlobResolver(ctx, r.getRepositoryContext(input), input.ComponentDescriptor.GetName(), input.ComponentDescriptor.GetVersion())
-		if err != nil {
-			return nil, nil, fmt.Errorf("unable to get blob resolver: %w", err)
-		}
-	}
 
 	templateStateHandler := template.NewMemoryStateHandler()
 	formatter := template.NewTemplateInputFormatter(true)
-	executions, err := template.New(gotemplate.New(blobResolver, templateStateHandler, nil).WithInputFormatter(formatter), spiff.New(templateStateHandler).WithInputFormatter(formatter)).
-		TemplateDeployExecutions(template.NewDeployExecutionOptions(template.NewBlueprintExecutionOptions(
-			input.Installation, input.Blueprint, input.ComponentDescriptor, r.cdList,
-			imports)))
+	tmpl := template.New(
+		gotemplate.New(templateStateHandler, nil).WithInputFormatter(formatter),
+		spiff.New(templateStateHandler).WithInputFormatter(formatter))
+	executions, err := tmpl.TemplateDeployExecutions(
+		template.NewDeployExecutionOptions(
+			template.NewBlueprintExecutionOptions(
+				input.Installation,
+				input.Blueprint,
+				input.ComponentVersion,
+				r.cdList,
+				imports)))
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to template deploy executions: %w", err)
 	}
@@ -325,6 +312,11 @@ func (r *BlueprintRenderer) renderSubInstallations(input *ResolvedInstallation, 
 	ctx := context.Background()
 	defer ctx.Done()
 
+	inputRepositoryContext, err := r.getRepositoryContext(input)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to get repository context for input installation: %w", err)
+	}
+
 	installationTemplates, err := input.Blueprint.GetSubinstallations()
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get subinstallation of blueprint: %w", err)
@@ -339,9 +331,16 @@ func (r *BlueprintRenderer) renderSubInstallations(input *ResolvedInstallation, 
 
 	templateStateHandler := template.NewMemoryStateHandler()
 	formatter := template.NewTemplateInputFormatter(true)
-	subInstallationTemplates, err := template.New(gotemplate.New(nil, templateStateHandler, nil).WithInputFormatter(formatter), spiff.New(templateStateHandler).WithInputFormatter(formatter)).
-		TemplateSubinstallationExecutions(template.NewDeployExecutionOptions(
-			template.NewBlueprintExecutionOptions(input.Installation, input.Blueprint, input.ComponentDescriptor, r.cdList,
+	tmpl := template.New(
+		gotemplate.New(templateStateHandler, nil).WithInputFormatter(formatter),
+		spiff.New(templateStateHandler).WithInputFormatter(formatter))
+	subInstallationTemplates, err := tmpl.TemplateSubinstallationExecutions(
+		template.NewDeployExecutionOptions(
+			template.NewBlueprintExecutionOptions(
+				input.Installation,
+				input.Blueprint,
+				input.ComponentVersion,
+				r.cdList,
 				imports)))
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to template subinstalltion executions: %w", err)
@@ -361,9 +360,8 @@ func (r *BlueprintRenderer) renderSubInstallations(input *ResolvedInstallation, 
 		subBlueprintDef, subCd, err := subinstallations.GetBlueprintDefinitionFromInstallationTemplate(
 			input.Installation,
 			subInstTmpl,
-			input.ComponentDescriptor,
-			r.componentResolver,
-			r.getRepositoryContext(input),
+			input.ComponentVersion,
+			inputRepositoryContext,
 			nil)
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to get blueprint definition for subinstallation %q: %w", subInstTmpl.Name, err)
@@ -371,13 +369,16 @@ func (r *BlueprintRenderer) renderSubInstallations(input *ResolvedInstallation, 
 		subInst.Spec.Blueprint = *subBlueprintDef
 		subInst.Spec.ComponentDescriptor = subCd
 
-		subInstRepositoryContext := r.getRepositoryContext(&ResolvedInstallation{
-			ComponentDescriptor: input.ComponentDescriptor,
-			Installation:        subInst,
+		subInstRepositoryContext, err := r.getRepositoryContext(&ResolvedInstallation{
+			ComponentVersion: input.ComponentVersion,
+			Installation:     subInst,
 		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to get repository context for subinstallation %q: %w", subInstTmpl.Name, err)
+		}
 
 		subCd.Reference.RepositoryContext = subInstRepositoryContext
-		subBlueprint, err := blueprints.Resolve(ctx, r.componentResolver, subCd.Reference, *subBlueprintDef)
+		subBlueprint, err := blueprints.Resolve(ctx, r.registryAccess, subCd.Reference, *subBlueprintDef)
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to resolve blueprint for subinstallation %q: %w", subInstTmpl.Name, err)
 		}
@@ -394,12 +395,16 @@ func (r *BlueprintRenderer) renderSubInstallations(input *ResolvedInstallation, 
 			subComponentVersion = subInst.Spec.ComponentDescriptor.Inline.Version
 		}
 
-		cd, err := r.componentResolver.Resolve(ctx, subInstRepositoryContext, subComponentName, subComponentVersion)
+		subComponentDescriptor, err := r.registryAccess.GetComponentVersion(ctx, &lsv1alpha1.ComponentDescriptorReference{
+			RepositoryContext: subInstRepositoryContext,
+			ComponentName:     subComponentName,
+			Version:           subComponentVersion,
+		})
 		if err != nil {
 			return nil, nil, err
 		}
 
-		subInstallations[i].ComponentDescriptor = cd
+		subInstallations[i].ComponentVersion = subComponentDescriptor
 		subInstallations[i].Installation = subInst
 		subInstallations[i].Blueprint = subBlueprint
 	}
@@ -410,12 +415,17 @@ func (r *BlueprintRenderer) renderSubInstallations(input *ResolvedInstallation, 
 // validateImports validates the imports with the JSON schemas defined in the blueprint
 func (r *BlueprintRenderer) validateImports(input *ResolvedInstallation, imports map[string]interface{}) error {
 
+	inputRepositoryContext, err := r.getRepositoryContext(input)
+	if err != nil {
+		return fmt.Errorf("unable to get repository context during validation of imports: %w", err)
+	}
+
 	validatorConfig := &jsonschema.ReferenceContext{
-		LocalTypes:          input.Blueprint.Info.LocalTypes,
-		BlueprintFs:         input.Blueprint.Fs,
-		ComponentDescriptor: input.ComponentDescriptor,
-		ComponentResolver:   r.componentResolver,
-		RepositoryContext:   r.getRepositoryContext(input),
+		LocalTypes:        input.Blueprint.Info.LocalTypes,
+		BlueprintFs:       input.Blueprint.Fs,
+		ComponentVersion:  input.ComponentVersion,
+		RegistryAccess:    r.registryAccess,
+		RepositoryContext: inputRepositoryContext,
 	}
 
 	var allErr field.ErrorList
@@ -455,25 +465,30 @@ func (r *BlueprintRenderer) validateImports(input *ResolvedInstallation, imports
 // 1. explicitly user defined repository context
 // 2. repository context defined in the installation
 // 3. effective repository context defined in the component descriptor.
-func (r *BlueprintRenderer) getRepositoryContext(input *ResolvedInstallation) *cdv2.UnstructuredTypedObject {
+func (r *BlueprintRenderer) getRepositoryContext(input *ResolvedInstallation) (*types.UnstructuredTypedObject, error) {
 	if r.repositoryContext != nil {
-		return r.repositoryContext
+		return r.repositoryContext, nil
 	}
 
 	if input.Installation != nil && input.Installation.Spec.ComponentDescriptor != nil {
 		if input.Installation.Spec.ComponentDescriptor.Reference != nil && input.Installation.Spec.ComponentDescriptor.Reference.RepositoryContext != nil {
-			return input.Installation.Spec.ComponentDescriptor.Reference.RepositoryContext
+			return input.Installation.Spec.ComponentDescriptor.Reference.RepositoryContext, nil
 		}
 		if input.Installation.Spec.ComponentDescriptor.Inline != nil {
-			return input.Installation.Spec.ComponentDescriptor.Inline.GetEffectiveRepositoryContext()
+			return input.Installation.Spec.ComponentDescriptor.Inline.GetEffectiveRepositoryContext(), nil
 		}
 	}
 
-	if input.ComponentDescriptor != nil {
-		return input.ComponentDescriptor.GetEffectiveRepositoryContext()
+	if input.ComponentVersion != nil {
+		repositoryContext, err := input.ComponentVersion.GetRepositoryContext()
+		if err != nil {
+			return nil, fmt.Errorf("unable to get repository context from component version: %w", err)
+		}
+
+		return repositoryContext, nil
 	}
 
-	return nil
+	return nil, nil
 }
 
 func validateTargetImport(value interface{}, expectedTargetType string, fldPath *field.Path) field.ErrorList {

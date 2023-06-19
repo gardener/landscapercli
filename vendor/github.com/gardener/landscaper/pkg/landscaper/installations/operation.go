@@ -9,10 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
-	"github.com/gardener/component-spec/bindings-go/ctf"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/utils/pointer"
@@ -26,10 +23,11 @@ import (
 	"github.com/gardener/landscaper/controller-utils/pkg/logging"
 	lc "github.com/gardener/landscaper/controller-utils/pkg/logging/constants"
 	"github.com/gardener/landscaper/pkg/api"
+	"github.com/gardener/landscaper/pkg/components/model"
+	"github.com/gardener/landscaper/pkg/components/model/types"
 	"github.com/gardener/landscaper/pkg/landscaper/dataobjects"
 	"github.com/gardener/landscaper/pkg/landscaper/jsonschema"
 	lsoperation "github.com/gardener/landscaper/pkg/landscaper/operation"
-	"github.com/gardener/landscaper/pkg/landscaper/registry/components/cdutils"
 	lsutil "github.com/gardener/landscaper/pkg/utils"
 	"github.com/gardener/landscaper/pkg/utils/read_write_layer"
 )
@@ -39,9 +37,8 @@ type Operation struct {
 	*lsoperation.Operation
 
 	Inst                            *InstallationImportsAndBlueprint
-	ComponentDescriptor             *cdv2.ComponentDescriptor
-	BlobResolver                    ctf.BlobResolver
-	ResolvedComponentDescriptorList *cdv2.ComponentDescriptorList
+	ComponentVersion                model.ComponentVersion
+	ResolvedComponentDescriptorList *model.ComponentVersionList
 	context                         Scope
 
 	targetLists map[string]*dataobjects.TargetExtensionList
@@ -53,7 +50,7 @@ type Operation struct {
 
 // NewInstallationOperationFromOperation creates a new installation operation from an existing common operation.
 // DEPRECATED: use the builder instead.
-func NewInstallationOperationFromOperation(ctx context.Context, op *lsoperation.Operation, inst *InstallationImportsAndBlueprint, _ *cdv2.UnstructuredTypedObject) (*Operation, error) {
+func NewInstallationOperationFromOperation(ctx context.Context, op *lsoperation.Operation, inst *InstallationImportsAndBlueprint, _ *types.UnstructuredTypedObject) (*Operation, error) {
 	return NewOperationBuilder(inst).
 		WithOperation(op).
 		Build(ctx)
@@ -75,21 +72,21 @@ func (o *Operation) SetTargetListImports(data map[string]*dataobjects.TargetExte
 // ResolveComponentDescriptors resolves the effective component descriptors for the installation.
 // DEPRECATED: only used for tests. use the builder methods instead.
 func (o *Operation) ResolveComponentDescriptors(ctx context.Context) error {
-	cd, blobResolver, err := ResolveComponentDescriptor(ctx, o.ComponentsRegistry(), o.Inst.GetInstallation(), o.Context().External.Overwriter)
+	componentVersion, err := ResolveComponentDescriptor(ctx, o.ComponentsRegistry(), o.Inst.GetInstallation(), o.Context().External.Overwriter)
 	if err != nil {
 		return err
-	}
-	if cd == nil {
-		return nil
 	}
 
-	resolvedCD, err := cdutils.ResolveToComponentDescriptorList(ctx, o.ComponentsRegistry(), *cd, o.Context().External.RepositoryContext, o.Context().External.Overwriter)
+	dependentComponentVersions, err := model.GetTransitiveComponentReferences(ctx,
+		componentVersion,
+		o.Context().External.RepositoryContext,
+		o.Context().External.Overwriter)
 	if err != nil {
 		return err
 	}
-	o.ComponentDescriptor = cd
-	o.BlobResolver = blobResolver
-	o.ResolvedComponentDescriptorList = &resolvedCD
+
+	o.ComponentVersion = componentVersion
+	o.ResolvedComponentDescriptorList = dependentComponentVersions
 	return nil
 }
 
@@ -106,11 +103,11 @@ func (o *Operation) InstallationContextName() string {
 // JSONSchemaValidator returns a jsonschema validator.
 func (o *Operation) JSONSchemaValidator(schema []byte) (*jsonschema.Validator, error) {
 	v := jsonschema.NewValidator(&jsonschema.ReferenceContext{
-		LocalTypes:          o.Inst.GetBlueprint().Info.LocalTypes,
-		BlueprintFs:         o.Inst.GetBlueprint().Fs,
-		ComponentDescriptor: o.ComponentDescriptor,
-		ComponentResolver:   o.ComponentsRegistry(),
-		RepositoryContext:   o.context.External.RepositoryContext,
+		LocalTypes:        o.Inst.GetBlueprint().Info.LocalTypes,
+		BlueprintFs:       o.Inst.GetBlueprint().Fs,
+		ComponentVersion:  o.ComponentVersion,
+		RegistryAccess:    o.ComponentsRegistry(),
+		RepositoryContext: o.context.External.RepositoryContext,
 	})
 	err := v.CompileSchema(schema)
 	if err != nil {
@@ -373,26 +370,6 @@ func GetRootInstallations(ctx context.Context, kubeClient client.Client, filter 
 	return installations, nil
 }
 
-// NewTriggerDependents triggers all installations that depend on the current installation.
-func (o *Operation) TriggerDependents(ctx context.Context) error {
-	for _, sibling := range o.Context().Siblings {
-		if !importsAnyExport(o.Inst, sibling) {
-			continue
-		}
-
-		if IsRootInstallation(o.Inst.GetInstallation()) {
-			metav1.SetMetaDataAnnotation(&sibling.GetInstallation().ObjectMeta, lsv1alpha1.OperationAnnotation, string(lsv1alpha1.ReconcileOperation))
-		} else {
-			lsv1alpha1helper.Touch(&sibling.GetInstallation().ObjectMeta)
-		}
-
-		if err := o.Writer().UpdateInstallation(ctx, read_write_layer.W000085, sibling.GetInstallation()); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // SetExportConfigGeneration returns the new export generation of the installation
 // based on its own generation and its context
 func (o *Operation) SetExportConfigGeneration(ctx context.Context) error {
@@ -650,22 +627,4 @@ func (o *Operation) GetExportForKey(ctx context.Context, key string) (*dataobjec
 		return nil, err
 	}
 	return dataobjects.NewFromDataObject(rawDO)
-}
-
-func importsAnyExport(exporter *InstallationImportsAndBlueprint, importer *InstallationAndImports) bool {
-	for _, export := range exporter.GetInstallation().Spec.Exports.Data {
-		for _, def := range importer.GetInstallation().Spec.Imports.Data {
-			if def.DataRef == export.DataRef {
-				return true
-			}
-		}
-	}
-	for _, export := range exporter.GetInstallation().Spec.Exports.Targets {
-		for _, def := range importer.GetInstallation().Spec.Imports.Targets {
-			if def.Target == export.Target {
-				return true
-			}
-		}
-	}
-	return false
 }
