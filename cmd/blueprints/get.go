@@ -12,9 +12,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gardener/component-cli/ociclient"
+	"github.com/gardener/component-cli/ociclient/cache"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core"
-	"github.com/gardener/landscaper/pkg/utils/tar"
-
+	lsinstall "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/pkg/api"
+	"github.com/gardener/landscaper/pkg/components/model/tar"
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"
 	"github.com/mandelsoft/vfs/pkg/vfs"
@@ -23,15 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/yaml"
 
-	"github.com/gardener/component-cli/ociclient"
-	"github.com/gardener/component-cli/ociclient/cache"
-
-	lsinstall "github.com/gardener/landscaper/apis/core/v1alpha1"
-	"github.com/gardener/landscaper/pkg/api"
-
-	"github.com/gardener/landscapercli/pkg/logger"
-
 	"github.com/gardener/landscapercli/cmd/constants"
+	"github.com/gardener/landscapercli/pkg/logger"
 )
 
 type showOptions struct {
