@@ -76,7 +76,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
     print(f'Getting shoots/adminkubeconfig subresource for "{target_cluster}" in namespace "{namespace}"')
     command = f'kubectl --kubeconfig={service_account_kubeconfig_path} create --raw /apis/core.gardener.cloud/v1beta1/namespaces/{namespace}/shoots/{target_cluster}/adminkubeconfig -f AdminKubeconfigRequest.json'
 
-    rc = subprocess.run(command)
+    rc = run(command)
     if rc.returncode != 0:
         raise RuntimeError(f'Could not run command "{command}"')
     rc_json = json.loads(rc)
