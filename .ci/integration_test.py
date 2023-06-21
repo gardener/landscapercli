@@ -85,7 +85,7 @@ if landscape_kubeconfig == None:
     raise RuntimeError(f"Error getting kubeconfig for '{target_cluster}' in namespace '{namespace}'")
                        
 with utils.TempFileAuto(prefix="landscape_kubeconfig_") as temp_file:
-    temp_file.write(yaml.safe_dump(landscape_kubeconfig.kubeconfig()))
+    temp_file.write(yaml.safe_dump(landscape_kubeconfig))
     landscape_kubeconfig_path = temp_file.switch()
 
     command = ["go", "run", "main.go",
