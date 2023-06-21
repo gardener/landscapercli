@@ -79,9 +79,12 @@ with tempfile.TemporaryDirectory() as tmpdir:
                "-f", "AdminKubeconfigRequest.json"]
 
     rc = run(command)
+    print(f'DEBUG rc=\n{rc}')
     if rc.returncode != 0:
         raise RuntimeError(f'Could not run command "{command}"')
-    rc_json = json.loads(rc)
+    
+    print(f'DEBUG rc.stdout=\n{rc.stdout}')
+    rc_json = json.loads(rc.stdout)
     kubeconfig_bytes = base64.b64decode(rc_json["status"]["kubeconfig"])
     landscape_kubeconfig = kubeconfig_bytes.decode('utf-8')
 
