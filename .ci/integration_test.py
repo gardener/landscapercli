@@ -88,7 +88,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
     command =  commandString.split(' ')
     print(f'  DEBUG command="{command}"')
 
-    rc = run(command, shell=True, check=True)
+    rc = subprocess.run(commandString, shell=True, check=True, capture_output=True, encoding='utf-8')
     print(f'DEBUG rc=\n{rc}')
     if rc.returncode != 0:
         raise RuntimeError(f'Could not run command "{command}"')
