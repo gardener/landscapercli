@@ -67,7 +67,8 @@ with tempfile.TemporaryDirectory() as tmpdir:
     with open(service_account_kubeconfig_path, "w") as file:
         file.write(yaml.safe_dump(service_account.kubeconfig()))
 
-    print(f'DEBUG garden-laas service_account.kubeconfig()="{service_account.kubeconfig()[0:20]}..."')
+    debug_kubeconfig_string = yaml.safe_dump(service_account.kubeconfig())
+    print(f'DEBUG garden-laas service_account.kubeconfig()="{debug_kubeconfig_string[0:20]}..."')
     
     admin_kube_config_request = f'{{"apiVersion": "authentication.gardener.cloud/v1alpha1", "kind": "AdminKubeconfigRequest", "spec": {{"expirationSeconds": {expiration_seconds}}}}}'
 
