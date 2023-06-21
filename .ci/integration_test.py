@@ -61,7 +61,7 @@ expiration_seconds = 86400 # is 1 day
 landscape_kubeconfig = None
 with tempfile.TemporaryDirectory() as tmpdir:
     namespace = "garden-laas"
-    service_account = factory.kubernetes(namespace)
+    service_account = factory.kubernetes("laas-integration-test-service-account")
     service_account_kubeconfig_path = os.path.join(tmpdir, 'service_account_kubeconfig')
     print(f'DEBUG garden-laas service_account_kubeconfig_path={service_account_kubeconfig_path}')
     with open(service_account_kubeconfig_path, "w") as file:
