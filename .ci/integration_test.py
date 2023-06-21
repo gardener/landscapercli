@@ -74,7 +74,8 @@ with tempfile.TemporaryDirectory() as tmpdir:
         file.write(admin_kube_config_request)
 
     print(f'Getting shoots/adminkubeconfig subresource for "{target_cluster}" in namespace "{namespace}"')
-    command = ["kubectl", "--kubeconfig" , service_account_kubeconfig_path, "create", "--raw",
+    # kubectl --kubeconfig=/tmp/tmpsmkavxfu/service_account_kubeconfig create --raw /apis/core.gardener.cloud/v1beta1/namespaces/garden-laas/shoots/landscapercli-pr/adminkubeconfig -f AdminKubeconfigRequest.json
+    command = ["kubectl", f"--kubeconfig={service_account_kubeconfig_path"}, "create", "--raw",
                f"/apis/core.gardener.cloud/v1beta1/namespaces/{namespace}/shoots/{target_cluster}/adminkubeconfig",
                "-f", "AdminKubeconfigRequest.json"]
 
