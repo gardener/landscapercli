@@ -94,6 +94,12 @@ with tempfile.TemporaryDirectory() as tmpdir:
         raise RuntimeError(f'Could not run command "{command}"')
     
     print(f'DEBUG rc.stdout=\n{rc.stdout}')
+
+
+    print(f'Using kubeclient.execute_command...')
+
+    kubectl_client.execute_command(f'kubectl create --kubeconfig={service_account_kubeconfig_path} --raw /apis/core.gardener.cloud/v1beta1/namespaces/{namespace}/shoots/{target_cluster}/adminkubeconfig -f {adminKubeconfigRequest}', service_account_kubeconfig_path)
+
     rc_json = json.loads(rc.stdout)
     kubeconfig_bytes = base64.b64decode(rc_json["status"]["kubeconfig"])
     landscape_kubeconfig = kubeconfig_bytes.decode('utf-8')
