@@ -20,7 +20,7 @@ def test_kubectl_binary(execPath):
 
 class KubectlClient:
     def __init__(self):
-        self.kubectl_route = 'https://storage.googleapis.com/kubernetes-release/release/v1.17.0/bin/linux/amd64/kubectl'
+        self.kubectl_route = 'https://storage.googleapis.com/kubernetes-release/release/v1.27.2/bin/linux/amd64/kubectl'
         self.bin_path = 'kubectl'
         if not test_kubectl_binary(self.bin_path):
             tempdir = tempfile.gettempdir()
