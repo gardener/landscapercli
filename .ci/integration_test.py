@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import base64
+import json
+import subprocess
+import tempfile
 import helm
 import kubectl
 import os
@@ -51,8 +55,37 @@ os.chdir(os.path.join(root_path, source_path, "integration-test"))
 
 factory = ctx().cfg_factory()
 print(f"Getting kubeconfig for {target_cluster}")
-landscape_kubeconfig = factory.kubernetes(target_cluster)
+# landscape_kubeconfig = factory.kubernetes(target_cluster)
+# see https://github.com/gardener/gardener/blob/master/docs/usage/shoot_access.md#shootsadminkubeconfig-subresource
+expiration_seconds = 86400 # is 1 day
+landscape_kubeconfig = None
+with tempfile.TemporaryDirectory() as tmpdir:
+    namespace = "garden-laas"
+    service_account = factory.kubernetes(namespace)
+    service_account_kubeconfig_path = os.path.join(tmpdir, 'service_account_kubeconfig')
+    print(f'DEBUG garden-laas service_account_kubeconfig_path={service_account_kubeconfig_path}')
+    with open(service_account_kubeconfig_path, "w") as file:
+        file.write(yaml.safe_dump(service_account.kubeconfig()))
 
+    admin_kube_config_request = f'{{"apiVersion": "authentication.gardener.cloud/v1alpha1", "kind": "AdminKubeconfigRequest", "spec": {{"expirationSeconds": {expiration_seconds}}}}}'
+
+    adminKubeconfigRequest = 'AdminKubeconfigRequest.json'
+    with open(adminKubeconfigRequest, "w") as file:
+        file.write(admin_kube_config_request)
+
+    print(f'Getting shoots/adminkubeconfig subresource for "{target_cluster}" in namespace "{namespace}"')
+    command = f'kubectl --kubeconfig={service_account_kubeconfig_path} create --raw /apis/core.gardener.cloud/v1beta1/namespaces/{namespace}/shoots/{target_cluster}/adminkubeconfig -f AdminKubeconfigRequest.json'
+
+    rc = subprocess.run(command)
+    if rc.returncode != 0:
+        raise RuntimeError(f'Could not run command "{command}"')
+    rc_json = json.loads(rc)
+    kubeconfig_bytes = base64.b64decode(rc_json["status"]["kubeconfig"])
+    landscape_kubeconfig = kubeconfig_bytes.decode('utf-8')
+
+if landscape_kubeconfig == None:
+    raise RuntimeError(f'Error getting kubeconfig for "{target_cluster}" in namespace "{namespace}"')
+                       
 with utils.TempFileAuto(prefix="landscape_kubeconfig_") as temp_file:
     temp_file.write(yaml.safe_dump(landscape_kubeconfig.kubeconfig()))
     landscape_kubeconfig_path = temp_file.switch()
