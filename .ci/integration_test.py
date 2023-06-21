@@ -75,7 +75,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
 
     print(f'Getting shoots/adminkubeconfig subresource for "{target_cluster}" in namespace "{namespace}"')
     command = ["kubectl", "--kubeconfig" , service_account_kubeconfig_path, "create", "--raw",
-               f"/apis/core.gardener.cloud/v1beta1/namespaces/{namespace}/shoots/{target_cluster}/adminkubeconfig"0,
+               f"/apis/core.gardener.cloud/v1beta1/namespaces/{namespace}/shoots/{target_cluster}/adminkubeconfig",
                "-f", "AdminKubeconfigRequest.json"]
 
     rc = run(command)
