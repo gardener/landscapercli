@@ -80,6 +80,11 @@ with tempfile.TemporaryDirectory() as tmpdir:
                "-f", "AdminKubeconfigRequest.json"]
     # CompletedProcess(args=['kubectl', '--kubeconfig=/tmp/tmpl9cwh_p8/service_account_kubeconfig', 'create', '--raw', '/apis/core.gardener.cloud/v1beta1/namespaces/garden-laas/shoots/landscapercli-pr/adminkubeconfig', '-f', 'AdminKubeconfigRequest.json'], returncode=0)
 
+    print(f'  DEBUG command="{command}"')
+    commandString = f'kubectl --kubeconfig={service_account_kubeconfig_path} create --raw /apis/core.gardener.cloud/v1beta1/namespaces/{namespace}/shoots/{target_cluster}/adminkubeconfig -f {adminKubeconfigRequest}'
+    command =  commandString.split(' ')
+    print(f'  DEBUG command="{command}"')
+
     rc = run(command, shell=True, check=True)
     print(f'DEBUG rc=\n{rc}')
     if rc.returncode != 0:
