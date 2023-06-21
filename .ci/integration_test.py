@@ -67,6 +67,8 @@ with tempfile.TemporaryDirectory() as tmpdir:
     with open(service_account_kubeconfig_path, "w") as file:
         file.write(yaml.safe_dump(service_account.kubeconfig()))
 
+    print(f'DEBUG garden-laas service_account.kubeconfig()="{service_account.kubeconfig()[0:20]}..."')
+    
     admin_kube_config_request = f'{{"apiVersion": "authentication.gardener.cloud/v1alpha1", "kind": "AdminKubeconfigRequest", "spec": {{"expirationSeconds": {expiration_seconds}}}}}'
 
     adminKubeconfigRequest = 'AdminKubeconfigRequest.json'
@@ -81,7 +83,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
     # CompletedProcess(args=['kubectl', '--kubeconfig=/tmp/tmpl9cwh_p8/service_account_kubeconfig', 'create', '--raw', '/apis/core.gardener.cloud/v1beta1/namespaces/garden-laas/shoots/landscapercli-pr/adminkubeconfig', '-f', 'AdminKubeconfigRequest.json'], returncode=0)
 
     print(f'  DEBUG command="{command}"')
-    commandString = f'kubectl --kubeconfig={service_account_kubeconfig_path} create --raw /apis/core.gardener.cloud/v1beta1/namespaces/{namespace}/shoots/{target_cluster}/adminkubeconfig -f {adminKubeconfigRequest}'
+    commandString = f'kubectl create --kubeconfig={service_account_kubeconfig_path} --raw /apis/core.gardener.cloud/v1beta1/namespaces/{namespace}/shoots/{target_cluster}/adminkubeconfig -f {adminKubeconfigRequest}'
     command =  commandString.split(' ')
     print(f'  DEBUG command="{command}"')
 
