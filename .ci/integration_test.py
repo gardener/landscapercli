@@ -78,7 +78,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
                f"/apis/core.gardener.cloud/v1beta1/namespaces/{namespace}/shoots/{target_cluster}/adminkubeconfig",
                "-f", "AdminKubeconfigRequest.json"]
 
-    rc = run(command)
+    rc = run(command, shell=True, check=True)
     print(f'DEBUG rc=\n{rc}')
     if rc.returncode != 0:
         raise RuntimeError(f'Could not run command "{command}"')
