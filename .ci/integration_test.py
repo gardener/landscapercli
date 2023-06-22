@@ -80,6 +80,10 @@ with tempfile.TemporaryDirectory() as tmpdir:
     rc_json = json.loads(rc.stdout)
     kubeconfig_bytes = base64.b64decode(rc_json["status"]["kubeconfig"])
     landscape_kubeconfig = kubeconfig_bytes.decode('utf-8')
+    print(f"DEBUG kubeconfig SLT={landscape_kubeconfig}[0:50]")
+    landscape_kubeconfig_old = factory.kubernetes(target_cluster)
+    print(f"DEBUG kubeconfig SLT={landscape_kubeconfig_old}[0:50]")
+
 
 if landscape_kubeconfig == None:
     raise RuntimeError(f"Error getting kubeconfig for '{target_cluster}' in namespace '{namespace}'")
