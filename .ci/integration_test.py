@@ -80,16 +80,18 @@ with tempfile.TemporaryDirectory() as tmpdir:
     rc_json = json.loads(rc.stdout)
     kubeconfig_bytes = base64.b64decode(rc_json["status"]["kubeconfig"])
     landscape_kubeconfig = kubeconfig_bytes.decode('utf-8')
-    print(f"DEBUG kubeconfig SLT={landscape_kubeconfig}[0:50]")
+    print(f"DEBUG kubeconfig SLT\n{landscape_kubeconfig}")
     landscape_kubeconfig_old = factory.kubernetes(target_cluster)
-    print(f"DEBUG kubeconfig SLT={landscape_kubeconfig_old}[0:50]")
-
+    print(f"DEBUG kubeconfig OLD\n{landscape_kubeconfig_old.kubeconfig()}")
 
 if landscape_kubeconfig == None:
     raise RuntimeError(f"Error getting kubeconfig for '{target_cluster}' in namespace '{namespace}'")
                        
 with utils.TempFileAuto(prefix="landscape_kubeconfig_") as temp_file:
-    temp_file.write(yaml.safe_dump(landscape_kubeconfig))
+    
+    yaml_safe_dump = yaml.safe_dump(landscape_kubeconfig)
+    temp_file.write(yaml_safe_dump)
+    print(f"DEBUG kubeconfig YAML\n{yaml_safe_dump}")
     landscape_kubeconfig_path = temp_file.switch()
 
     command = ["go", "run", "main.go",
