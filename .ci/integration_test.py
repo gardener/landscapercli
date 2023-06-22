@@ -53,7 +53,7 @@ print(f"Getting kubeconfig for {target_cluster}")
 # landscape_kubeconfig = factory.kubernetes(target_cluster)
 # see https://github.com/gardener/gardener/blob/master/docs/usage/shoot_access.md#shootsadminkubeconfig-subresource
 expiration_seconds = 86400 # is 1 day
-landscape_kubeconfig = None
+landscape_kubeconfig_json = None
 with tempfile.TemporaryDirectory() as tmpdir:
     namespace = "garden-laas"
     service_account = factory.kubernetes("laas-integration-test-service-account")
@@ -77,27 +77,17 @@ with tempfile.TemporaryDirectory() as tmpdir:
     if rc.returncode != 0:
         raise RuntimeError(f"Could not run command '{commandString}'")
     
-    print(f"DEBUG kubeconfig SLT rc.stdout\n{rc.stdout}")
     rc_json = json.loads(rc.stdout)
-    print(f"DEBUG kubeconfig SLT rc_json\n{rc_json}")
     kubeconfig_bytes = base64.b64decode(rc_json["status"]["kubeconfig"])
-    landscape_kubeconfig = kubeconfig_bytes.decode('utf-8')
-    print(f"DEBUG kubeconfig SLT\n{landscape_kubeconfig}")
-    landscape_kubeconfig_old = factory.kubernetes(target_cluster)
-    print(f"DEBUG kubeconfig OLD\n{landscape_kubeconfig_old.kubeconfig()}")
+    landscape_kubeconfig_json = yaml.safe_load(kubeconfig_bytes.decode('utf-8'))
 
-    landscape_kubeconfig = rc_json
-
-if landscape_kubeconfig == None:
+if landscape_kubeconfig_json == None:
     raise RuntimeError(f"Error getting kubeconfig for '{target_cluster}' in namespace '{namespace}'")
                        
 with utils.TempFileAuto(prefix="landscape_kubeconfig_") as temp_file:
-    
-    yaml_safe_dump = yaml.safe_dump(landscape_kubeconfig)
-    temp_file.write(yaml_safe_dump)
-    print(f"DEBUG kubeconfig YAML\n{yaml_safe_dump}")
+    json.dump(landscape_kubeconfig_json, temp_file)
     landscape_kubeconfig_path = temp_file.switch()
-
+    
     command = ["go", "run", "main.go",
             "--kubeconfig", landscape_kubeconfig_path,
             "--landscaper-namespace", "lndscpr-int-test",
@@ -121,3 +111,4 @@ with utils.TempFileAuto(prefix="landscape_kubeconfig_") as temp_file:
 
     if run.returncode != 0:
         raise EnvironmentError("Integration test exited with errors")
+    
