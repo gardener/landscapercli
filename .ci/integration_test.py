@@ -77,12 +77,16 @@ with tempfile.TemporaryDirectory() as tmpdir:
     if rc.returncode != 0:
         raise RuntimeError(f"Could not run command '{commandString}'")
     
+    print(f"DEBUG kubeconfig SLT rc.stdout\n{rc.stdout}")
     rc_json = json.loads(rc.stdout)
+    print(f"DEBUG kubeconfig SLT rc_json\n{rc_json}")
     kubeconfig_bytes = base64.b64decode(rc_json["status"]["kubeconfig"])
     landscape_kubeconfig = kubeconfig_bytes.decode('utf-8')
     print(f"DEBUG kubeconfig SLT\n{landscape_kubeconfig}")
     landscape_kubeconfig_old = factory.kubernetes(target_cluster)
     print(f"DEBUG kubeconfig OLD\n{landscape_kubeconfig_old.kubeconfig()}")
+
+    landscape_kubeconfig = rc_json
 
 if landscape_kubeconfig == None:
     raise RuntimeError(f"Error getting kubeconfig for '{target_cluster}' in namespace '{namespace}'")
