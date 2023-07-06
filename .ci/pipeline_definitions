@@ -19,7 +19,9 @@ landscaper-cli:
               - K8SAppHubPipelineNotification@sap.com
             - committers
             - codeowners
-      component_descriptor: ~
+      component_descriptor:
+        ctx_repository: landscaper
+        snapshot_ctx_repository: landscaper
     steps:
       verify:
         image: 'golang:1.19'
@@ -87,7 +89,6 @@ landscaper-cli:
     create_upgrade_prs:
       steps: ~
       traits:
-        component_descriptor: ~
         update_component_deps:
           ignore_prerelease_versions: true
         cronjob:
