@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gardener/landscaper/apis/config"
 	"os"
 	"path"
 	"path/filepath"
@@ -144,7 +145,9 @@ func (o *RenderOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringArrayVarP(&o.ValueFiles, "file", "f", []string{}, "List of filepaths to value yaml files that define the imports")
 	fs.StringVarP(&o.OutputFormat, "output", "o", YAMLOut, "The format of the output. Can be json or yaml.")
 	fs.StringVarP(&o.OutDir, "write", "w", "", "The output directory where the rendered files should be written to")
-	o.OCIOptions.AddFlags(fs)
+	fs.BoolVar(&o.OCIOptions.AllowPlainHttp, "allow-plain-http", false, "allows the fallback to http if the oci registry does not support https")
+	fs.BoolVar(&o.OCIOptions.SkipTLSVerify, "insecure-skip-tls-verify", false, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure")
+	fs.StringVar(&o.OCIOptions.RegistryConfigPath, "registry-config", "", "path to the dockerconfig.json with the oci registry authentication information")
 }
 
 func formatState(state map[string][]byte) map[string]map[string]json.RawMessage {
@@ -512,9 +515,14 @@ func (o *RenderOptions) Complete(log logr.Logger, args []string, fs vfs.FileSyst
 
 	// build component resolver with oci client
 	//if o.componentDescriptor == nil {
-
-	o.registryAccess, err = registries.NewFactory().NewRegistryAccessFromOciOptions(ctx, log, fs,
-		o.OCIOptions.AllowPlainHttp, o.OCIOptions.SkipTLSVerify, o.OCIOptions.RegistryConfigPath, o.OCIOptions.ConcourseConfigPath)
+	logr.NewContext(ctx, log)
+	ociconfig := &config.OCIConfiguration{
+		ConfigFiles:        []string{o.OCIOptions.RegistryConfigPath},
+		Cache:              nil,
+		AllowPlainHttp:     o.OCIOptions.AllowPlainHttp,
+		InsecureSkipVerify: o.OCIOptions.SkipTLSVerify,
+	}
+	o.registryAccess, err = registries.GetFactory().NewRegistryAccess(ctx, nil, nil, nil, ociconfig, nil)
 	if err != nil {
 		return err
 	}

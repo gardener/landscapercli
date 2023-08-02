@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gardener/landscaper/apis/config"
 	"os"
 	"path/filepath"
 
@@ -94,8 +95,13 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 	}
 
 	var registryAccess model.RegistryAccess
-	registryAccess, err = registries.NewFactory().NewRegistryAccessFromOciOptions(ctx, log, fs, o.OciOptions.AllowPlainHttp,
-		o.OciOptions.SkipTLSVerify, o.OciOptions.RegistryConfigPath, o.OciOptions.ConcourseConfigPath)
+	ociconfig := &config.OCIConfiguration{
+		ConfigFiles:        []string{o.OciOptions.RegistryConfigPath},
+		Cache:              nil,
+		AllowPlainHttp:     o.OciOptions.AllowPlainHttp,
+		InsecureSkipVerify: o.OciOptions.SkipTLSVerify,
+	}
+	registryAccess, err = registries.GetFactory().NewRegistryAccess(ctx, nil, nil, nil, ociconfig, nil)
 	if err != nil {
 		return fmt.Errorf("unable to build registry access: %s", err.Error())
 	}
@@ -365,7 +371,9 @@ func (o *createOpts) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.renderSchemaInfo, "render-schema-info", true, "render schema information of the component's imports and exports as comments into the installation")
 	fs.StringVar(&o.blueprintResourceName, "blueprint-resource-name", "", "name of the blueprint resource in the component descriptor (optional if only one blueprint resource is specified in the component descriptor)")
 	fs.StringVarP(&o.outputPath, "output-file", "o", "", "file path for the resulting installation yaml")
-	o.OciOptions.AddFlags(fs)
+	fs.BoolVar(&o.OciOptions.AllowPlainHttp, "allow-plain-http", false, "allows the fallback to http if the oci registry does not support https")
+	fs.BoolVar(&o.OciOptions.SkipTLSVerify, "insecure-skip-tls-verify", false, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure")
+	fs.StringVar(&o.OciOptions.RegistryConfigPath, "registry-config", "", "path to the dockerconfig.json with the oci registry authentication information")
 }
 
 func buildInstallation(name string, cdRef *lsv1alpha1.ComponentDescriptorReference, blueprintResourceName string, blueprint *lsv1alpha1.Blueprint) *lsv1alpha1.Installation {

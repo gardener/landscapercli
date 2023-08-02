@@ -32,7 +32,6 @@ landscaper-cli blueprints render BLUEPRINT_DIR [all,deployitems,subinstallations
 ```
   -a, --additional-component-descriptor stringArray   Path to additional local component descriptors
       --allow-plain-http                              allows the fallback to http if the oci registry does not support https
-      --cc-config string                              path to the local concourse config file
   -c, --component-descriptor string                   Path to the local component descriptor
   -e, --export-templates string                       Path to the yaml file, defining the export templates
   -f, --file stringArray                              List of filepaths to value yaml files that define the imports

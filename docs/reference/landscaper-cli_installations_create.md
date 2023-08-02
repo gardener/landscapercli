@@ -17,7 +17,6 @@ landscaper-cli installations create my-registry:5000 github.com/my-component v0.
 ```
       --allow-plain-http                 allows the fallback to http if the oci registry does not support https
       --blueprint-resource-name string   name of the blueprint resource in the component descriptor (optional if only one blueprint resource is specified in the component descriptor)
-      --cc-config string                 path to the local concourse config file
   -h, --help                             help for create
       --insecure-skip-tls-verify         If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure
       --name string                      name of the installation (default "my-installation")
