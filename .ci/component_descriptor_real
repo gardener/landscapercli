@@ -36,6 +36,7 @@ curl -L https://github.com/gardener/component-cli/releases/download/v0.55.0/comp
 chmod +x ${COMP_CLI}
 
 SOURCE_PATH="$(dirname $0)/.."
+cd ${SOURCE_PATH}
 VERSION="$(${SOURCE_PATH}/hack/get-version.sh)"
 COMMIT_SHA="$(git --git-dir ${SOURCE_PATH}/.git rev-parse HEAD)"
 
