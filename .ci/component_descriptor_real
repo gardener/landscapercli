@@ -56,6 +56,10 @@ ${COMP_CLI}  ca create "${LS_CA_PATH}" \
   --component-version=${VERSION} \
   --repo-ctx=${REPO_CTX}
 
+# install go for getting ccli version
+apk add --no-cache --no-progress make go
+
+
 printf "> add component references\n"
 ccli_component_name="github.com/gardener/component-cli"
 ccli_component_version=$(go list -m -mod=mod all | grep "$ccli_component_name" | awk '{ print $2 }')
