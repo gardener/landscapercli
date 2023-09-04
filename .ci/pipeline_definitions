@@ -61,7 +61,7 @@ landscaper-cli:
     #       image: 'golang:1.19.9-alpine3.17'
     #       execute:
     #       - "dev_integration_test"
-    #       - "--target-clustername=lndscprcli-cron"
+    #       - "--target-clustername=lndscprcli-cro"
     #       output_dir: 'integration_test'
     release:
       steps:
