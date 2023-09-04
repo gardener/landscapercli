@@ -41,7 +41,7 @@ landscaper-cli:
           image: 'golang:1.19.9-alpine3.17'
           execute:
           - "dev_integration_test"
-          - "--target-clustername=landscapercli-pr"
+          - "--target-clustername=lndscprcli-pr"
           output_dir: 'integration_test'
       traits:
         pull-request: ~
@@ -61,7 +61,7 @@ landscaper-cli:
     #       image: 'golang:1.19.9-alpine3.17'
     #       execute:
     #       - "dev_integration_test"
-    #       - "--target-clustername=landscapercli-cro"
+    #       - "--target-clustername=lndscprcli-cro"
     #       output_dir: 'integration_test'
     release:
       steps:
@@ -69,7 +69,7 @@ landscaper-cli:
           image: 'golang:1.19.9-alpine3.17'
           execute:
           - "dev_integration_test"
-          - "--target-clustername=landscapercli-rel"
+          - "--target-clustername=lndscprcli-rel"
           output_dir: 'integration_test'
         update-release:
           execute: 'update_release.py'
