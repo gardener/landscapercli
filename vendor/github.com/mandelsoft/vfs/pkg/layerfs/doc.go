@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Mandelsoft. All rights reserved.
+ * Copyright 2022 Mandelsoft. All rights reserved.
  *  This file is licensed under the Apache Software License, v. 2 except as noted
  *  otherwise in the LICENSE file
  *
@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-// Package layerfs provides a virtual filesystem supporting a filesytem layer
+// Package layerfs provides a virtual filesystem supporting a filesystem layer
 // on top of a base filesystem, that is used to keep track of all changes
 // done to the filesystem. Thereby the root filesystem is not changed.
 package layerfs

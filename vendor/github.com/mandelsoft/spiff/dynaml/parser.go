@@ -1,3 +1,5 @@
+//go:generate go run -v  ../vendor/github.com/pointlander/peg dynaml.peg
+
 package dynaml
 
 import (
@@ -153,6 +155,7 @@ func buildExpression(grammar *DynamlGrammar, path []string, stubPath []string) (
 		case ruleDynaml:
 			return tokens.Pop(), nil
 
+		case ruleTagMarker:
 		case ruleMarker:
 			tokens.Push(newMarkerExpr(contents))
 		case ruleSubsequentMarker:
@@ -198,19 +201,31 @@ func buildExpression(grammar *DynamlGrammar, path []string, stubPath []string) (
 			keyName = tokens.Pop().(nameHelper).name
 		case ruleFollowUpRef:
 		case ruleReference:
-			tokens.Push(ReferenceExpr{PathComponents(contents, true)})
+			tag := ""
+			if i := strings.LastIndex(contents, "::"); i > 0 {
+				tag = contents[:i]
+				contents = contents[i+2:]
+				if contents != "." && strings.HasPrefix(contents, ".") {
+					contents = contents[1:]
+				}
+			}
+			comps := PathComponents(contents, true)
+			tokens.Push(NewTaggedReferenceExpr(tag, comps...))
 
 		case ruleChained:
 		case ruleChainedQualifiedExpression:
 		case rulePathComponent:
 		case ruleChainedRef:
-			ref := ReferenceExpr{PathComponents(contents, false)}
+			ref := NewReferenceExpr(PathComponents(contents, false)...)
 			expr := tokens.Pop()
 			tokens.Push(QualifiedExpr{expr, ref})
 		case ruleChainedDynRef:
 			ref := tokens.Pop()
 			expr := tokens.Pop()
 			tokens.Push(DynamicExpr{expr, ref.(Expression)})
+		case ruleTopIndex:
+			expr := tokens.Pop()
+			tokens.Push(DynamicExpr{NewTaggedReferenceExpr("", ""), expr})
 		case ruleSlice:
 			slice := tokens.Pop()
 			expr := tokens.Pop()
@@ -478,6 +493,8 @@ func buildExpression(grammar *DynamlGrammar, path []string, stubPath []string) (
 			tokens.Push(RangeExpr{lhs, rhs})
 
 		case ruleList:
+			fallthrough
+		case ruleIndices:
 			seq := tokens.PopExpressionList()
 			tokens.Push(ListExpr{seq})
 
@@ -502,6 +519,7 @@ func buildExpression(grammar *DynamlGrammar, path []string, stubPath []string) (
 			tokens.Push(expressionListHelper{})
 
 		case ruleKey, ruleIndex:
+		case ruleTag, ruleTagComponent, ruleTagPrefix:
 		case ruleLevel0, ruleLevel1, ruleLevel2, ruleLevel3, ruleLevel4, ruleLevel5, ruleLevel6, ruleLevel7:
 		case ruleExpression:
 		case ruleExpressionList:

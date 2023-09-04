@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core"
-	"github.com/gardener/landscaper/pkg/utils/tar"
+	"github.com/gardener/landscaper/pkg/components/model/tar"
 
 	"github.com/go-logr/logr"
 	"github.com/mandelsoft/vfs/pkg/memoryfs"

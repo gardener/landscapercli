@@ -16,7 +16,8 @@ import (
 )
 
 type Logger struct {
-	internal logr.Logger
+	internal    logr.Logger
+	initialized bool
 }
 
 type LogLevel int
@@ -87,7 +88,7 @@ func ParseLogFormat(raw string) (LogFormat, error) {
 // Enabled tests whether logging at the provided level is enabled.
 // This deviates from the logr Enabled() function, which doesn't take an argument.
 func (l Logger) Enabled(lvl LogLevel) bool {
-	return l.internal.GetSink().Enabled(levelToVerbosity(lvl))
+	return l.internal.GetSink() != nil && l.internal.GetSink().Enabled(levelToVerbosity(lvl))
 }
 
 // Info logs a non-error message with the given key/value pairs as context.
@@ -156,7 +157,7 @@ func Discard() Logger {
 
 // Wrap constructs a new Logger, using the provided logr.Logger internally.
 func Wrap(log logr.Logger) Logger {
-	return Logger{internal: log}
+	return Logger{internal: log, initialized: true}
 }
 
 // FromContextOrNew tries to fetch a logger from the context.
@@ -223,7 +224,7 @@ func (l Logger) Log(lvl LogLevel, msg string, keysAndValues ...interface{}) {
 // IsInitialized returns true if the logger is ready to be used and
 // false if it is an 'empty' logger (e.g. created by Logger{}).
 func (l Logger) IsInitialized() bool {
-	return l.internal.GetSink() != nil
+	return l.initialized
 }
 
 // Reconciles is meant to be used for the logger initialization for controllers.
@@ -246,18 +247,20 @@ func (l Logger) Logr() logr.Logger {
 
 // StartReconcileFromContext fetches the logger from the context and adds the reconciled resource.
 // It also logs a 'start reconcile' message.
-func StartReconcileFromContext(ctx context.Context, req reconcile.Request) (Logger, error) {
+// The returned context contains the enriched logger.
+func StartReconcileFromContext(ctx context.Context, req reconcile.Request) (Logger, context.Context, error) {
 	log, err := FromContext(ctx)
 	if err != nil {
-		return Logger{}, fmt.Errorf("unable to get logger from context: %w", err)
+		return Logger{}, ctx, fmt.Errorf("unable to get logger from context: %w", err)
 	}
-	return log.StartReconcile(req), nil
+	log, ctx = log.StartReconcileAndAddToContext(ctx, req)
+	return log, ctx, nil
 }
 
 // StartReconcile works like StartReconcileFromContext, but it is called on an existing logger instead of fetching one from the context.
 func (l Logger) StartReconcile(req reconcile.Request, keysAndValues ...interface{}) Logger {
 	newLogger := l.WithValues(lc.KeyReconciledResource, req.NamespacedName).WithValues(keysAndValues...)
-	newLogger.Info(lc.MsgStartReconcile)
+	newLogger.Debug(lc.MsgStartReconcile)
 	return newLogger
 }
 
@@ -274,4 +277,18 @@ func (l Logger) StartReconcileAndAddToContext(ctx context.Context, req reconcile
 func MustStartReconcileFromContext(ctx context.Context, req reconcile.Request, keysAndValuesFallback []interface{}, keysAndValues ...interface{}) (Logger, context.Context) {
 	log, ctx := FromContextOrNew(ctx, keysAndValuesFallback, keysAndValues...)
 	return log.StartReconcileAndAddToContext(ctx, req)
+}
+
+// WithValuesAndContext works like WithValues, but also adds the logger directly to a context and returns the new context.
+func (l Logger) WithValuesAndContext(ctx context.Context, keysAndValues ...interface{}) (Logger, context.Context) {
+	log := l.WithValues(keysAndValues...)
+	ctx = NewContext(ctx, log)
+	return log, ctx
+}
+
+// WithNameAndContext works like WithName, but also adds the logger directly to a context and returns the new context.
+func (l Logger) WithNameAndContext(ctx context.Context, name string) (Logger, context.Context) {
+	log := l.WithName(name)
+	ctx = NewContext(ctx, log)
+	return log, ctx
 }

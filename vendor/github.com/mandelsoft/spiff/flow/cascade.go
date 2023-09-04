@@ -17,6 +17,7 @@ type Options struct {
 
 func PrepareStubs(outer dynaml.Binding, partial bool, stubs ...yaml.Node) ([]yaml.Node, error) {
 	for i := len(stubs) - 1; i >= 0; i-- {
+		ResetStream(outer)
 		flowed, err := NestedFlow(outer, stubs[i], stubs[i+1:]...)
 		if !partial && err != nil {
 			return nil, err
@@ -24,6 +25,7 @@ func PrepareStubs(outer dynaml.Binding, partial bool, stubs ...yaml.Node) ([]yam
 
 		stubs[i] = Cleanup(flowed, discardLocal)
 	}
+	ResetStream(outer)
 	return stubs, nil
 }
 
@@ -34,8 +36,9 @@ func Apply(outer dynaml.Binding, template yaml.Node, prepared []yaml.Node, opts 
 			result = Cleanup(result, discardTemporary)
 		}
 		if !opts.PreserveEscapes {
-			result = Cleanup(result, unescapeDynaml)
+			result = Cleanup(result, unescapeDynamlFunc(outer))
 		}
+		PushDocument(outer, result)
 	}
 	return result, err
 }
@@ -56,8 +59,20 @@ func discardTemporary(node yaml.Node) (yaml.Node, CleanupFunction) {
 	return node, discardTemporary
 }
 
-func unescapeDynaml(node yaml.Node) (yaml.Node, CleanupFunction) {
-	return yaml.UnescapeDynaml(node), unescapeDynaml
+func discardTags(node yaml.Node) (yaml.Node, CleanupFunction) {
+	if node.GetAnnotation().Tag() != "" {
+		return yaml.SetTag(node, ""), discardTags
+	}
+	return node, discardTags
+}
+
+func unescapeDynamlFunc(binding dynaml.Binding) CleanupFunction {
+	interpol := binding != nil && binding.GetState().InterpolationEnabled()
+	var f CleanupFunction
+	f = func(node yaml.Node) (yaml.Node, CleanupFunction) {
+		return yaml.UnescapeDynaml(node, interpol), f
+	}
+	return f
 }
 
 func discardLocal(node yaml.Node) (yaml.Node, CleanupFunction) {
