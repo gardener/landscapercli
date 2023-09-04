@@ -107,11 +107,11 @@ func run() error {
 
 	fmt.Println("========== Cleaning up before test ==========")
 	if err := forceDeleteNamespace(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries); err != nil {
-		return fmt.Errorf("failed to delete namespace %s: %w", config.LandscaperNamespace, err)
+		return fmt.Errorf("Cleaning up before test: failed to delete namespace %s: %w", config.LandscaperNamespace, err)
 	}
 
 	if err := forceDeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries); err != nil {
-		return fmt.Errorf("failed to delete namespace %s: %w", config.TestNamespace, err)
+		return fmt.Errorf("Cleaning up before test: failed to delete namespace %s: %w", config.TestNamespace, err)
 	}
 
 	if err := runQuickstartUninstall(config); err != nil {
@@ -449,7 +449,7 @@ func forceDeleteNamespace(k8sClient client.Client, namespace string, sleepTime t
 			return fmt.Errorf("failed to remove landscaper finalizers in namespace %s: %w", namespace, err)
 		}
 		if err := util.DeleteNamespace(k8sClient, namespace, sleepTime, maxRetries); err != nil {
-			return fmt.Errorf("failed to delete namespace %s: %w", namespace, err)
+			return fmt.Errorf("forceDeleteNamespace: failed to delete namespace %s: %w", namespace, err)
 		}
 	}
 	return nil
