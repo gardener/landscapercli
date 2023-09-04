@@ -155,10 +155,7 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 }
 
 func waitForRegistrationsRemoved(ctx context.Context, k8sClient client.Client) error {
-	timeoutCtx, cancel := context.WithTimeout(ctx, 4*time.Minute)
-	defer cancel()
-
-	err := wait.PollImmediateUntil(10*time.Second, func() (done bool, err error) {
+	err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 4*time.Minute, true, func(ctx context.Context) (done bool, err error) {
 		fmt.Println("waiting for deployer registrations removed")
 
 		deployerRegistrations := v1alpha1.DeployerRegistrationList{}
@@ -171,7 +168,7 @@ func waitForRegistrationsRemoved(ctx context.Context, k8sClient client.Client) e
 		}
 
 		return false, nil
-	}, timeoutCtx.Done())
+	})
 
 	if err != nil {
 		return fmt.Errorf("error while waiting for deployer registrations being removed: %w", err)

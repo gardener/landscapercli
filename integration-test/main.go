@@ -471,7 +471,7 @@ func removeFinalizerLandscaperResources(ctx context.Context, k8sClient client.Cl
 			return fmt.Errorf("failed to scale down deployment %q: %w", deployment.Name, err)
 		}
 
-		if err := wait.PollImmediate(time.Second, 10*time.Second, func() (done bool, err error) {
+		if err := wait.PollUntilContextTimeout(ctx, time.Second, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {
 			deploy := &v1.Deployment{}
 			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&deployment), deploy); err != nil {
 				return false, fmt.Errorf("failed to get deployment %q: %w", deployment.Name, err)
