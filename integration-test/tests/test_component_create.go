@@ -226,7 +226,7 @@ func (t *componentCreateTest) addContainerDeployItem(ctx context.Context) error 
 	fmt.Println("Adding container deploy item")
 
 	const (
-		image   = "eu.gcr.io/sap-gcp-cp-k8s-stable-hub/examples/landscaper/integrationtests/images/containerexample:0.1.0"
+		image   = "eu.gcr.io/gardener-project/examples/landscaper/integrationtests/images/containerexample:0.1.0"
 		command = "./script.sh"
 	)
 
