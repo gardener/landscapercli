@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# SPDX-FileCopyrightText: 2020 SAP SE or an SAP affiliate company and Gardener contributors
+# SPDX-FileCopyrightText: 2023 SAP SE or an SAP affiliate company and Gardener contributors
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -8,26 +8,19 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+echo "create dummy component descriptor BEGIN"
+
 SOURCE_PATH="$(dirname $0)/.."
-cd $SOURCE_PATH
+VERSION="$(${SOURCE_PATH}/hack/get-version.sh)"
+REPO_CTX="eu.gcr.io/gardener-project/development"
+COMPONENT_DESCRIPTOR_DIR="${SOURCE_PATH}/../${COMPONENT_DESCRIPTOR_DIR}"
 
-apk add --no-cache --no-progress make go
+VERSION="${VERSION}-dummy" REPO_CTX="${REPO_CTX}" COMPONENT_DESCRIPTOR_DIR="${COMPONENT_DESCRIPTOR_DIR}" python ${SOURCE_PATH}/hack/create-dummy-cd.py
 
-# setup component descriptor in archive format
-COMPONENT_ARCHIVE_PATH="/tmp/ca"
-COMPONENT_DESCRIPTOR_FILE_PATH="$COMPONENT_ARCHIVE_PATH/component-descriptor.yaml"
-mkdir -p "$COMPONENT_ARCHIVE_PATH"
-cp "$BASE_DEFINITION_PATH" "$COMPONENT_DESCRIPTOR_FILE_PATH"
+echo "create dummy component descriptor END"
 
-# add component references
-ccli_component_name="github.com/gardener/component-cli"
-ccli_component_version=$(go list -m -mod=mod all | grep "$ccli_component_name" | awk '{ print $2 }')
+echo "create real component descriptor BEGIN"
 
-cat <<EOF | component-cli ca component-references add "$COMPONENT_ARCHIVE_PATH" -
-name: component-cli
-componentName: ${ccli_component_name}
-version: ${ccli_component_version}
-EOF
+${SOURCE_PATH}/.ci/component_descriptor_real
 
-printf "> add ca to ctf\n"
-component-cli ctf add "$CTF_PATH" -f "$COMPONENT_ARCHIVE_PATH"
+echo "create real component descriptor END"
