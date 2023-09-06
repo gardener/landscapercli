@@ -7,10 +7,10 @@ import (
 	"os"
 	"time"
 
-	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/apis/core/v1alpha1/targettypes"
 	"github.com/gardener/landscaper/apis/mediatype"
+	modeltypes "github.com/gardener/landscaper/pkg/components/model/types"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -286,33 +286,23 @@ func GetKubernetesClusterTargetContent(kubeconfigPath string) ([]byte, error) {
 	return marshalledConfig, nil
 }
 
-func GetBlueprintResource(cd *cdv2.ComponentDescriptor, blueprintResourceName string) (*cdv2.Resource, error) {
-	blueprintResources := map[string]cdv2.Resource{}
+// GetBlueprintResourceName returns the name of the blueprint resource in the provided component descriptor,
+// provided the component descriptor contains exactly one blueprint resource.
+func GetBlueprintResourceName(cd *modeltypes.ComponentDescriptor) (string, error) {
+	var blueprintResourceNames []string
+
 	for _, resource := range cd.ComponentSpec.Resources {
 		if resource.IdentityObjectMeta.Type == mediatype.BlueprintType || resource.IdentityObjectMeta.Type == mediatype.OldBlueprintType {
-			blueprintResources[resource.Name] = resource
+			blueprintResourceNames = append(blueprintResourceNames, resource.Name)
 		}
 	}
 
-	var blueprintRes cdv2.Resource
-	numberOfBlueprints := len(blueprintResources)
-	if numberOfBlueprints == 0 {
-		return nil, fmt.Errorf("no blueprint resources defined in the component descriptor")
-	} else if numberOfBlueprints == 1 && blueprintResourceName == "" {
-		// access the only blueprint in the map. the flag blueprint-resource-name is ignored in this case.
-		for _, entry := range blueprintResources {
-			blueprintRes = entry
-		}
-	} else {
-		if blueprintResourceName == "" {
-			return nil, fmt.Errorf("the blueprint resource name must be defined since multiple blueprint resources exist in the component descriptor")
-		}
-		ok := false
-		blueprintRes, ok = blueprintResources[blueprintResourceName]
-		if !ok {
-			return nil, fmt.Errorf("blueprint %s is not defined as a resource in the component descriptor", blueprintResourceName)
-		}
+	switch len(blueprintResourceNames) {
+	case 0:
+		return "", fmt.Errorf("no blueprint resources defined in the component descriptor")
+	case 1:
+		return blueprintResourceNames[0], nil
+	default:
+		return "", fmt.Errorf("the blueprint resource name must be defined since multiple blueprint resources exist in the component descriptor")
 	}
-
-	return &blueprintRes, nil
 }

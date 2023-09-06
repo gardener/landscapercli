@@ -6,19 +6,20 @@ import (
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/gardener/landscaper/apis/mediatype"
+	modeltypes "github.com/gardener/landscaper/pkg/components/model/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetBlueprintResource(t *testing.T) {
 	tests := []struct {
-		name             string
-		cd               *cdv2.ComponentDescriptor
-		resourceName     string
-		expectedResource *cdv2.Resource
-		expectedErr      error
+		name                 string
+		cd                   *modeltypes.ComponentDescriptor
+		resourceName         string
+		expectedResourceName string
+		expectedErr          error
 	}{
 		{
-			name: "resource name not specified with only one blueprint in the cd",
+			name: "only one blueprint in the cd",
 			cd: &cdv2.ComponentDescriptor{
 				ComponentSpec: cdv2.ComponentSpec{
 					Resources: []cdv2.Resource{
@@ -32,14 +33,7 @@ func TestGetBlueprintResource(t *testing.T) {
 					},
 				},
 			},
-			resourceName: "",
-			expectedResource: &cdv2.Resource{
-				IdentityObjectMeta: cdv2.IdentityObjectMeta{
-					Name:    "my-blueprint",
-					Version: "v0.1.0",
-					Type:    mediatype.BlueprintType,
-				},
-			},
+			expectedResourceName: "my-blueprint",
 		},
 		{
 			name: "old blueprint type",
@@ -56,17 +50,10 @@ func TestGetBlueprintResource(t *testing.T) {
 					},
 				},
 			},
-			resourceName: "",
-			expectedResource: &cdv2.Resource{
-				IdentityObjectMeta: cdv2.IdentityObjectMeta{
-					Name:    "my-blueprint",
-					Version: "v0.1.0",
-					Type:    mediatype.OldBlueprintType,
-				},
-			},
+			expectedResourceName: "my-blueprint",
 		},
 		{
-			name: "resource name explicitly specified",
+			name: "multiple blueprints in the component descriptor",
 			cd: &cdv2.ComponentDescriptor{
 				ComponentSpec: cdv2.ComponentSpec{
 					Resources: []cdv2.Resource{
@@ -87,83 +74,27 @@ func TestGetBlueprintResource(t *testing.T) {
 					},
 				},
 			},
-			resourceName: "my-blueprint",
-			expectedResource: &cdv2.Resource{
-				IdentityObjectMeta: cdv2.IdentityObjectMeta{
-					Name:    "my-blueprint",
-					Version: "v0.1.0",
-					Type:    mediatype.BlueprintType,
-				},
-			},
+			expectedResourceName: "",
+			expectedErr:          errors.New("the blueprint resource name must be defined since multiple blueprint resources exist in the component descriptor"),
 		},
 		{
-			name: "invalid resource name",
-			cd: &cdv2.ComponentDescriptor{
-				ComponentSpec: cdv2.ComponentSpec{
-					Resources: []cdv2.Resource{
-						{
-							IdentityObjectMeta: cdv2.IdentityObjectMeta{
-								Name:    "my-blueprint",
-								Version: "v0.1.0",
-								Type:    mediatype.BlueprintType,
-							},
-						},
-						{
-							IdentityObjectMeta: cdv2.IdentityObjectMeta{
-								Name:    "my-blueprint-2",
-								Version: "v0.1.0",
-								Type:    mediatype.BlueprintType,
-							},
-						},
-					},
-				},
-			},
-			resourceName: "my-blueprint-3",
-			expectedErr:  errors.New("blueprint my-blueprint-3 is not defined as a resource in the component descriptor"),
-		},
-		{
-			name: "resource name not specified with multiple blueprints in the cd",
-			cd: &cdv2.ComponentDescriptor{
-				ComponentSpec: cdv2.ComponentSpec{
-					Resources: []cdv2.Resource{
-						{
-							IdentityObjectMeta: cdv2.IdentityObjectMeta{
-								Name:    "my-blueprint",
-								Version: "v0.1.0",
-								Type:    mediatype.BlueprintType,
-							},
-						},
-						{
-							IdentityObjectMeta: cdv2.IdentityObjectMeta{
-								Name:    "my-blueprint-2",
-								Version: "v0.1.0",
-								Type:    mediatype.BlueprintType,
-							},
-						},
-					},
-				},
-			},
-			resourceName: "",
-			expectedErr:  errors.New("the blueprint resource name must be defined since multiple blueprint resources exist in the component descriptor"),
-		},
-		{
-			name: "no blueprint resources defined in the cd",
+			name: "no blueprint in the component descriptor",
 			cd: &cdv2.ComponentDescriptor{
 				ComponentSpec: cdv2.ComponentSpec{
 					Resources: []cdv2.Resource{},
 				},
 			},
-			resourceName: "",
-			expectedErr:  errors.New("no blueprint resources defined in the component descriptor"),
+			expectedResourceName: "",
+			expectedErr:          errors.New("no blueprint resources defined in the component descriptor"),
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := GetBlueprintResource(tt.cd, tt.resourceName)
+			blueprintResourceName, err := GetBlueprintResourceName(tt.cd)
 			assert.Equal(t, tt.expectedErr, err)
-			assert.Equal(t, tt.expectedResource, res)
+			assert.Equal(t, tt.expectedResourceName, blueprintResourceName)
 		})
 	}
 }

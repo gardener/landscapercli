@@ -115,6 +115,20 @@ func (o *createOpts) run(ctx context.Context, cmd *cobra.Command, log logr.Logge
 		return fmt.Errorf("unable to to fetch component version %s: %w", ociRef, err)
 	}
 
+	if o.blueprintResourceName == "" {
+		// In this case, the optional argument `blueprint-resource-name` was not provided in the command.
+		// If the component descriptor contains a unique blueprint resource, we use that.
+		cd, err := componentVersion.GetComponentDescriptor()
+		if err != nil {
+			return fmt.Errorf("unable to to get component descriptor %s: %w", ociRef, err)
+		}
+
+		o.blueprintResourceName, err = util.GetBlueprintResourceName(cd)
+		if err != nil {
+			return err
+		}
+	}
+
 	blueprintResource, err := componentVersion.GetResource(o.blueprintResourceName, nil)
 	if err != nil {
 		return fmt.Errorf("unable to to fetch blueprint resource %s: %w", ociRef, err)
