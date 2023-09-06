@@ -28,7 +28,7 @@ func CreateComponentDescriptor(name, version, baseURL string) *cdv2.ComponentDes
 				Name:    name,
 				Version: version,
 			},
-			Provider:            cdv2.InternalProvider,
+			Provider:            "internal",
 			RepositoryContexts:  []*cdv2.UnstructuredTypedObject{&repoCtx},
 			Resources:           []cdv2.Resource{},
 			Sources:             []cdv2.Source{},

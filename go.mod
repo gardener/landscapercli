@@ -5,8 +5,8 @@ go 1.20
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/gardener/component-cli v0.47.0
-	github.com/gardener/component-spec/bindings-go v0.0.66
+	github.com/gardener/component-cli v0.55.0
+	github.com/gardener/component-spec/bindings-go v0.0.94
 	github.com/gardener/landscaper v0.76.0
 	github.com/gardener/landscaper/apis v0.76.0
 	github.com/go-logr/logr v1.2.4
