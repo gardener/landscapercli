@@ -262,6 +262,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*DependentToTrigger)(nil), (*core.DependentToTrigger)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_DependentToTrigger_To_core_DependentToTrigger(a.(*DependentToTrigger), b.(*core.DependentToTrigger), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.DependentToTrigger)(nil), (*DependentToTrigger)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_DependentToTrigger_To_v1alpha1_DependentToTrigger(a.(*core.DependentToTrigger), b.(*DependentToTrigger), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*DeployItem)(nil), (*core.DeployItem)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_DeployItem_To_core_DeployItem(a.(*DeployItem), b.(*core.DeployItem), scope)
 	}); err != nil {
@@ -672,6 +682,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*OnDeleteConfig)(nil), (*core.OnDeleteConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_OnDeleteConfig_To_core_OnDeleteConfig(a.(*OnDeleteConfig), b.(*core.OnDeleteConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.OnDeleteConfig)(nil), (*OnDeleteConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_OnDeleteConfig_To_v1alpha1_OnDeleteConfig(a.(*core.OnDeleteConfig), b.(*OnDeleteConfig), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*RemoteBlueprintReference)(nil), (*core.RemoteBlueprintReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_RemoteBlueprintReference_To_core_RemoteBlueprintReference(a.(*RemoteBlueprintReference), b.(*core.RemoteBlueprintReference), scope)
 	}); err != nil {
@@ -769,6 +789,46 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*core.SucceededReconcile)(nil), (*SucceededReconcile)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_core_SucceededReconcile_To_v1alpha1_SucceededReconcile(a.(*core.SucceededReconcile), b.(*SucceededReconcile), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*SyncObject)(nil), (*core.SyncObject)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_SyncObject_To_core_SyncObject(a.(*SyncObject), b.(*core.SyncObject), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.SyncObject)(nil), (*SyncObject)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_SyncObject_To_v1alpha1_SyncObject(a.(*core.SyncObject), b.(*SyncObject), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*SyncObjectList)(nil), (*core.SyncObjectList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_SyncObjectList_To_core_SyncObjectList(a.(*SyncObjectList), b.(*core.SyncObjectList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.SyncObjectList)(nil), (*SyncObjectList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_SyncObjectList_To_v1alpha1_SyncObjectList(a.(*core.SyncObjectList), b.(*SyncObjectList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*SyncObjectSpec)(nil), (*core.SyncObjectSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_SyncObjectSpec_To_core_SyncObjectSpec(a.(*SyncObjectSpec), b.(*core.SyncObjectSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.SyncObjectSpec)(nil), (*SyncObjectSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_SyncObjectSpec_To_v1alpha1_SyncObjectSpec(a.(*core.SyncObjectSpec), b.(*SyncObjectSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*SyncObjectStatus)(nil), (*core.SyncObjectStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_SyncObjectStatus_To_core_SyncObjectStatus(a.(*SyncObjectStatus), b.(*core.SyncObjectStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.SyncObjectStatus)(nil), (*SyncObjectStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_SyncObjectStatus_To_v1alpha1_SyncObjectStatus(a.(*core.SyncObjectStatus), b.(*SyncObjectStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -919,6 +979,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*core.TokenRotation)(nil), (*TokenRotation)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_core_TokenRotation_To_v1alpha1_TokenRotation(a.(*core.TokenRotation), b.(*TokenRotation), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*TransitionTimes)(nil), (*core.TransitionTimes)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_TransitionTimes_To_core_TransitionTimes(a.(*TransitionTimes), b.(*core.TransitionTimes), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*core.TransitionTimes)(nil), (*TransitionTimes)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_core_TransitionTimes_To_v1alpha1_TransitionTimes(a.(*core.TransitionTimes), b.(*TransitionTimes), scope)
 	}); err != nil {
 		return err
 	}
@@ -1561,6 +1631,26 @@ func Convert_core_Default_To_v1alpha1_Default(in *core.Default, out *Default, s 
 	return autoConvert_core_Default_To_v1alpha1_Default(in, out, s)
 }
 
+func autoConvert_v1alpha1_DependentToTrigger_To_core_DependentToTrigger(in *DependentToTrigger, out *core.DependentToTrigger, s conversion.Scope) error {
+	out.Name = in.Name
+	return nil
+}
+
+// Convert_v1alpha1_DependentToTrigger_To_core_DependentToTrigger is an autogenerated conversion function.
+func Convert_v1alpha1_DependentToTrigger_To_core_DependentToTrigger(in *DependentToTrigger, out *core.DependentToTrigger, s conversion.Scope) error {
+	return autoConvert_v1alpha1_DependentToTrigger_To_core_DependentToTrigger(in, out, s)
+}
+
+func autoConvert_core_DependentToTrigger_To_v1alpha1_DependentToTrigger(in *core.DependentToTrigger, out *DependentToTrigger, s conversion.Scope) error {
+	out.Name = in.Name
+	return nil
+}
+
+// Convert_core_DependentToTrigger_To_v1alpha1_DependentToTrigger is an autogenerated conversion function.
+func Convert_core_DependentToTrigger_To_v1alpha1_DependentToTrigger(in *core.DependentToTrigger, out *DependentToTrigger, s conversion.Scope) error {
+	return autoConvert_core_DependentToTrigger_To_v1alpha1_DependentToTrigger(in, out, s)
+}
+
 func autoConvert_v1alpha1_DeployItem_To_core_DeployItem(in *DeployItem, out *core.DeployItem, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1alpha1_DeployItemSpec_To_core_DeployItemSpec(&in.Spec, &out.Spec, s); err != nil {
@@ -1623,6 +1713,7 @@ func autoConvert_v1alpha1_DeployItemSpec_To_core_DeployItemSpec(in *DeployItemSp
 	out.RegistryPullSecrets = *(*[]core.ObjectReference)(unsafe.Pointer(&in.RegistryPullSecrets))
 	out.Timeout = (*core.Duration)(unsafe.Pointer(in.Timeout))
 	out.UpdateOnChangeOnly = in.UpdateOnChangeOnly
+	out.OnDelete = (*core.OnDeleteConfig)(unsafe.Pointer(in.OnDelete))
 	return nil
 }
 
@@ -1639,6 +1730,7 @@ func autoConvert_core_DeployItemSpec_To_v1alpha1_DeployItemSpec(in *core.DeployI
 	out.RegistryPullSecrets = *(*[]ObjectReference)(unsafe.Pointer(&in.RegistryPullSecrets))
 	out.Timeout = (*Duration)(unsafe.Pointer(in.Timeout))
 	out.UpdateOnChangeOnly = in.UpdateOnChangeOnly
+	out.OnDelete = (*OnDeleteConfig)(unsafe.Pointer(in.OnDelete))
 	return nil
 }
 
@@ -1664,6 +1756,7 @@ func autoConvert_v1alpha1_DeployItemStatus_To_core_DeployItemStatus(in *DeployIt
 	out.JobIDFinished = in.JobIDFinished
 	out.JobIDGenerationTime = (*metav1.Time)(unsafe.Pointer(in.JobIDGenerationTime))
 	out.DeployerPhase = (*string)(unsafe.Pointer(in.DeployerPhase))
+	out.TransitionTimes = (*core.TransitionTimes)(unsafe.Pointer(in.TransitionTimes))
 	return nil
 }
 
@@ -1689,6 +1782,7 @@ func autoConvert_core_DeployItemStatus_To_v1alpha1_DeployItemStatus(in *core.Dep
 	out.JobIDFinished = in.JobIDFinished
 	out.JobIDGenerationTime = (*metav1.Time)(unsafe.Pointer(in.JobIDGenerationTime))
 	out.DeployerPhase = (*string)(unsafe.Pointer(in.DeployerPhase))
+	out.TransitionTimes = (*TransitionTimes)(unsafe.Pointer(in.TransitionTimes))
 	return nil
 }
 
@@ -1706,6 +1800,7 @@ func autoConvert_v1alpha1_DeployItemTemplate_To_core_DeployItemTemplate(in *Depl
 	out.DependsOn = *(*[]string)(unsafe.Pointer(&in.DependsOn))
 	out.Timeout = (*core.Duration)(unsafe.Pointer(in.Timeout))
 	out.UpdateOnChangeOnly = in.UpdateOnChangeOnly
+	out.OnDelete = (*core.OnDeleteConfig)(unsafe.Pointer(in.OnDelete))
 	return nil
 }
 
@@ -1723,6 +1818,7 @@ func autoConvert_core_DeployItemTemplate_To_v1alpha1_DeployItemTemplate(in *core
 	out.DependsOn = *(*[]string)(unsafe.Pointer(&in.DependsOn))
 	out.Timeout = (*Duration)(unsafe.Pointer(in.Timeout))
 	out.UpdateOnChangeOnly = in.UpdateOnChangeOnly
+	out.OnDelete = (*OnDeleteConfig)(unsafe.Pointer(in.OnDelete))
 	return nil
 }
 
@@ -2120,6 +2216,7 @@ func Convert_core_ExecutionList_To_v1alpha1_ExecutionList(in *core.ExecutionList
 func autoConvert_v1alpha1_ExecutionSpec_To_core_ExecutionSpec(in *ExecutionSpec, out *core.ExecutionSpec, s conversion.Scope) error {
 	out.Context = in.Context
 	out.DeployItems = *(*core.DeployItemTemplateList)(unsafe.Pointer(&in.DeployItems))
+	out.DeployItemsCompressed = *(*[]byte)(unsafe.Pointer(&in.DeployItemsCompressed))
 	out.RegistryPullSecrets = *(*[]core.ObjectReference)(unsafe.Pointer(&in.RegistryPullSecrets))
 	return nil
 }
@@ -2127,6 +2224,7 @@ func autoConvert_v1alpha1_ExecutionSpec_To_core_ExecutionSpec(in *ExecutionSpec,
 func autoConvert_core_ExecutionSpec_To_v1alpha1_ExecutionSpec(in *core.ExecutionSpec, out *ExecutionSpec, s conversion.Scope) error {
 	out.Context = in.Context
 	out.DeployItems = *(*DeployItemTemplateList)(unsafe.Pointer(&in.DeployItems))
+	out.DeployItemsCompressed = *(*[]byte)(unsafe.Pointer(&in.DeployItemsCompressed))
 	out.RegistryPullSecrets = *(*[]ObjectReference)(unsafe.Pointer(&in.RegistryPullSecrets))
 	return nil
 }
@@ -2142,6 +2240,7 @@ func autoConvert_v1alpha1_ExecutionStatus_To_core_ExecutionStatus(in *ExecutionS
 	out.JobIDFinished = in.JobIDFinished
 	out.ExecutionPhase = core.ExecutionPhase(in.ExecutionPhase)
 	out.PhaseTransitionTime = (*metav1.Time)(unsafe.Pointer(in.PhaseTransitionTime))
+	out.TransitionTimes = (*core.TransitionTimes)(unsafe.Pointer(in.TransitionTimes))
 	return nil
 }
 
@@ -2161,6 +2260,7 @@ func autoConvert_core_ExecutionStatus_To_v1alpha1_ExecutionStatus(in *core.Execu
 	out.JobIDFinished = in.JobIDFinished
 	out.ExecutionPhase = ExecutionPhase(in.ExecutionPhase)
 	out.PhaseTransitionTime = (*metav1.Time)(unsafe.Pointer(in.PhaseTransitionTime))
+	out.TransitionTimes = (*TransitionTimes)(unsafe.Pointer(in.TransitionTimes))
 	return nil
 }
 
@@ -2497,6 +2597,8 @@ func autoConvert_v1alpha1_InstallationStatus_To_core_InstallationStatus(in *Inst
 	out.PhaseTransitionTime = (*metav1.Time)(unsafe.Pointer(in.PhaseTransitionTime))
 	out.ImportsHash = in.ImportsHash
 	out.AutomaticReconcileStatus = (*core.AutomaticReconcileStatus)(unsafe.Pointer(in.AutomaticReconcileStatus))
+	out.DependentsToTrigger = *(*[]core.DependentToTrigger)(unsafe.Pointer(&in.DependentsToTrigger))
+	out.TransitionTimes = (*core.TransitionTimes)(unsafe.Pointer(in.TransitionTimes))
 	return nil
 }
 
@@ -2519,6 +2621,8 @@ func autoConvert_core_InstallationStatus_To_v1alpha1_InstallationStatus(in *core
 	out.PhaseTransitionTime = (*metav1.Time)(unsafe.Pointer(in.PhaseTransitionTime))
 	out.ImportsHash = in.ImportsHash
 	out.AutomaticReconcileStatus = (*AutomaticReconcileStatus)(unsafe.Pointer(in.AutomaticReconcileStatus))
+	out.DependentsToTrigger = *(*[]DependentToTrigger)(unsafe.Pointer(&in.DependentsToTrigger))
+	out.TransitionTimes = (*TransitionTimes)(unsafe.Pointer(in.TransitionTimes))
 	return nil
 }
 
@@ -2755,6 +2859,26 @@ func Convert_core_ObjectReference_To_v1alpha1_ObjectReference(in *core.ObjectRef
 	return autoConvert_core_ObjectReference_To_v1alpha1_ObjectReference(in, out, s)
 }
 
+func autoConvert_v1alpha1_OnDeleteConfig_To_core_OnDeleteConfig(in *OnDeleteConfig, out *core.OnDeleteConfig, s conversion.Scope) error {
+	out.SkipUninstallIfClusterRemoved = in.SkipUninstallIfClusterRemoved
+	return nil
+}
+
+// Convert_v1alpha1_OnDeleteConfig_To_core_OnDeleteConfig is an autogenerated conversion function.
+func Convert_v1alpha1_OnDeleteConfig_To_core_OnDeleteConfig(in *OnDeleteConfig, out *core.OnDeleteConfig, s conversion.Scope) error {
+	return autoConvert_v1alpha1_OnDeleteConfig_To_core_OnDeleteConfig(in, out, s)
+}
+
+func autoConvert_core_OnDeleteConfig_To_v1alpha1_OnDeleteConfig(in *core.OnDeleteConfig, out *OnDeleteConfig, s conversion.Scope) error {
+	out.SkipUninstallIfClusterRemoved = in.SkipUninstallIfClusterRemoved
+	return nil
+}
+
+// Convert_core_OnDeleteConfig_To_v1alpha1_OnDeleteConfig is an autogenerated conversion function.
+func Convert_core_OnDeleteConfig_To_v1alpha1_OnDeleteConfig(in *core.OnDeleteConfig, out *OnDeleteConfig, s conversion.Scope) error {
+	return autoConvert_core_OnDeleteConfig_To_v1alpha1_OnDeleteConfig(in, out, s)
+}
+
 func autoConvert_v1alpha1_RemoteBlueprintReference_To_core_RemoteBlueprintReference(in *RemoteBlueprintReference, out *core.RemoteBlueprintReference, s conversion.Scope) error {
 	out.ResourceName = in.ResourceName
 	return nil
@@ -2979,6 +3103,106 @@ func autoConvert_core_SucceededReconcile_To_v1alpha1_SucceededReconcile(in *core
 // Convert_core_SucceededReconcile_To_v1alpha1_SucceededReconcile is an autogenerated conversion function.
 func Convert_core_SucceededReconcile_To_v1alpha1_SucceededReconcile(in *core.SucceededReconcile, out *SucceededReconcile, s conversion.Scope) error {
 	return autoConvert_core_SucceededReconcile_To_v1alpha1_SucceededReconcile(in, out, s)
+}
+
+func autoConvert_v1alpha1_SyncObject_To_core_SyncObject(in *SyncObject, out *core.SyncObject, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_SyncObjectSpec_To_core_SyncObjectSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_SyncObjectStatus_To_core_SyncObjectStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_SyncObject_To_core_SyncObject is an autogenerated conversion function.
+func Convert_v1alpha1_SyncObject_To_core_SyncObject(in *SyncObject, out *core.SyncObject, s conversion.Scope) error {
+	return autoConvert_v1alpha1_SyncObject_To_core_SyncObject(in, out, s)
+}
+
+func autoConvert_core_SyncObject_To_v1alpha1_SyncObject(in *core.SyncObject, out *SyncObject, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_core_SyncObjectSpec_To_v1alpha1_SyncObjectSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_core_SyncObjectStatus_To_v1alpha1_SyncObjectStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_core_SyncObject_To_v1alpha1_SyncObject is an autogenerated conversion function.
+func Convert_core_SyncObject_To_v1alpha1_SyncObject(in *core.SyncObject, out *SyncObject, s conversion.Scope) error {
+	return autoConvert_core_SyncObject_To_v1alpha1_SyncObject(in, out, s)
+}
+
+func autoConvert_v1alpha1_SyncObjectList_To_core_SyncObjectList(in *SyncObjectList, out *core.SyncObjectList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]core.SyncObject)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_SyncObjectList_To_core_SyncObjectList is an autogenerated conversion function.
+func Convert_v1alpha1_SyncObjectList_To_core_SyncObjectList(in *SyncObjectList, out *core.SyncObjectList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_SyncObjectList_To_core_SyncObjectList(in, out, s)
+}
+
+func autoConvert_core_SyncObjectList_To_v1alpha1_SyncObjectList(in *core.SyncObjectList, out *SyncObjectList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]SyncObject)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_core_SyncObjectList_To_v1alpha1_SyncObjectList is an autogenerated conversion function.
+func Convert_core_SyncObjectList_To_v1alpha1_SyncObjectList(in *core.SyncObjectList, out *SyncObjectList, s conversion.Scope) error {
+	return autoConvert_core_SyncObjectList_To_v1alpha1_SyncObjectList(in, out, s)
+}
+
+func autoConvert_v1alpha1_SyncObjectSpec_To_core_SyncObjectSpec(in *SyncObjectSpec, out *core.SyncObjectSpec, s conversion.Scope) error {
+	out.PodName = in.PodName
+	out.Kind = in.Kind
+	out.Name = in.Name
+	out.LastUpdateTime = in.LastUpdateTime
+	out.Prefix = in.Prefix
+	return nil
+}
+
+// Convert_v1alpha1_SyncObjectSpec_To_core_SyncObjectSpec is an autogenerated conversion function.
+func Convert_v1alpha1_SyncObjectSpec_To_core_SyncObjectSpec(in *SyncObjectSpec, out *core.SyncObjectSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_SyncObjectSpec_To_core_SyncObjectSpec(in, out, s)
+}
+
+func autoConvert_core_SyncObjectSpec_To_v1alpha1_SyncObjectSpec(in *core.SyncObjectSpec, out *SyncObjectSpec, s conversion.Scope) error {
+	out.PodName = in.PodName
+	out.Kind = in.Kind
+	out.Name = in.Name
+	out.LastUpdateTime = in.LastUpdateTime
+	out.Prefix = in.Prefix
+	return nil
+}
+
+// Convert_core_SyncObjectSpec_To_v1alpha1_SyncObjectSpec is an autogenerated conversion function.
+func Convert_core_SyncObjectSpec_To_v1alpha1_SyncObjectSpec(in *core.SyncObjectSpec, out *SyncObjectSpec, s conversion.Scope) error {
+	return autoConvert_core_SyncObjectSpec_To_v1alpha1_SyncObjectSpec(in, out, s)
+}
+
+func autoConvert_v1alpha1_SyncObjectStatus_To_core_SyncObjectStatus(in *SyncObjectStatus, out *core.SyncObjectStatus, s conversion.Scope) error {
+	return nil
+}
+
+// Convert_v1alpha1_SyncObjectStatus_To_core_SyncObjectStatus is an autogenerated conversion function.
+func Convert_v1alpha1_SyncObjectStatus_To_core_SyncObjectStatus(in *SyncObjectStatus, out *core.SyncObjectStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_SyncObjectStatus_To_core_SyncObjectStatus(in, out, s)
+}
+
+func autoConvert_core_SyncObjectStatus_To_v1alpha1_SyncObjectStatus(in *core.SyncObjectStatus, out *SyncObjectStatus, s conversion.Scope) error {
+	return nil
+}
+
+// Convert_core_SyncObjectStatus_To_v1alpha1_SyncObjectStatus is an autogenerated conversion function.
+func Convert_core_SyncObjectStatus_To_v1alpha1_SyncObjectStatus(in *core.SyncObjectStatus, out *SyncObjectStatus, s conversion.Scope) error {
+	return autoConvert_core_SyncObjectStatus_To_v1alpha1_SyncObjectStatus(in, out, s)
 }
 
 func autoConvert_v1alpha1_TLSClientConfig_To_core_TLSClientConfig(in *TLSClientConfig, out *core.TLSClientConfig, s conversion.Scope) error {
@@ -3367,6 +3591,32 @@ func autoConvert_core_TokenRotation_To_v1alpha1_TokenRotation(in *core.TokenRota
 // Convert_core_TokenRotation_To_v1alpha1_TokenRotation is an autogenerated conversion function.
 func Convert_core_TokenRotation_To_v1alpha1_TokenRotation(in *core.TokenRotation, out *TokenRotation, s conversion.Scope) error {
 	return autoConvert_core_TokenRotation_To_v1alpha1_TokenRotation(in, out, s)
+}
+
+func autoConvert_v1alpha1_TransitionTimes_To_core_TransitionTimes(in *TransitionTimes, out *core.TransitionTimes, s conversion.Scope) error {
+	out.TriggerTime = (*metav1.Time)(unsafe.Pointer(in.TriggerTime))
+	out.InitTime = (*metav1.Time)(unsafe.Pointer(in.InitTime))
+	out.WaitTime = (*metav1.Time)(unsafe.Pointer(in.WaitTime))
+	out.FinishedTime = (*metav1.Time)(unsafe.Pointer(in.FinishedTime))
+	return nil
+}
+
+// Convert_v1alpha1_TransitionTimes_To_core_TransitionTimes is an autogenerated conversion function.
+func Convert_v1alpha1_TransitionTimes_To_core_TransitionTimes(in *TransitionTimes, out *core.TransitionTimes, s conversion.Scope) error {
+	return autoConvert_v1alpha1_TransitionTimes_To_core_TransitionTimes(in, out, s)
+}
+
+func autoConvert_core_TransitionTimes_To_v1alpha1_TransitionTimes(in *core.TransitionTimes, out *TransitionTimes, s conversion.Scope) error {
+	out.TriggerTime = (*metav1.Time)(unsafe.Pointer(in.TriggerTime))
+	out.InitTime = (*metav1.Time)(unsafe.Pointer(in.InitTime))
+	out.WaitTime = (*metav1.Time)(unsafe.Pointer(in.WaitTime))
+	out.FinishedTime = (*metav1.Time)(unsafe.Pointer(in.FinishedTime))
+	return nil
+}
+
+// Convert_core_TransitionTimes_To_v1alpha1_TransitionTimes is an autogenerated conversion function.
+func Convert_core_TransitionTimes_To_v1alpha1_TransitionTimes(in *core.TransitionTimes, out *TransitionTimes, s conversion.Scope) error {
+	return autoConvert_core_TransitionTimes_To_v1alpha1_TransitionTimes(in, out, s)
 }
 
 func autoConvert_v1alpha1_TypedObjectReference_To_core_TypedObjectReference(in *TypedObjectReference, out *core.TypedObjectReference, s conversion.Scope) error {

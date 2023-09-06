@@ -5,12 +5,11 @@
 package spiffing
 
 import (
-	"os"
-
 	"github.com/mandelsoft/vfs/pkg/osfs"
 	"github.com/mandelsoft/vfs/pkg/vfs"
 
 	"github.com/mandelsoft/spiff/dynaml"
+	"github.com/mandelsoft/spiff/features"
 	"github.com/mandelsoft/spiff/flow"
 	"github.com/mandelsoft/spiff/yaml"
 )
@@ -62,39 +61,110 @@ func (s *sourceData) Data() ([]byte, error) {
 ////////////////////////////////////////////////////////////////////////////////
 
 type spiff struct {
-	key       string
-	mode      int
-	fs        vfs.FileSystem
-	opts      flow.Options
-	values    map[string]yaml.Node
-	functions Functions
+	key      string
+	mode     int
+	fs       vfs.FileSystem
+	opts     flow.Options
+	values   map[string]yaml.Node
+	registry dynaml.Registry
+	tags     map[string]*dynaml.Tag
+	features features.FeatureFlags
 
 	binding dynaml.Binding
 }
 
 // NewFunctions provides a new registry for additional spiff functions
 func NewFunctions() Functions {
-	return dynaml.NewRegistry()
+	return dynaml.NewFunctions()
 }
 
-// New create a new default spiff context.
+// NewControls provides a new registry for additional spiff controls
+func NewControls() Controls {
+	return dynaml.NewControls()
+}
+
+// New creates a new default spiff context.
+// It evaluates the environment variable `SPIFF_FEATURES` to setup the
+// initial feature set and `SPIFF_ENCRYPTION_KEY` to determine the
+// encryption key.
 func New() Spiff {
 	return &spiff{
-		key:  os.Getenv("SPIFF_ENCRYPTION_KEY"),
-		mode: MODE_DEFAULT,
+		key:      features.EncryptionKey(),
+		mode:     MODE_DEFAULT,
+		features: features.Features(),
+		registry: dynaml.DefaultRegistry(),
 	}
 }
 
-func (s *spiff) reset() Spiff {
+// Plain creates a new plain spiff context without
+// any predefined settings.
+func Plain() Spiff {
+	return &spiff{
+		key:      "",
+		mode:     MODE_DEFAULT,
+		features: features.FeatureFlags{},
+		registry: dynaml.DefaultRegistry(),
+	}
+}
+
+func (s *spiff) Reset() Spiff {
 	s.binding = nil
 	return s
+}
+
+func (s *spiff) ResetStream() Spiff {
+	flow.ResetStream(s.binding)
+	return s
+}
+
+func (s *spiff) assureBinding() {
+	if s.binding == nil {
+		state := flow.NewState(s.key, s.mode, s.fs).
+			SetRegistry(s.registry).
+			SetFeatures(s.features)
+		if len(s.tags) > 0 {
+			var tags []*dynaml.Tag
+			for _, t := range s.tags {
+				tags = append(tags, t)
+			}
+			state.SetTags(tags...)
+		}
+		s.binding = flow.NewEnvironment(
+			nil, "context", state)
+		if s.values != nil {
+			s.binding = s.binding.WithLocalScope(s.values)
+		}
+	}
+}
+
+// WithInterpolation creates a new context with
+// enabled/disabled string interpolation feature
+func (s spiff) WithInterpolation(b bool) Spiff {
+	s.features.Set(features.INTERPOLATION, b)
+	return s.Reset()
+}
+
+// WithControl creates a new context with
+// enabled/disabled yaml based control structure feature
+func (s spiff) WithControl(b bool) Spiff {
+	s.features.Set(features.CONTROL, b)
+	return s.Reset()
+}
+
+// WithFeatures creates a new context with
+// enabled features
+func (s spiff) WithFeatures(features ...string) Spiff {
+	for _, f := range features {
+		s.features.Set(f, true)
+	}
+	return s.Reset()
 }
 
 // WithEncryptionKey creates a new context with
 // dedicated encryption key used for the spiff encryption feature
 func (s spiff) WithEncryptionKey(key string) Spiff {
 	s.key = key
-	return s.reset()
+	return s.Reset()
 }
 
 // WithMode creates a new context with the given processing mode.
@@ -104,7 +174,7 @@ func (s spiff) WithMode(mode int) Spiff {
 		mode = mode & ^MODE_OS_ACCESS
 	}
 	s.mode = mode
-	return s.reset()
+	return s.Reset()
 }
 
 // WithFileSystem creates a new context with the given
@@ -116,14 +186,21 @@ func (s spiff) WithFileSystem(fs vfs.FileSystem) Spiff {
 	if fs != nil {
 		s.mode = s.mode & ^MODE_OS_ACCESS
 	}
-	return s.reset()
+	return s.Reset()
 }
 
 // WithFunctions creates a new context with the given
 // additional function definitions
 func (s spiff) WithFunctions(functions Functions) Spiff {
-	s.functions = functions
-	return s.reset()
+	s.registry = s.registry.WithFunctions(functions)
+	return s.Reset()
+}
+
+// WithControls creates a new context with the given
+// control definitions
+func (s spiff) WithControls(controls Controls) Spiff {
+	s.registry = s.registry.WithControls(controls)
+	return s.Reset()
 }
 
 // WithValues creates a new context with the given
@@ -142,7 +219,13 @@ func (s spiff) WithValues(values map[string]interface{}) (Spiff, error) {
 	} else {
 		s.values = nil
 	}
-	return s.reset(), nil
+	return s.Reset(), nil
+}
+
+// SetTag sets/resets a global tag for subsequent processings.
+func (s spiff) SetTag(tag string, node yaml.Node) Spiff {
+	s.tags[tag] = dynaml.NewTag(tag, node, nil, dynaml.TAG_SCOPE_GLOBAL)
+	return s.Reset()
 }
 
 // FileSystem return the virtual filesystem set for the execution context.
@@ -155,27 +238,39 @@ func (s *spiff) FileSource(path string) Source {
 	return NewSourceFile(path, s.fs)
 }
 
+// CleanupTags deletes all gathered tags
+func (s *spiff) CleanupTags() Spiff {
+	s.binding = nil
+	s.tags = map[string]*dynaml.Tag{}
+	return s
+}
+
 // Cascade processes a template with a list of given subs and state
 // documents
 func (s *spiff) Cascade(template Node, stubs []Node, states ...Node) (Node, error) {
-	if s.binding == nil {
-		s.binding = flow.NewEnvironment(
-			nil, "context", flow.NewState(s.key, s.mode, s.fs).SetFunctions(s.functions))
-		if s.values != nil {
-			s.binding = s.binding.WithLocalScope(s.values)
-		}
-	}
+	s.Reset()
+	s.assureBinding()
+	defer s.Reset()
 	return flow.Cascade(s.binding, template, s.opts, append(stubs, states...)...)
 }
 
 // PrepareStubs processes a list a stubs and returns a prepared
-// represenation usable to process a template
+// representation usable to process a template
+// Global tags provided by the stubs are kept until the next
+// Prepare or Cascade processing.
 func (s *spiff) PrepareStubs(stubs ...Node) ([]Node, error) {
+	s.Reset()
+	s.assureBinding()
 	return flow.PrepareStubs(s.binding, s.opts.Partial, stubs...)
 }
 
 // ApplyStubs uses already prepared subs to process a template.
-func (s *spiff) ApplyStubs(template Node, preparedstubs []Node) (Node, error) {
+// It uses the configured implicit tag settings.
+func (s *spiff) ApplyStubs(template Node, preparedstubs []Node, stream ...bool) (Node, error) {
+	s.assureBinding()
+	if len(stream) == 0 || !stream[0] {
+		s.ResetStream()
+	}
 	return flow.Apply(s.binding, template, preparedstubs, s.opts)
 }
 

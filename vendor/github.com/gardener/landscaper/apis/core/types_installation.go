@@ -166,6 +166,19 @@ type InstallationStatus struct {
 	// AutomaticReconcileStatus describes the status of automatically triggered reconciles.
 	// +optional
 	AutomaticReconcileStatus *AutomaticReconcileStatus `json:"automaticReconcileStatus,omitempty"`
+
+	// DependentsToTrigger lists dependent installations to be triggered
+	// +optional
+	DependentsToTrigger []DependentToTrigger `json:"dependentsToTrigger,omitempty"`
+
+	// TransitionTimes contains timestamps of status transitions
+	// +optional
+	TransitionTimes *TransitionTimes `json:"transitionTimes,omitempty"`
+}
+
+type DependentToTrigger struct {
+	// Name is the name of the dependent installation
+	Name string `json:"name,omitempty"`
 }
 
 // AutomaticReconcileStatus describes the status of automatically triggered reconciles.

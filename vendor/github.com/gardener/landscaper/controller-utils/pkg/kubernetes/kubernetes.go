@@ -93,7 +93,7 @@ func CreateOrUpdate(ctx context.Context, c client.Client, obj client.Object, f c
 func AddServiceAccountAuth(ctx context.Context, kubeClient client.Client, sa *corev1.ServiceAccount, config *rest.Config) error {
 	saKey := ObjectKeyFromObject(sa)
 	// wait for k8s to generate the service account secret
-	err := wait.PollImmediate(10*time.Second, 5*time.Minute, func() (done bool, err error) {
+	err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (done bool, err error) {
 		if err := kubeClient.Get(ctx, saKey, sa); err != nil {
 			return false, nil
 		}
@@ -594,12 +594,12 @@ func DeleteAndWaitForObjectDeleted(ctx context.Context, kubeClient client.Client
 	pollCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	delCondFunc := GenerateDeleteObjectConditionFunc(ctx, kubeClient, obj)
-	return wait.PollImmediateUntil(5*time.Second, delCondFunc, pollCtx.Done())
+	return wait.PollUntilContextCancel(pollCtx, 5*time.Second, true, delCondFunc)
 }
 
 // GenerateDeleteObjectConditionFunc creates a condition function to validate the deletion of objects.
-func GenerateDeleteObjectConditionFunc(ctx context.Context, kubeClient client.Client, obj client.Object) wait.ConditionFunc {
-	return func() (done bool, err error) {
+func GenerateDeleteObjectConditionFunc(ctx context.Context, kubeClient client.Client, obj client.Object) wait.ConditionWithContextFunc {
+	return func(ctx context.Context) (done bool, err error) {
 		key := ObjectKey(obj.GetName(), obj.GetNamespace())
 		if err := kubeClient.Get(ctx, key, obj); err != nil {
 			if apierrors.IsNotFound(err) {
@@ -681,4 +681,38 @@ func SetRequiredNestedFieldsFromObj(currObj, obj *unstructured.Unstructured) err
 	}
 
 	return nil
+}
+
+// HasOwnerReference returns the index of the owner reference if the 'owned' object has a owner reference pointing to the 'owner' object.
+// If not, -1 is returned.
+// Note that name and uid are only compared if set in the owner object. This means that the function will return a positive index
+// for an owner object with empty name and uid if the owned object contains a owner reference which fits just apiversion and kind.
+// The scheme argument may be nil if the owners GVK is populated.
+func HasOwnerReference(owned, owner client.Object, scheme *runtime.Scheme) (int, error) {
+	if owned == nil || owner == nil {
+		return -1, fmt.Errorf("neither dependent nor owner may be nil when checking for owner references")
+	}
+	if owner.GetNamespace() != owned.GetNamespace() && owner.GetNamespace() != "" {
+		// cross-namespace owner references are not possible
+		return -1, nil
+	}
+	gvk := owner.GetObjectKind().GroupVersionKind()
+	if gvk.Version == "" || gvk.Kind == "" {
+		var err error
+		gvk, err = apiutil.GVKForObject(owner, scheme)
+		if err != nil {
+			return -1, fmt.Errorf("unable to determine owner's GVK: %w", err)
+		}
+	}
+	gv := gvk.GroupVersion().String()
+	for idx, or := range owned.GetOwnerReferences() {
+		if (owner.GetName() != "" && or.Name != owner.GetName()) ||
+			(owner.GetUID() != "" && or.UID != owner.GetUID()) ||
+			(or.APIVersion != gv) ||
+			(or.Kind != gvk.Kind) {
+			continue
+		}
+		return idx, nil
+	}
+	return -1, nil
 }

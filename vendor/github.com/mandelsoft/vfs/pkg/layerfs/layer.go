@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Mandelsoft. All rights reserved.
+ * Copyright 2022 Mandelsoft. All rights reserved.
  *  This file is licensed under the Apache Software License, v. 2 except as noted
  *  otherwise in the LICENSE file
  *
@@ -36,9 +36,27 @@ type LayerFileSystem struct {
 	base  vfs.FileSystem
 }
 
+var _ vfs.FileSystemCleanup = (*LayerFileSystem)(nil)
+
 func New(layer, base vfs.FileSystem) vfs.FileSystem {
 	fs := &LayerFileSystem{layer: layer, base: base}
 	return fs
+}
+
+func (l *LayerFileSystem) Cleanup() error {
+	err := vfs.Cleanup(l.layer)
+	err2 := vfs.Cleanup(l.base)
+
+	if err == nil {
+		if err2 != nil {
+			return err2
+		}
+	} else {
+		if err2 != nil {
+			return fmt.Errorf("error cleaning layer: layer %s, base %s", err2.Error(), err.Error())
+		}
+	}
+	return err
 }
 
 func (l *LayerFileSystem) Name() string {
@@ -126,7 +144,7 @@ func (l *LayerFileSystem) create(name string, fn func(path string, deleted bool)
 
 	path := vfs.Join(l.layer, parent.path, n)
 	// entry was formerly deleted from layer, if
-	// - it is explicilty maked as deleted
+	// - it is explicitly marked as deleted
 	// - the complete base folder content is marked as deleted AND the base layer contains the entry
 	del := vfs.Join(l.layer, parent.path, del_prefix+n)
 	deleted, _ := vfs.Exists(l.layer, del)

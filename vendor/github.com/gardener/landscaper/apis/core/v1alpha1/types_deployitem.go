@@ -164,6 +164,9 @@ type DeployItemSpec struct {
 	// UpdateOnChangeOnly specifies if redeployment is executed only if the specification of the deploy item has changed.
 	// +optional
 	UpdateOnChangeOnly bool `json:"updateOnChangeOnly,omitempty"`
+
+	// OnDelete specifies particular setting when deleting a deploy item
+	OnDelete *OnDeleteConfig `json:"onDelete,omitempty"`
 }
 
 // DeployItemStatus contains the status of a deploy item.
@@ -216,6 +219,10 @@ type DeployItemStatus struct {
 
 	// DeployerPhase is DEPRECATED and will soon be removed.
 	DeployerPhase *string `json:"deployItemPhase,omitempty"`
+
+	// TransitionTimes contains timestamps of status transitions
+	// +optional
+	TransitionTimes *TransitionTimes `json:"transitionTimes,omitempty"`
 }
 
 func (r *DeployItemStatus) GetLastError() *Error {

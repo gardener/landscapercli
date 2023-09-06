@@ -149,7 +149,7 @@ func (o *forceDeleteOptions) deleteObject(ctx context.Context, object client.Obj
 func (o *forceDeleteOptions) removeFinalizer(ctx context.Context, object client.Object, objectType string) error {
 	var lastErr error = nil
 
-	if err := wait.PollImmediate(time.Second, 10*time.Second, func() (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, time.Second, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {
 		if err := o.k8sClient.Get(ctx, client.ObjectKeyFromObject(object), object); err != nil {
 			if apierrors.IsNotFound(err) {
 				return true, nil

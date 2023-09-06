@@ -26,11 +26,18 @@ func ApplyDeployItemTemplate(di *lsv1alpha1.DeployItem, tmpl lsv1alpha1.DeployIt
 	di.Spec.Configuration = tmpl.Configuration
 	di.Spec.Timeout = tmpl.Timeout
 	di.Spec.UpdateOnChangeOnly = tmpl.UpdateOnChangeOnly
+	di.Spec.OnDelete = tmpl.OnDelete
 	for k, v := range tmpl.Labels {
 		kutil.SetMetaDataLabel(&di.ObjectMeta, k, v)
 	}
 	kutil.SetMetaDataLabel(&di.ObjectMeta, lsv1alpha1.ExecutionManagedNameLabel, tmpl.Name)
 	metav1.SetMetaDataAnnotation(&di.ObjectMeta, lsv1alpha1.ExecutionDependsOnAnnotation, strings.Join(tmpl.DependsOn, ","))
+	metav1.SetMetaDataAnnotation(&di.ObjectMeta, lsv1alpha1.DeployerTypeAnnotation, string(tmpl.Type))
+	targetName := lsv1alpha1.NoTargetNameValue
+	if di.Spec.Target != nil && di.Spec.Target.Name != "" {
+		targetName = di.Spec.Target.Name
+	}
+	metav1.SetMetaDataAnnotation(&di.ObjectMeta, lsv1alpha1.DeployerTargetNameAnnotation, targetName)
 }
 
 func getDeployItemIndexByManagedName(items []lsv1alpha1.DeployItem, name string) (int, bool) {
