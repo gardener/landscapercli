@@ -214,7 +214,7 @@ func (o *createOptions) buildInitialComponentDescriptor() (*cd.ComponentDescript
 				Version: o.componentVersion,
 			},
 			RepositoryContexts:  []*cd.UnstructuredTypedObject{&repoCtx},
-			Provider:            cd.InternalProvider,
+			Provider:            "internal",
 			Sources:             []cd.Source{},
 			ComponentReferences: []cd.ComponentReference{},
 			Resources:           []cd.Resource{},
