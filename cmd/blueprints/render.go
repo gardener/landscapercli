@@ -202,6 +202,36 @@ func (c SimulatorCallbacks) OnExports(installationPath string, exports map[strin
 	}
 }
 
+func (o *RenderOptions) resolveComponentReference(ctx context.Context, componentVersion model.ComponentVersion, componentVersionList *model.ComponentVersionList) error {
+	refs, err := componentVersion.GetComponentReferences()
+	if err != nil {
+		return err
+	}
+
+	for _, ref := range refs {
+		if _, err := componentVersionList.GetComponentVersion(ref.ComponentName, ref.Version); err != nil {
+			// not found
+			fmt.Printf("resolving component descriptor reference %q (%s:%s)\n", ref.Name, ref.ComponentName, ref.Version)
+			cv, err := o.registryAccess.GetComponentVersion(ctx, &lsv1alpha1.ComponentDescriptorReference{
+				RepositoryContext: o.componentDescriptor.GetEffectiveRepositoryContext(),
+				ComponentName:     ref.ComponentName,
+				Version:           ref.Version,
+			})
+			if err != nil {
+				return err
+			}
+			componentVersionList.Components = append(componentVersionList.Components, cv)
+
+			err = o.resolveComponentReference(ctx, cv, componentVersionList)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func (o *RenderOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSystem) error {
 	log.V(3).Info(fmt.Sprintf("rendering %s", strings.Join(sets.List(o.outputResources), ", ")))
 
@@ -250,25 +280,9 @@ func (o *RenderOptions) Run(ctx context.Context, log logr.Logger, fs vfs.FileSys
 	}
 
 	if componentVersion != nil {
-		refs, err := componentVersion.GetComponentReferences()
+		err = o.resolveComponentReference(ctx, componentVersion, &componentVersionList)
 		if err != nil {
 			return err
-		}
-
-		for _, ref := range refs {
-			if _, err := componentVersionList.GetComponentVersion(ref.ComponentName, ref.Version); err != nil {
-				// not found
-				fmt.Printf("resolving component descriptor reference %q (%s:%s)\n", ref.Name, ref.ComponentName, ref.Version)
-				cv, err := o.registryAccess.GetComponentVersion(ctx, &lsv1alpha1.ComponentDescriptorReference{
-					RepositoryContext: o.componentDescriptor.GetEffectiveRepositoryContext(),
-					ComponentName:     ref.ComponentName,
-					Version:           ref.Version,
-				})
-				if err != nil {
-					return err
-				}
-				componentVersionList.Components = append(componentVersionList.Components, cv)
-			}
 		}
 	}
 
