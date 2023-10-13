@@ -58,7 +58,7 @@ landscaper-cli:
     #       suppress_parallel_execution: true
     #   steps:
     #     run_integration_test:
-    #       image: 'golang:1.20.100-alpine3.18'
+    #       image: 'golang:1.20.10-alpine3.18'
     #       execute:
     #       - "dev_integration_test"
     #       - "--target-clustername=lndscprcli-cro"
