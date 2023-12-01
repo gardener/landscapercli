@@ -532,8 +532,8 @@ github.com/xeipuuv/gojsonschema
 # github.com/xlab/treeprint v1.1.0
 ## explicit; go 1.13
 github.com/xlab/treeprint
-# go.opentelemetry.io/otel v1.16.0
-## explicit; go 1.19
+# go.opentelemetry.io/otel v1.19.0
+## explicit; go 1.20
 go.opentelemetry.io/otel
 go.opentelemetry.io/otel/attribute
 go.opentelemetry.io/otel/baggage
@@ -546,12 +546,12 @@ go.opentelemetry.io/otel/propagation
 go.opentelemetry.io/otel/semconv/internal/v2
 go.opentelemetry.io/otel/semconv/v1.17.0
 go.opentelemetry.io/otel/semconv/v1.17.0/httpconv
-# go.opentelemetry.io/otel/metric v1.16.0
-## explicit; go 1.19
+# go.opentelemetry.io/otel/metric v1.19.0
+## explicit; go 1.20
 go.opentelemetry.io/otel/metric
 go.opentelemetry.io/otel/metric/embedded
-# go.opentelemetry.io/otel/trace v1.16.0
-## explicit; go 1.19
+# go.opentelemetry.io/otel/trace v1.19.0
+## explicit; go 1.20
 go.opentelemetry.io/otel/trace
 # go.starlark.net v0.0.0-20221028183056-acb66ad56dd2
 ## explicit; go 1.13
