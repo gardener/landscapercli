@@ -24,9 +24,9 @@ landscaper-cli:
         snapshot_ctx_repository: landscaper
     steps:
       verify:
-        image: 'golang:1.20'
+        image: 'golang:1.21'
       build:
-        image: 'golang:1.20'
+        image: 'golang:1.21'
         execute: 'build'
         output_dir: 'out'
         timeout: '5m'
