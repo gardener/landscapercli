@@ -20,8 +20,7 @@ landscaper-cli:
             - committers
             - codeowners
       component_descriptor:
-        ctx_repository: landscaper
-        snapshot_ctx_repository: landscaper
+        ocm_repository: landscaper
     steps:
       verify:
         image: 'golang:1.21'
