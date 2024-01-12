@@ -3,7 +3,6 @@ package tree
 import (
 	"context"
 	"fmt"
-
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	installations "github.com/gardener/landscaper/pkg/landscaper/installations"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,9 +49,11 @@ func (c *Collector) CollectInstallationsInCluster(name string, namespace string)
 }
 
 func (c *Collector) collectInstallationTree(name string, namespace string) (*InstallationTree, error) {
+	ctx := context.TODO()
+
 	key := client.ObjectKey{Name: name, Namespace: namespace}
 	inst := lsv1alpha1.Installation{}
-	err := c.K8sClient.Get(context.TODO(), key, &inst)
+	err := c.K8sClient.Get(ctx, key, &inst)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get installation %s: %w", name, err)
 	}
@@ -62,10 +63,20 @@ func (c *Collector) collectInstallationTree(name string, namespace string) (*Ins
 	}
 
 	//resolve all sub installations
-	for _, subInst := range inst.Status.InstallationReferences {
-		subInstTree, err := c.collectInstallationTree(subInst.Reference.Name, namespace)
+	subInstList := &lsv1alpha1.InstallationList{}
+	err = c.K8sClient.List(ctx, subInstList,
+		client.InNamespace(inst.Namespace),
+		client.MatchingLabels{
+			lsv1alpha1.EncompassedByLabel: inst.Name,
+		})
+	if err != nil {
+		return nil, fmt.Errorf("cannot get subinstallations of %s: %w", inst.Name, err)
+	}
+
+	for _, subInst := range subInstList.Items {
+		subInstTree, err := c.collectInstallationTree(subInst.Name, namespace)
 		if err != nil {
-			return nil, fmt.Errorf("cannot get installation %s: %w", subInst.Reference.Name, err)
+			return nil, fmt.Errorf("cannot get installation %s: %w", subInst.Name, err)
 		}
 		tree.SubInstallations = append(tree.SubInstallations, subInstTree)
 	}
@@ -73,7 +84,7 @@ func (c *Collector) collectInstallationTree(name string, namespace string) (*Ins
 	//resolve executions
 	execution := inst.Status.ExecutionReference
 	if execution != nil {
-		subExecution, err := c.collectExecutionTree(execution.Name, execution.Namespace)
+		subExecution, err := c.collectExecutionTree(ctx, execution.Name, execution.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get execution %s: %w", execution.Name, err)
 		}
@@ -83,10 +94,10 @@ func (c *Collector) collectInstallationTree(name string, namespace string) (*Ins
 	return &tree, nil
 }
 
-func (c *Collector) collectExecutionTree(name string, namespace string) (*ExecutionTree, error) {
+func (c *Collector) collectExecutionTree(ctx context.Context, name string, namespace string) (*ExecutionTree, error) {
 	key := client.ObjectKey{Name: name, Namespace: namespace}
 	exec := lsv1alpha1.Execution{}
-	err := c.K8sClient.Get(context.TODO(), key, &exec)
+	err := c.K8sClient.Get(ctx, key, &exec)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get execution %s: %w", name, err)
 	}
@@ -96,10 +107,18 @@ func (c *Collector) collectExecutionTree(name string, namespace string) (*Execut
 	}
 
 	//resolve deployItems
-	for _, deployItem := range exec.Status.DeployItemReferences {
-		deployItemTree, err := c.collectDeployItemTree(deployItem.Reference.Name, deployItem.Reference.Namespace)
+	deployItemList := &lsv1alpha1.DeployItemList{}
+	err = c.K8sClient.List(ctx, deployItemList,
+		client.MatchingLabels{lsv1alpha1.ExecutionManagedByLabel: exec.Name},
+		client.InNamespace(exec.Namespace))
+	if err != nil {
+		return nil, fmt.Errorf("cannot list deployitems of execution %s: %w", exec.Name, err)
+	}
+
+	for _, deployItem := range deployItemList.Items {
+		deployItemTree, err := c.collectDeployItemTree(deployItem.Name, deployItem.Namespace)
 		if err != nil {
-			return nil, fmt.Errorf("cannot get deployitem %s: %w", deployItem.Reference.Name, err)
+			return nil, fmt.Errorf("cannot get deployitem %s: %w", deployItem.Name, err)
 		}
 		tree.DeployItems = append(tree.DeployItems, deployItemTree)
 	}
