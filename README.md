@@ -19,7 +19,52 @@ due to some fundamental API changes especially with respect to the handling of h
 
 ## Installation
 
-Installation instructions can be found [here](docs/installation.md).
+Install the latest release via [Nix](https://nixos.org), download binaries directly from [GitHub Releases](https://github.com/gardener/landscapercli/releases), or build and install directly from source.
+
+### Install using Nix (with [Flakes](https://nixos.wiki/wiki/Flakes))
+
+```bash
+# Nix (macOS, Linux, and Windows)
+# ad hoc cmd execution
+nix run github:gardener/landscapercli -- --help
+
+# install development version
+nix profile install github:gardener/landscapercli
+# or release <version>
+nix profile install github:gardener/landscapercli/<version>
+
+#check installation
+nix profile list | grep landscapercli
+
+# optionally, open a new shell and verify that cmd completion works
+landscaper-cli --help
+```
+
+### Install from Github Release
+
+If you install via GitHub releases, you need to
+
+- download the correct binary artifact for your os and architecture
+- unpack and put the `landscapercli` binary on your path
+
+You can use this boilerplate:
+```bash
+# set operating system and architecture
+os=darwin # choose between darwin, linux
+arch=amd64 # choose between amd64
+
+# Get latest version, unzip, make executable
+curl -LO "curl -LO https://github.com/gardener/landscapercli/releases/latest/download/landscapercli-${os}-${arch}.gz"
+gunzip landscapercli-${os}-${arch}.gz
+chmod +x ./landscapercli-${os}-${arch}
+
+# Move the binary in to your PATH
+sudo mv ./landscapercli-${os}-${arch} /usr/local/bin/landscaper-cli
+```
+
+### Build from source
+
+Instructions can be found [here](docs/installation.md).
 
 ## Documentation 
 
