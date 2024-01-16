@@ -53,8 +53,14 @@ type Configuration struct {
 	// DebugOptions configure additional debug options.
 	DebugOptions *DebugOptions `json:"debug,omitempty"`
 
+	// HPAConfiguration contains the configuration for horizontal pod autoscaling.
+	HPAConfiguration *HPAConfiguration `json:"hpa,omitempty"`
+
 	// Controller contains configuration concerning the controller framework.
 	Controller Controller `json:"controller,omitempty"`
+
+	// +optional
+	UseOCMLib bool `json:"useOCMLib,omitempty"`
 }
 
 // ContainerSpec defines a container specification
@@ -100,7 +106,7 @@ type GarbageCollection struct {
 	// Defaults to 5.
 	Worker int `json:"worker"`
 	// RequeueTime specifies the duration after which the object, which is not yet ready to be garbage collected, is requeued.
-	// Defaults to 60.
+	// Defaults to 3600.
 	RequeueTimeSeconds int `json:"requeueTimeSeconds"`
 }
 
@@ -108,6 +114,11 @@ type GarbageCollection struct {
 type DebugOptions struct {
 	// KeepPod will only remove the finalizer on the pod but will not delete the pod.
 	KeepPod bool `json:"keepPod,omitempty"`
+}
+
+// HPAConfiguration contains the configuration for horizontal pod autoscaling.
+type HPAConfiguration struct {
+	MaxReplicas int32 `json:"maxReplicas,omitempty"`
 }
 
 // Controller contains configuration concerning the controller framework.

@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 
+	lc "github.com/gardener/landscaper/controller-utils/pkg/logging/constants"
+
 	"github.com/gardener/landscaper/pkg/utils"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,10 +44,10 @@ func NewOperation(op *operation.Operation, exec *lsv1alpha1.Execution, forceReco
 	}
 }
 
-func (o *Operation) UpdateDeployItems(ctx context.Context) lserrors.LsError {
+func (o *Operation) UpdateDeployItems(ctx context.Context, deployItemCache *lsv1alpha1.DeployItemCache) lserrors.LsError {
 	op := "UpdateDeployItems"
 
-	executionItems, orphaned, lsErr := o.getDeployItems(ctx)
+	executionItems, orphaned, lsErr := o.getDeployItems(ctx, deployItemCache)
 	if lsErr != nil {
 		return lsErr
 	}
@@ -54,18 +56,32 @@ func (o *Operation) UpdateDeployItems(ctx context.Context) lserrors.LsError {
 		return lserrors.NewWrappedError(err, op, "CleanupOrphanedDeployItems", err.Error())
 	}
 
+	activePairs := []lsv1alpha1.DiNamePair{}
 	for _, item := range executionItems {
-		lsErr := o.updateDeployItem(ctx, *item)
+		nextDiNamePair, lsErr := o.updateDeployItem(ctx, *item)
 		if lsErr != nil {
 			return lsErr
 		}
+		activePairs = append(activePairs, *nextDiNamePair)
+	}
+
+	orphanedNames := []string{}
+	for i := range orphaned {
+		orphanedNames = append(orphanedNames, orphaned[i].Name)
+	}
+
+	o.exec.Status.DeployItemCache = &lsv1alpha1.DeployItemCache{
+		ActiveDIs:   activePairs,
+		OrphanedDIs: orphanedNames,
 	}
 
 	return nil
 }
 
 func (o *Operation) TriggerDeployItems(ctx context.Context) (*DeployItemClassification, lserrors.LsError) {
-	items, orphaned, lsErr := o.getDeployItems(ctx)
+	logger, ctx := logging.FromContextOrNew(ctx, nil, lc.KeyMethod, "TriggerDeployItems")
+
+	items, orphaned, lsErr := o.getDeployItems(ctx, o.exec.Status.DeployItemCache)
 	if lsErr != nil {
 		return nil, lsErr
 	}
@@ -87,11 +103,12 @@ func (o *Operation) TriggerDeployItems(ctx context.Context) (*DeployItemClassifi
 				}
 
 				if skip {
+					logger.Info("Deleting deployitem %s without uninstall", item.DeployItem.Name)
 					if err := o.removeFinalizerFromDeployItem(ctx, item.DeployItem); err != nil {
 						return nil, err
 					}
 				} else {
-					if err := o.triggerDeployItem(ctx, item.DeployItem); err != nil {
+					if err := o.triggerDeployItem(ctx, item.DeployItem, read_write_layer.W000030); err != nil {
 						return nil, err
 					}
 				}
@@ -111,7 +128,7 @@ func (o *Operation) TriggerDeployItems(ctx context.Context) (*DeployItemClassifi
 	if !classification.HasFailedItems() {
 		runnableItems := classification.GetRunnableItems()
 		for _, item := range runnableItems {
-			if err := o.triggerDeployItem(ctx, item.DeployItem); err != nil {
+			if err := o.triggerDeployItem(ctx, item.DeployItem, read_write_layer.W000056); err != nil {
 				return nil, err
 			}
 		}
@@ -121,9 +138,11 @@ func (o *Operation) TriggerDeployItems(ctx context.Context) (*DeployItemClassifi
 }
 
 func (o *Operation) TriggerDeployItemsForDelete(ctx context.Context) (*DeployItemClassification, lserrors.LsError) {
+	logger, ctx := logging.FromContextOrNew(ctx, nil, lc.KeyMethod, "TriggerDeployItemsForDelete")
+
 	op := "TriggerDeployItemsForDelete"
 
-	items, _, lsErr := o.getDeployItems(ctx)
+	items, _, lsErr := o.getDeployItems(ctx, o.exec.Status.DeployItemCache)
 	if lsErr != nil {
 		return nil, lsErr
 	}
@@ -153,11 +172,12 @@ func (o *Operation) TriggerDeployItemsForDelete(ctx context.Context) (*DeployIte
 			}
 
 			if skip {
+				logger.Info("Deleting deployitem %s without uninstall", item.DeployItem.Name)
 				if err := o.removeFinalizerFromDeployItem(ctx, item.DeployItem); err != nil {
 					return nil, err
 				}
 			} else {
-				if err := o.triggerDeployItem(ctx, item.DeployItem); err != nil {
+				if err := o.triggerDeployItem(ctx, item.DeployItem, read_write_layer.W000090); err != nil {
 					return nil, err
 				}
 			}
@@ -167,12 +187,12 @@ func (o *Operation) TriggerDeployItemsForDelete(ctx context.Context) (*DeployIte
 	return classification, nil
 }
 
-func (o *Operation) triggerDeployItem(ctx context.Context, di *lsv1alpha1.DeployItem) lserrors.LsError {
+func (o *Operation) triggerDeployItem(ctx context.Context, di *lsv1alpha1.DeployItem, writeId read_write_layer.WriteID) lserrors.LsError {
 	op := "TriggerDeployItem"
 
 	key := kutil.ObjectKeyFromObject(di)
 	di = &lsv1alpha1.DeployItem{}
-	if err := read_write_layer.GetDeployItem(ctx, o.Client(), key, di); err != nil {
+	if err := read_write_layer.GetDeployItem(ctx, o.Client(), key, di, read_write_layer.R000034); err != nil {
 		return lserrors.NewWrappedError(err, op, "GetDeployItem", err.Error())
 	}
 
@@ -180,7 +200,7 @@ func (o *Operation) triggerDeployItem(ctx context.Context, di *lsv1alpha1.Deploy
 	di.Status.TransitionTimes = utils.NewTransitionTimes()
 	now := metav1.Now()
 	di.Status.JobIDGenerationTime = &now
-	if err := o.Writer().UpdateDeployItemStatus(ctx, read_write_layer.W000090, di); err != nil {
+	if err := o.Writer().UpdateDeployItemStatus(ctx, writeId, di); err != nil {
 		return lserrors.NewWrappedError(err, op, "UpdateDeployItemStatus", err.Error())
 	}
 
@@ -188,6 +208,10 @@ func (o *Operation) triggerDeployItem(ctx context.Context, di *lsv1alpha1.Deploy
 }
 func (o *Operation) skipUninstall(ctx context.Context, di *lsv1alpha1.DeployItem) (bool, lserrors.LsError) {
 	op := "skipUninstall"
+
+	if lsv1alpha1helper.HasDeleteWithoutUninstallAnnotation(di.ObjectMeta) {
+		return true, nil
+	}
 
 	if di.Spec.OnDelete == nil || !di.Spec.OnDelete.SkipUninstallIfClusterRemoved || di.Spec.Target == nil {
 		return false, nil
@@ -199,7 +223,8 @@ func (o *Operation) skipUninstall(ctx context.Context, di *lsv1alpha1.DeployItem
 	}
 
 	targetSyncs := &lsv1alpha1.TargetSyncList{}
-	if err := o.Client().List(ctx, targetSyncs, client.InNamespace(di.GetNamespace())); err != nil {
+	if err := read_write_layer.ListTargetSyncs(ctx, o.Client(), targetSyncs, read_write_layer.R000069,
+		client.InNamespace(di.GetNamespace())); err != nil {
 		msg := fmt.Sprintf("unable to retrieve targetsync object for namespace%s", di.GetNamespace())
 		return false, lserrors.NewWrappedError(err, op, msg, err.Error())
 	}
@@ -228,7 +253,7 @@ func (o *Operation) removeFinalizerFromDeployItem(ctx context.Context, di *lsv1a
 
 	key := kutil.ObjectKeyFromObject(di)
 	di = &lsv1alpha1.DeployItem{}
-	if err := read_write_layer.GetDeployItem(ctx, o.Client(), key, di); err != nil {
+	if err := read_write_layer.GetDeployItem(ctx, o.Client(), key, di, read_write_layer.R000031); err != nil {
 		return lserrors.NewWrappedError(err, op, "GetDeployItem", err.Error())
 	}
 
@@ -242,10 +267,12 @@ func (o *Operation) removeFinalizerFromDeployItem(ctx context.Context, di *lsv1a
 	return nil
 }
 
-func (o *Operation) getDeployItems(ctx context.Context) ([]*executionItem, []lsv1alpha1.DeployItem, lserrors.LsError) {
+func (o *Operation) getDeployItems(ctx context.Context,
+	deployItemCache *lsv1alpha1.DeployItemCache) ([]*executionItem, []*lsv1alpha1.DeployItem, lserrors.LsError) {
+
 	op := "getDeployItems"
 
-	managedItems, err := o.ListManagedDeployItems(ctx)
+	managedItems, err := o.ListManagedDeployItems(ctx, read_write_layer.R000037, deployItemCache)
 	if err != nil {
 		return nil, nil, lserrors.NewWrappedError(err, op, "ListManagedDeployItems", err.Error())
 	}

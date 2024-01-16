@@ -35,11 +35,6 @@ type ProviderConfiguration struct {
 	// +optional
 	ReadinessChecks health.ReadinessCheckConfiguration `json:"readinessChecks,omitempty"`
 
-	// DeleteTimeout is the time to wait before giving up on a resource to be deleted.
-	// Defaults to 180s.
-	// +optional
-	DeleteTimeout *lscore.Duration `json:"deleteTimeout,omitempty"`
-
 	// UpdateStrategy defines the strategy how the manifests are updated in the cluster.
 	// Defaults to "update".
 	// +optional
@@ -82,6 +77,14 @@ type ProviderConfiguration struct {
 	// HelmDeploymentConfig contains settings for helm operations. Only relevant if HelmDeployment is true.
 	// +optional
 	HelmDeploymentConfig *HelmDeploymentConfiguration `json:"helmDeploymentConfig,omitempty"`
+
+	// DeletionGroups defines the order in which objects are deleted. Only relevant if HelmDeployment is false.
+	// +optional
+	DeletionGroups []managedresource.DeletionGroupDefinition `json:"deletionGroups,omitempty"`
+
+	// DeletionGroupsDuringUpdate defines the order in which objects are deleted during an update.
+	// +optional
+	DeletionGroupsDuringUpdate []managedresource.DeletionGroupDefinition `json:"deletionGroupsDuringUpdate,omitempty"`
 }
 
 // UpdateStrategy defines the strategy that is used to apply resources to the cluster.

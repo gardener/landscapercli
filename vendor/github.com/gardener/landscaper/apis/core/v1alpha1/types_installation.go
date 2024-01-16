@@ -183,13 +183,6 @@ type InstallationSpec struct {
 	// Blueprint is the resolved reference to the definition.
 	Blueprint BlueprintDefinition `json:"blueprint"`
 
-	// RegistryPullSecrets defines a list of registry credentials that are used to
-	// pull blueprints, component descriptors and jsonschemas from the respective registry.
-	// For more info see: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-	// Note that the type information is used to determine the secret key and the type of the secret.
-	// +optional
-	RegistryPullSecrets []ObjectReference `json:"registryPullSecrets,omitempty"`
-
 	// Imports define the imported data objects and targets.
 	// +optional
 	Imports InstallationImports `json:"imports,omitempty"`
@@ -215,6 +208,10 @@ type InstallationSpec struct {
 	// AutomaticReconcile allows to configure automatically repeated reconciliations.
 	// +optional
 	AutomaticReconcile *AutomaticReconcile `json:"automaticReconcile,omitempty"`
+
+	// Optimization contains settings to improve execution performance.
+	// +optional
+	Optimization *Optimization `json:"optimization,omitempty"`
 }
 
 // AutomaticReconcile allows to configure automatically repeated reconciliations.
@@ -269,9 +266,9 @@ type InstallationStatus struct {
 	// Imports contain the state of the imported values.
 	Imports []ImportStatus `json:"imports,omitempty"`
 
-	// InstallationReferences contain all references to sub-components
-	// that are created based on the component definition.
-	InstallationReferences []NamedObjectReference `json:"installationRefs,omitempty"`
+	// SubInstCache contains the currently existing sub installations belonging to the execution. If nil undefined.
+	// +optional
+	SubInstCache *SubInstCache `json:"subInstCache,omitempty"`
 
 	// ExecutionReference is the reference to the execution that schedules the templated execution items.
 	ExecutionReference *ObjectReference `json:"executionRef,omitempty"`
@@ -616,4 +613,16 @@ func (inst *Installation) IsImportingTarget(name string) bool {
 		}
 	}
 	return false
+}
+
+// SubInstCache contains the existing sub installations
+type SubInstCache struct {
+	ActiveSubs   []SubNamePair `json:"activeSubs,omitempty"`
+	OrphanedSubs []string      `json:"orphanedSubs,omitempty"`
+}
+
+// DiNamePair contains the spec name and the real name of a deploy item
+type SubNamePair struct {
+	SpecName   string `json:"specName,omitempty"`
+	ObjectName string `json:"objectName,omitempty"`
 }

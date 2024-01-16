@@ -20,6 +20,9 @@ func (LogHelper) LogErrorAndGetReconcileResult(ctx context.Context, lsError lser
 
 	if lsError == nil {
 		return reconcile.Result{}, nil
+	} else if lserrors.ContainsErrorCode(lsError, lsv1alpha1.ErrorNoRetry) {
+		logger.Info(lsError.Error())
+		return reconcile.Result{Requeue: false}, nil
 	} else if lserrors.ContainsErrorCode(lsError, lsv1alpha1.ErrorForInfoOnly) {
 		logger.Info(lsError.Error())
 		return reconcile.Result{Requeue: true}, nil
@@ -27,6 +30,17 @@ func (LogHelper) LogErrorAndGetReconcileResult(ctx context.Context, lsError lser
 		logger.Error(lsError, lsError.Error())
 		return reconcile.Result{Requeue: true}, nil
 	}
+}
+
+func (LogHelper) LogStandardErrorAndGetReconcileResult(ctx context.Context, err error) (reconcile.Result, error) {
+	logger, _ := logging.FromContextOrNew(ctx, nil, lc.KeyMethod, "LogErrorAndGetReconcileResult")
+
+	if err == nil {
+		return reconcile.Result{}, nil
+	}
+
+	logger.Error(err, err.Error())
+	return reconcile.Result{Requeue: true}, nil
 }
 
 func (LogHelper) LogErrorButNotFoundAsInfo(ctx context.Context, err error, message string) {

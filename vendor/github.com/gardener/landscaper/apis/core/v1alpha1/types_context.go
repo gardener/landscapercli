@@ -56,9 +56,16 @@ type Context struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	ContextConfiguration `json:",inline"`
+}
+
+type ContextConfiguration struct {
 	// RepositoryContext defines the context of the component repository to resolve blueprints.
 	// +optional
 	RepositoryContext *cdv2.UnstructuredTypedObject `json:"repositoryContext,omitempty"`
+	// UseOCM defines whether OCM is used to process installations that reference this context.
+	// +optional
+	UseOCM bool `json:"useOCM,omitempty"`
 	// RegistryPullSecrets defines a list of registry credentials that are used to
 	// pull blueprints, component descriptors and jsonschemas from the respective registry.
 	// For more info see: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/

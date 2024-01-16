@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"time"
 
+	utils2 "github.com/gardener/landscaper/pkg/utils"
+
 	appsv1 "k8s.io/api/apps/v1"
 
 	"github.com/pkg/errors"
@@ -75,7 +77,8 @@ func (e *Environment) Start() (client.Client, error) {
 		return nil, err
 	}
 
-	fakeClient, err := client.New(restConfig, client.Options{Scheme: api.LandscaperScheme})
+	fakeClient, err := utils2.NewUncached(utils2.LsResourceClientBurstDefault, utils2.LsResourceClientQpsDefault,
+		restConfig, client.Options{Scheme: api.LandscaperScheme})
 	if err != nil {
 		return nil, err
 	}
@@ -145,9 +148,8 @@ func (e *Environment) initResources(ctx context.Context, resourcesPath string, c
 // InitDefaultContextFromInst creates a default landsacpe context object from a installation.
 func (e *Environment) InitDefaultContextFromInst(ctx context.Context, state *State, inst *lsv1alpha1.Installation) error {
 	cdRef := installations.GetReferenceFromComponentDescriptorDefinition(inst.Spec.ComponentDescriptor)
-	lsCtx := &lsv1alpha1.Context{
-		RepositoryContext: cdRef.RepositoryContext,
-	}
+	lsCtx := &lsv1alpha1.Context{}
+	lsCtx.RepositoryContext = cdRef.RepositoryContext
 	lsCtx.Name = lsv1alpha1.DefaultContextName
 	lsCtx.Namespace = inst.Namespace
 	return state.CreateWithClient(ctx, e.Client, lsCtx)

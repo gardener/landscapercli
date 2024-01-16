@@ -63,13 +63,6 @@ type ExecutionSpec struct {
 
 	// DeployItemsCompressed as zipped byte array
 	DeployItemsCompressed []byte `json:"deployItemsCompressed,omitempty"`
-
-	// RegistryPullSecrets defines a list of registry credentials that are used to
-	// pull blueprints, component descriptors and jsonschemas from the respective registry.
-	// For more info see: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-	// Note that the type information is used to determine the secret key and the type of the secret.
-	// +optional
-	RegistryPullSecrets []ObjectReference `json:"registryPullSecrets,omitempty"`
 }
 
 // ExecutionStatus contains the current status of a execution.
@@ -89,8 +82,9 @@ type ExecutionStatus struct {
 	// +optional
 	ExportReference *ObjectReference `json:"exportRef,omitempty"`
 
-	// DeployItemReferences contain the state of all deploy items.
-	DeployItemReferences []VersionedNamedObjectReference `json:"deployItemRefs,omitempty"`
+	// DeployItemCache contains the currently existing deploy item belonging to the execution. If nil undefined.
+	// +optional
+	DeployItemCache *DeployItemCache `json:"deployItemCache,omitempty"`
 
 	// ExecutionGenerations stores which generation the execution had when it last applied a specific deployitem.
 	// So in this case, the observedGeneration refers to the executions generation.
