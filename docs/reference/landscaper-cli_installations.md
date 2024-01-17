@@ -22,7 +22,6 @@ commands to interact with installations
 ### SEE ALSO
 
 * [landscaper-cli](landscaper-cli.md)	 - landscaper cli
-* [landscaper-cli installations create](landscaper-cli_installations_create.md)	 - create an installation template for a component which is stored in an OCI registry
 * [landscaper-cli installations force-delete](landscaper-cli_installations_force-delete.md)	 - Deletes an installations and the depending executions and deployItems in cluster and namespace of the current kubectl cluster context. Concerning the deployed software no guarantees could be given if it is uninstalled or not.
 * [landscaper-cli installations inspect](landscaper-cli_installations_inspect.md)	 - Displays status information for all installations and depending executions and deployItems in cluster and namespace of the current kubectl cluster context. To display only one installation, specify the installation-name.
 * [landscaper-cli installations interrupt](landscaper-cli_installations_interrupt.md)	 - Interrupts the processing of an installations and its subobjects. All of these objects with an unfinished phase (i.e. a phase which is neither 'Succeeded' nor 'Failed' nor 'DeleteFailed') are changed to phase 'Failed'. Note that the command affects only the status of Landscaper objects, but does not interrupt a running installation process, for example a helm deployment.
