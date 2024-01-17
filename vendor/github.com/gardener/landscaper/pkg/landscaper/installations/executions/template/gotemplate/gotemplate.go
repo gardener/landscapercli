@@ -16,10 +16,10 @@ import (
 	"sigs.k8s.io/yaml"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
+	"github.com/gardener/landscaper/controller-utils/pkg/landscaper/targetresolver"
 	"github.com/gardener/landscaper/pkg/components/model"
 	"github.com/gardener/landscaper/pkg/landscaper/blueprints"
 	lstmpl "github.com/gardener/landscaper/pkg/landscaper/installations/executions/template"
-	"github.com/gardener/landscaper/pkg/utils/targetresolver"
 )
 
 const (
@@ -59,7 +59,7 @@ func NewTemplateExecution(blueprint *blueprints.Blueprint,
 	cdList *model.ComponentVersionList,
 	targetResolver targetresolver.TargetResolver) (*TemplateExecution, error) {
 
-	funcs, err := LandscaperTplFuncMap(blueprint.Fs, cd, cdList, targetResolver)
+	funcs, err := LandscaperTplFuncMap(blueprint, cd, cdList, targetResolver)
 	if err != nil {
 		return nil, err
 	}

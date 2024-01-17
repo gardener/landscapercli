@@ -150,8 +150,6 @@ const (
 	ErrorConfigurationProblem ErrorCode = "ERR_CONFIGURATION_PROBLEM"
 	// ErrorInternalProblem indicates that the last error occurred due to a servere internal error
 	ErrorInternalProblem ErrorCode = "ERR_INTERNAL_PROBLEM"
-	// ErrorReadinessCheckTimeout indicates that objects failed the readiness check within the given time
-	ErrorReadinessCheckTimeout ErrorCode = "ERR_READINESS_CHECK_TIMEOUT"
 	// ErrorTimeout indicates that an operation timed out.
 	ErrorTimeout ErrorCode = "ERR_TIMEOUT"
 	// ErrorCyclicDependencies indicates that there are cyclic dependencies between multiple installations/deployitems.
@@ -162,6 +160,8 @@ const (
 	ErrorUnfinished ErrorCode = "ERR_UNFINISHED"
 	// ErrorForInfoOnly indicates that the error is no real error but an info and should be logged only on infor level.
 	ErrorForInfoOnly ErrorCode = "ERR_FOR_INFO_ONLY"
+	// ErrorNoRetry indicates that no retry is required.
+	ErrorNoRetry ErrorCode = "ERR_NO_RETRY"
 )
 
 // Condition holds the information about the state of a resource.
@@ -348,4 +348,22 @@ func (r VersionedResourceReference) ObjectMeta() cdv2.ObjectMeta {
 		Name:    r.ComponentName,
 		Version: r.Version,
 	}
+}
+
+// DeployItemCache contains the existing deploy items
+type DeployItemCache struct {
+	ActiveDIs   []DiNamePair `json:"activeDIs,omitempty"`
+	OrphanedDIs []string     `json:"orphanedDIs,omitempty"`
+}
+
+// DiNamePair contains the spec name and the real name of a deploy item
+type DiNamePair struct {
+	SpecName   string `json:"specName,omitempty"`
+	ObjectName string `json:"objectName,omitempty"`
+}
+
+// Optimization contains settings to improve execution preformance
+type Optimization struct {
+	HasNoSiblingImports bool `json:"hasNoSiblingImports,omitempty"`
+	HasNoSiblingExports bool `json:"hasNoSiblingExports,omitempty"`
 }

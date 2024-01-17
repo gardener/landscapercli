@@ -24,6 +24,5 @@ command to interact with blueprints stored in an oci registry
 * [landscaper-cli](landscaper-cli.md)	 - landscaper cli
 * [landscaper-cli blueprints get](landscaper-cli_blueprints_get.md)	 - command to download a blueprint from an oci registry
 * [landscaper-cli blueprints push](landscaper-cli_blueprints_push.md)	 - command to upload a blueprint into an oci registry
-* [landscaper-cli blueprints render](landscaper-cli_blueprints_render.md)	 - renders the given blueprint
 * [landscaper-cli blueprints validate](landscaper-cli_blueprints_validate.md)	 - validates a local blueprint filesystem
 

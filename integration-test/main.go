@@ -50,12 +50,6 @@ func runTestSuite(k8sClient client.Client, config *inttestutil.Config, target *l
 		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)
 	}
 
-	fmt.Println("========== RunInstallationsCreateTest() ==========")
-	err = tests.RunInstallationsCreateTest(k8sClient, config)
-	if err != nil {
-		return fmt.Errorf("RunInstallationsCreateTest() failed: %w", err)
-	}
-
 	fmt.Println("========== RunComponentCreateTest() ==========")
 	err = tests.RunComponentCreateTest(k8sClient, target.DeepCopy(), config)
 	if err != nil {

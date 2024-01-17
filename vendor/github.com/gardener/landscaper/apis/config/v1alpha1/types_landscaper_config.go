@@ -41,12 +41,21 @@ type LandscaperConfiguration struct {
 	// LsDeployments contains the names of the landscaper deployments
 	// +optional
 	LsDeployments *LsDeployments `json:"lsDeployments,omitempty"`
+	// HPAMainConfiguration contains the HPA configuration (horizontal pod autoscaling)
+	// for the main controllers (Installation and Execution controller).
+	// +optional
+	HPAMainConfiguration *HPAMainConfiguration `json:"hpaMain,omitempty"`
+	// +optional
+	UseOCMLib bool `json:"useOCMLib,omitempty"`
 }
 
 // LsDeployments contains the names of the landscaper deployments.
 type LsDeployments struct {
 	// LsController is the name of the Landscaper controller deployment.
 	LsController string `json:"lsController"`
+	// LsMainController is the name of the main Landscaper controller deployment.
+	// +optional
+	LsMainController string `json:"lsMainController,omitempty"`
 	// LsController is the name of the Landscaper webhook server deployment.
 	WebHook string `json:"webHook"`
 	// DeploymentsNamespace is the namespace in which the deployments are located.
@@ -156,11 +165,6 @@ type DeployItemTimeouts struct {
 	// Defaults to five minutes if not specified.
 	// +optional
 	Abort *lsv1alpha1.Duration `json:"abort,omitempty"`
-	// ProgressingDefault specifies how long the deployer may take to apply a deploy item by default. The value can be overwritten per deploy item in 'spec.timeout'.
-	// Allowed values are 'none' (to disable abort timeout detection) and anything that is understood by golang's time.ParseDuration method.
-	// Defaults to ten minutes if not specified.
-	// +optional
-	ProgressingDefault *lsv1alpha1.Duration `json:"progressingDefault,omitempty"`
 }
 
 // RegistryConfiguration contains the configuration for the used definition registry
@@ -291,4 +295,10 @@ type GarbageCollectionConfiguration struct {
 	ResetInterval *metav1.Duration `json:"resetInterval,omitempty"`
 	// PreservedHitsProportion defines the percent of hits that should be preserved.
 	PreservedHitsProportion float64 `json:"preservedHitsProportion,omitempty"`
+}
+
+// HPAMainConfiguration contains the HPA configuration (horizontal pod autoscaling)
+// for the main controllers (Installation and Execution controller).
+type HPAMainConfiguration struct {
+	MaxReplicas int32 `json:"maxReplicas,omitempty"`
 }

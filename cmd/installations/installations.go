@@ -30,8 +30,6 @@ func NewInstallationsCommand(ctx context.Context) *cobra.Command {
 		Short:   "commands to interact with installations",
 	}
 
-	cmd.AddCommand(NewCreateCommand(ctx))
-	cmd.AddCommand(NewSetImportParametersCommand(ctx))
 	cmd.AddCommand(NewInspectCommand(ctx))
 	cmd.AddCommand(NewForceDeleteCommand(ctx))
 	cmd.AddCommand(NewReconcileCommand(ctx))

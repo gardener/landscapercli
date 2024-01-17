@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -20,6 +22,7 @@ import (
 	lsv1alpha1helper "github.com/gardener/landscaper/apis/core/v1alpha1/helper"
 	lserrors "github.com/gardener/landscaper/apis/errors"
 	kutil "github.com/gardener/landscaper/controller-utils/pkg/kubernetes"
+	lscutils "github.com/gardener/landscaper/controller-utils/pkg/landscaper"
 	"github.com/gardener/landscaper/controller-utils/pkg/logging"
 	lc "github.com/gardener/landscaper/controller-utils/pkg/logging/constants"
 	"github.com/gardener/landscaper/pkg/api"
@@ -118,8 +121,10 @@ func (o *Operation) JSONSchemaValidator(schema []byte) (*jsonschema.Validator, e
 
 // ListSubinstallations returns a list of all subinstallations of the given installation.
 // Returns nil if no installations can be found
-func (o *Operation) ListSubinstallations(ctx context.Context, filter ...FilterInstallationFunc) ([]*lsv1alpha1.Installation, error) {
-	return ListSubinstallations(ctx, o.Client(), o.Inst.GetInstallation(), filter...)
+func (o *Operation) ListSubinstallations(ctx context.Context, subInstCache *lsv1alpha1.SubInstCache,
+	readID read_write_layer.ReadID) ([]*lsv1alpha1.Installation, error) {
+
+	return ListSubinstallations(ctx, o.Client(), o.Inst.GetInstallation(), subInstCache, readID)
 }
 
 type FilterInstallationFunc func(inst *lsv1alpha1.Installation) bool
@@ -127,22 +132,58 @@ type FilterInstallationFunc func(inst *lsv1alpha1.Installation) bool
 // ListSubinstallations returns a list of all subinstallations of the given installation.
 // The returned subinstallations can be filtered
 // Returns nil if no installations can be found.
-func ListSubinstallations(ctx context.Context, kubeClient client.Client, inst *lsv1alpha1.Installation, filter ...FilterInstallationFunc) ([]*lsv1alpha1.Installation, error) {
-	installationList := &lsv1alpha1.InstallationList{}
+func ListSubinstallations(ctx context.Context, kubeClient client.Client, inst *lsv1alpha1.Installation,
+	subInstCache *lsv1alpha1.SubInstCache, readID read_write_layer.ReadID, filter ...FilterInstallationFunc) ([]*lsv1alpha1.Installation, error) {
+
+	tmpInstallations := []*lsv1alpha1.Installation{}
+
+	if subInstCache != nil {
+		for i := range subInstCache.OrphanedSubs {
+			nextInst := &lsv1alpha1.Installation{}
+			key := client.ObjectKey{Namespace: inst.Namespace, Name: subInstCache.OrphanedSubs[i]}
+			if err := read_write_layer.GetInstallation(ctx, kubeClient, key, nextInst, readID); err != nil {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+				return nil, err
+			}
+			tmpInstallations = append(tmpInstallations, nextInst)
+		}
+
+		for i := range subInstCache.ActiveSubs {
+			nextInst := &lsv1alpha1.Installation{}
+			key := client.ObjectKey{Namespace: inst.Namespace, Name: subInstCache.ActiveSubs[i].ObjectName}
+			if err := read_write_layer.GetInstallation(ctx, kubeClient, key, nextInst, readID); err != nil {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+				return nil, err
+			}
+			tmpInstallations = append(tmpInstallations, nextInst)
+		}
+	} else {
+		installationList := &lsv1alpha1.InstallationList{}
+
+		err := read_write_layer.ListInstallations(ctx, kubeClient, installationList, readID,
+			client.InNamespace(inst.Namespace),
+			client.MatchingLabels{
+				lsv1alpha1.EncompassedByLabel: inst.Name,
+			})
+
+		if err != nil {
+			return nil, err
+		}
+		if len(installationList.Items) == 0 {
+			return nil, nil
+		}
+
+		for i := range installationList.Items {
+			tmpInstallations = append(tmpInstallations, &installationList.Items[i])
+		}
+	}
 
 	// the controller-runtime cache does currently not support field selectors (except a simple equal matcher).
 	// Therefore, we have to use our own filtering.
-	err := read_write_layer.ListInstallations(ctx, kubeClient, installationList, client.InNamespace(inst.Namespace),
-		client.MatchingLabels{
-			lsv1alpha1.EncompassedByLabel: inst.Name,
-		})
-	if err != nil {
-		return nil, err
-	}
-	if len(installationList.Items) == 0 {
-		return nil, nil
-	}
-
 	filterInst := func(inst *lsv1alpha1.Installation) bool {
 		for _, f := range filter {
 			if f(inst) {
@@ -151,24 +192,25 @@ func ListSubinstallations(ctx context.Context, kubeClient client.Client, inst *l
 		}
 		return false
 	}
+
 	installations := make([]*lsv1alpha1.Installation, 0)
-	for _, inst := range installationList.Items {
-		if len(filter) != 0 && filterInst(&inst) {
+	for i := range tmpInstallations {
+		if len(filter) != 0 && filterInst(tmpInstallations[i]) {
 			continue
 		}
-		installations = append(installations, inst.DeepCopy())
+		installations = append(installations, tmpInstallations[i])
 	}
 	return installations, nil
 }
 
 // UpdateInstallationStatus updates the status of a installation
-func (o *Operation) UpdateInstallationStatus(ctx context.Context, inst *lsv1alpha1.Installation,
+func (o *Operation) UpdateInstallationStatus(ctx context.Context, inst *lsv1alpha1.Installation, writeID read_write_layer.WriteID,
 	updatedConditions ...lsv1alpha1.Condition) error {
 
 	logger, ctx := logging.FromContextOrNew(ctx, []interface{}{lc.KeyReconciledResource, client.ObjectKeyFromObject(inst).String()})
 
 	inst.Status.Conditions = lsv1alpha1helper.MergeConditions(inst.Status.Conditions, updatedConditions...)
-	if err := o.Writer().UpdateInstallationStatus(ctx, read_write_layer.W000018, inst); err != nil {
+	if err := o.Writer().UpdateInstallationStatus(ctx, writeID, inst); err != nil {
 		logger.Error(err, "unable to set installation status")
 		return err
 	}
@@ -198,7 +240,7 @@ func (o *Operation) GetImportedDataObjects(ctx context.Context) (map[string]*dat
 				Namespace: o.Inst.GetInstallation().Namespace,
 			}
 			inst := &lsv1alpha1.Installation{}
-			if err := read_write_layer.GetInstallation(ctx, o.Client(), sourceRef.NamespacedName(), inst); err != nil {
+			if err := read_write_layer.GetInstallation(ctx, o.Client(), sourceRef.NamespacedName(), inst, read_write_layer.R000008); err != nil {
 				return nil, fmt.Errorf("unable to get source installation '%s' for import '%s': %w",
 					sourceRef.NamespacedName().String(), def.Name, err)
 			}
@@ -215,10 +257,10 @@ func (o *Operation) GetImportedDataObjects(ctx context.Context) (map[string]*dat
 		if len(def.DataRef) != 0 {
 			importStatus.DataRef = def.DataRef
 		} else if def.SecretRef != nil {
-			secretRef := lsutil.SecretRefFromLocalRef(def.SecretRef, o.Inst.GetInstallation().Namespace)
+			secretRef := lscutils.SecretRefFromLocalRef(def.SecretRef, o.Inst.GetInstallation().Namespace)
 			importStatus.SecretRef = fmt.Sprintf("%s#%s", secretRef.NamespacedName().String(), secretRef.Key)
 		} else if def.ConfigMapRef != nil {
-			configMapRef := lsutil.ConfigMapRefFromLocalRef(def.ConfigMapRef, o.Inst.GetInstallation().Namespace)
+			configMapRef := lscutils.ConfigMapRefFromLocalRef(def.ConfigMapRef, o.Inst.GetInstallation().Namespace)
 			importStatus.ConfigMapRef = fmt.Sprintf("%s#%s", configMapRef.NamespacedName().String(), configMapRef.Key)
 		}
 
@@ -253,7 +295,8 @@ func (o *Operation) GetImportedTargets(ctx context.Context) (map[string]*dataobj
 				Namespace: o.Inst.GetInstallation().Namespace,
 			}
 			inst := &lsv1alpha1.Installation{}
-			if err := read_write_layer.GetInstallation(ctx, o.Client(), sourceRef.NamespacedName(), inst); err != nil {
+			if err := read_write_layer.GetInstallation(ctx, o.Client(), sourceRef.NamespacedName(), inst,
+				read_write_layer.R000004); err != nil {
 				return nil, fmt.Errorf("unable to get source installation '%s' for import '%s': %w",
 					sourceRef.NamespacedName().String(), def.Name, err)
 			}
@@ -312,7 +355,7 @@ func (o *Operation) GetImportedTargetLists(ctx context.Context) (map[string]*dat
 					Namespace: o.Inst.GetInstallation().Namespace,
 				}
 				inst := &lsv1alpha1.Installation{}
-				if err := read_write_layer.GetInstallation(ctx, o.Client(), sourceRef.NamespacedName(), inst); err != nil {
+				if err := read_write_layer.GetInstallation(ctx, o.Client(), sourceRef.NamespacedName(), inst, read_write_layer.R000011); err != nil {
 					return nil, fmt.Errorf("unable to get source installation '%s' for import '%s': %w",
 						sourceRef.NamespacedName().String(), def.Name, err)
 				}
@@ -355,7 +398,7 @@ func GetRootInstallations(ctx context.Context, kubeClient client.Client, filter 
 	opts = append(opts, client.MatchingLabelsSelector{Selector: labels.NewSelector().Add(*r)})
 
 	installationList := &lsv1alpha1.InstallationList{}
-	if err := read_write_layer.ListInstallations(ctx, kubeClient, installationList, opts...); err != nil {
+	if err := read_write_layer.ListInstallations(ctx, kubeClient, installationList, read_write_layer.R000016, opts...); err != nil {
 		return nil, err
 	}
 
@@ -445,7 +488,7 @@ func (o *Operation) CreateOrUpdateExports(ctx context.Context, dataExports []*da
 
 	o.Inst.GetInstallation().Status.ConfigGeneration = configGen
 	cond = lsv1alpha1helper.UpdatedCondition(cond, lsv1alpha1.ConditionTrue, "DataObjectsCreated", "DataObjects successfully created")
-	return o.UpdateInstallationStatus(ctx, o.Inst.GetInstallation(), cond)
+	return o.UpdateInstallationStatus(ctx, o.Inst.GetInstallation(), read_write_layer.W000057, cond)
 }
 
 // CreateOrUpdateImports creates or updates the data objects that holds the imported values for every import

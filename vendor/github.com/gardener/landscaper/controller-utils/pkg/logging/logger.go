@@ -175,7 +175,7 @@ func FromContextOrNew(ctx context.Context, keysAndValuesFallback []interface{}, 
 		}
 
 		newLogger = newLogger.WithValues(keysAndValuesFallback...).WithValues(keysAndValues...)
-		newLogger.Error(err2, "unable to fetch logger from context")
+		newLogger.Info("unable to fetch logger from context", "error", err2)
 		ctx = NewContext(ctx, newLogger)
 		return newLogger, ctx
 	}
@@ -259,7 +259,7 @@ func StartReconcileFromContext(ctx context.Context, req reconcile.Request) (Logg
 
 // StartReconcile works like StartReconcileFromContext, but it is called on an existing logger instead of fetching one from the context.
 func (l Logger) StartReconcile(req reconcile.Request, keysAndValues ...interface{}) Logger {
-	newLogger := l.WithValues(lc.KeyReconciledResource, req.NamespacedName).WithValues(keysAndValues...)
+	newLogger := l.WithValues(lc.KeyReconciledResource, req.NamespacedName.String()).WithValues(keysAndValues...)
 	newLogger.Debug(lc.MsgStartReconcile)
 	return newLogger
 }
