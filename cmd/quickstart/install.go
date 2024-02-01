@@ -322,7 +322,7 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 		}
 	}()
 
-	landscaperChartURI := fmt.Sprintf("oci://eu.gcr.io/gardener-project/landscaper/charts/landscaper --untar --version %s", o.landscaperChartVersion)
+	landscaperChartURI := fmt.Sprintf("oci://europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper/github.com/gardener/landscaper/charts/landscaper --untar --version %s", o.landscaperChartVersion)
 	pullCmd := fmt.Sprintf("helm pull %s -d %s", landscaperChartURI, tempDir)
 	if err := util.ExecCommandBlocking(pullCmd); err != nil {
 		return err
