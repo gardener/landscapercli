@@ -14,7 +14,7 @@ The simple use case would be to install Landscaper without the internal OCI regi
 external OCI registry (GCR, Harbor, ...) for usage. This can be achieved by executing the following command:
 
 ```
-landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml 
+landscaper-cli quickstart install --kubeconfig ./kubeconfig.yaml 
 ```
 
 This command installs the landscaper in the namespace `landscaper` together with a helm-, manifest- and container-deployer.
