@@ -181,6 +181,18 @@ func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 		return fmt.Errorf("cannot install landscaper: %w", err)
 	}
 
+	if err := o.installDeployer(ctx, "helm"); err != nil {
+		return fmt.Errorf("cannot install helm deployer: %w", err)
+	}
+
+	if err := o.installDeployer(ctx, "manifest"); err != nil {
+		return fmt.Errorf("cannot install manifest deployer: %w", err)
+	}
+
+	if err := o.installDeployer(ctx, "container"); err != nil {
+		return fmt.Errorf("cannot install container deployer: %w", err)
+	}
+
 	if o.instOCIRegistry {
 		if o.instRegistryIngress {
 			fmt.Println("The OCI registry can be accessed via the URL https://" + o.registryIngressHost)
@@ -262,20 +274,18 @@ func (o *installOptions) generateLandscaperValuesOverride() ([]byte, error) {
 	defaultDeployers := ""
 	if len(o.landscaperValues.Landscaper.Landscaper.Deployers) == 0 {
 		defaultDeployers = `
-    deployers:
-    - container
-    - helm
-    - manifest`
+    deployers: []`
 	}
 
 	landscaperValuesOverride := fmt.Sprintf(`
 landscaper:
   landscaper:%s
     deployerManagement:
+      disable: true
       namespace: %s
       agent:
-        namespace: %s
-`, defaultDeployers, o.namespace, o.namespace)
+        disable: true
+`, defaultDeployers, o.namespace)
 
 	if o.instRegistryIngress {
 		// when installing the ingress, we must add the registry credentials to the Landscaper values file
@@ -371,6 +381,54 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 	}
 
 	fmt.Printf("Landscaper installation succeeded!\n\n")
+
+	return nil
+}
+
+func (o *installOptions) installDeployer(ctx context.Context, deployer string) error {
+	fmt.Printf("Installing %s deployer", deployer)
+
+	tempDir, err := os.MkdirTemp(".", fmt.Sprintf("%s-deployer-chart-tmp-*", deployer))
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			fmt.Printf("cannot remove temporary directory %s: %s", tempDir, err.Error())
+		}
+	}()
+
+	landscaperChartURI := fmt.Sprintf("oci://europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper/github.com/gardener/landscaper/%s-deployer/charts/%s-deployer --untar --version %s",
+		deployer, deployer, o.landscaperChartVersion)
+	pullCmd := fmt.Sprintf("helm pull %s -d %s", landscaperChartURI, tempDir)
+	if err := util.ExecCommandBlocking(pullCmd); err != nil {
+		return err
+	}
+
+	fileInfos, err := os.ReadDir(tempDir)
+	if err != nil {
+		return err
+	}
+
+	if len(fileInfos) != 1 {
+		return fmt.Errorf("found more than 1 item in temp directory for %s Chart export", deployer)
+	}
+	chartPath := path.Join(tempDir, fileInfos[0].Name())
+
+	installCommand := fmt.Sprintf(
+		"helm upgrade --install --namespace %s %s-deployer %s --kubeconfig %s",
+		o.namespace,
+		deployer,
+		chartPath,
+		o.kubeconfigPath,
+	)
+
+	if err := util.ExecCommandBlocking(installCommand); err != nil {
+		return err
+	}
+
+	fmt.Printf("%s installation succeeded!\n\n", deployer)
+
 	return nil
 }
 

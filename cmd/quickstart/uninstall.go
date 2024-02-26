@@ -3,6 +3,7 @@ package quickstart
 import (
 	"context"
 	"fmt"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"os"
 	"strings"
 	"time"
@@ -115,26 +116,64 @@ func (o *uninstallOptions) uninstallOCIRegistry(ctx context.Context, k8sClient c
 
 func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient client.Client) error {
 	fmt.Println("Removing deployer registrations")
-	deployerRegistrations := v1alpha1.DeployerRegistrationList{}
-	if err := k8sClient.List(ctx, &deployerRegistrations); err != nil {
+
+	crdList := &apiextensions.CustomResourceDefinitionList{}
+	if err := k8sClient.List(ctx, crdList); err != nil {
 		return err
 	}
 
-	for _, registration := range deployerRegistrations.Items {
-		if err := k8sClient.Delete(ctx, &registration); err != nil {
+	if o.containsDeployerRegistration(crdList) {
+		deployerRegistrations := v1alpha1.DeployerRegistrationList{}
+		if err := k8sClient.List(ctx, &deployerRegistrations); err != nil {
+			return err
+		}
+
+		for _, registration := range deployerRegistrations.Items {
+			if err := k8sClient.Delete(ctx, &registration); err != nil {
+				return err
+			}
+		}
+
+		if err := waitForRegistrationsRemoved(ctx, k8sClient); err != nil {
 			return err
 		}
 	}
 
-	if err := waitForRegistrationsRemoved(ctx, k8sClient); err != nil {
-		return err
-	}
-
-	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", o.namespace, o.kubeconfigPath))
+	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s helm-deployer --kubeconfig %s", o.namespace, o.kubeconfigPath))
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			// Ignore error if the release that should be deleted was not found ;)
-			fmt.Println("Release not found...Skipping")
+			fmt.Println("Helm deployer release not found...Skipping")
+		} else {
+			return err
+		}
+	}
+
+	err = util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s manifest-deployer --kubeconfig %s", o.namespace, o.kubeconfigPath))
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			// Ignore error if the release that should be deleted was not found ;)
+			fmt.Println("Manifest deployer release not found...Skipping")
+		} else {
+			return err
+		}
+	}
+
+	err = util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s container-deployer --kubeconfig %s", o.namespace, o.kubeconfigPath))
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			// Ignore error if the release that should be deleted was not found ;)
+			fmt.Println("Container deployer release not found...Skipping")
+		} else {
+			return err
+		}
+	}
+
+	err = util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", o.namespace, o.kubeconfigPath))
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			// Ignore error if the release that should be deleted was not found ;)
+			fmt.Println("Landscaper release not found...Skipping")
 		} else {
 			return err
 		}
@@ -152,6 +191,16 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 	}
 
 	return nil
+}
+
+func (o *uninstallOptions) containsDeployerRegistration(crds *apiextensions.CustomResourceDefinitionList) bool {
+	for i := range crds.Items {
+		if crds.Items[i].Name == "deployerregistrations.landscaper.gardener.cloud" {
+			return true
+		}
+	}
+
+	return false
 }
 
 func waitForRegistrationsRemoved(ctx context.Context, k8sClient client.Client) error {
