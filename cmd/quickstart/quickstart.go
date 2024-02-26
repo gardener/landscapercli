@@ -5,6 +5,7 @@ import (
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/spf13/cobra"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
@@ -15,7 +16,9 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
+	_ = extv1.AddToScheme(scheme)
 	_ = lsv1alpha1.AddToScheme(scheme)
+
 }
 
 func NewQuickstartCommand(ctx context.Context) *cobra.Command {

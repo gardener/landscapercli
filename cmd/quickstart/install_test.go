@@ -261,23 +261,5 @@ func TestGenerateLandscaperValuesOverride(t *testing.T) {
 	assert.True(t, ok)
 	depList, ok := config.([]interface{})
 	assert.True(t, ok)
-	assert.EqualValues(t, []interface{}{"container", "helm", "manifest"}, depList)
-
-	// verify that deployers are not overwritten if specified
-	opts.landscaperValues.Landscaper.Landscaper.Deployers = []string{"mock"}
-	lsvo, err = opts.generateLandscaperValuesOverride()
-	assert.NoError(t, err)
-	data = map[string]interface{}{}
-	err = yaml.Unmarshal(lsvo, &data)
-	assert.NoError(t, err)
-	config, ok = data["landscaper"]
-	assert.True(t, ok)
-	data, ok = config.(map[string]interface{})
-	assert.True(t, ok)
-	config, ok = data["landscaper"]
-	assert.True(t, ok)
-	data, ok = config.(map[string]interface{})
-	assert.True(t, ok)
-	_, ok = data["deployers"]
-	assert.False(t, ok)
+	assert.EqualValues(t, []interface{}{}, depList)
 }

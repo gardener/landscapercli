@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	v1 "k8s.io/api/networking/v1"
+
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/apis/core/v1alpha1/targettypes"
 	"github.com/gardener/landscaper/apis/mediatype"
@@ -75,6 +77,38 @@ func CheckAndWaitUntilAllPodsAreReady(k8sClient client.Client, namespace string,
 	}
 
 	return CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
+}
+
+func CheckIngressReady(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) (string, error) {
+	conditionFunc := func() (bool, error) {
+		ingress := v1.Ingress{}
+		ingress.Name = "oci-registry"
+		ingress.Namespace = namespace
+		err := k8sClient.Get(context.TODO(), client.ObjectKeyFromObject(&ingress), &ingress)
+		if err != nil {
+			return false, fmt.Errorf("cannot get ingress: %w", err)
+		}
+
+		if len(ingress.Status.LoadBalancer.Ingress) > 1 {
+			return true, nil
+		}
+		return false, nil
+	}
+
+	_, err := CheckConditionPeriodically(conditionFunc, sleepTime, maxRetries)
+	if err != nil {
+		return "", err
+	}
+
+	ingress := v1.Ingress{}
+	ingress.Name = "oci-registry"
+	ingress.Namespace = namespace
+	err = k8sClient.Get(context.TODO(), client.ObjectKeyFromObject(&ingress), &ingress)
+	if err != nil {
+		return "", fmt.Errorf("cannot get ingress: %w", err)
+	}
+
+	return ingress.Spec.TLS[0].Hosts[0], nil
 }
 
 // CheckAndWaitUntilLandscaperInstallationSucceeded checks and wait until the installation is on status succeeded. Returns an error on failure

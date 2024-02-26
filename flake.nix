@@ -58,8 +58,6 @@ SPDX-License-Identifier: Apache-2.0
           "-w"
           "-X github.com/gardener/landscapercli/pkg/version.LandscaperCliVersion=${version-raw}"
           "-X github.com/gardener/landscapercli/pkg/version.ComponentCliVersion=${COMPONENT_CLI_VERSION}"
-          "-X github.com/gardener/landscapercli/pkg/version.LandscaperGitVersion=${LANDSCAPER_VERSION}"
-          "-X github.com/gardener/landscapercli/pkg/version.LandscaperChartVersion=${LANDSCAPER_VERSION}"
           "-X github.com/gardener/landscapercli/pkg/version.gitTreeState=${state}"
           "-X github.com/gardener/landscapercli/pkg/version.gitCommit=${gitCommit}"
         ];
