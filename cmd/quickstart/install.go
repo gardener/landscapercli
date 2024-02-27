@@ -271,21 +271,17 @@ func (o *installOptions) Complete(args []string) error {
 }
 
 func (o *installOptions) generateLandscaperValuesOverride() ([]byte, error) {
-	defaultDeployers := ""
-	if len(o.landscaperValues.Landscaper.Landscaper.Deployers) == 0 {
-		defaultDeployers = `
-    deployers: []`
-	}
 
 	landscaperValuesOverride := fmt.Sprintf(`
 landscaper:
-  landscaper:%s
+  landscaper:
+    deployers: []
     deployerManagement:
       disable: true
       namespace: %s
       agent:
         disable: true
-`, defaultDeployers, o.namespace)
+`, o.namespace)
 
 	if o.instRegistryIngress {
 		// when installing the ingress, we must add the registry credentials to the Landscaper values file

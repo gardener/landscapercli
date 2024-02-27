@@ -3,7 +3,7 @@ package quickstart
 import (
 	"context"
 	"fmt"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os"
 	"strings"
 	"time"
@@ -117,7 +117,7 @@ func (o *uninstallOptions) uninstallOCIRegistry(ctx context.Context, k8sClient c
 func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient client.Client) error {
 	fmt.Println("Removing deployer registrations")
 
-	crdList := &apiextensions.CustomResourceDefinitionList{}
+	crdList := &extv1.CustomResourceDefinitionList{}
 	if err := k8sClient.List(ctx, crdList); err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 	return nil
 }
 
-func (o *uninstallOptions) containsDeployerRegistration(crds *apiextensions.CustomResourceDefinitionList) bool {
+func (o *uninstallOptions) containsDeployerRegistration(crds *extv1.CustomResourceDefinitionList) bool {
 	for i := range crds.Items {
 		if crds.Items[i].Name == "deployerregistrations.landscaper.gardener.cloud" {
 			return true
