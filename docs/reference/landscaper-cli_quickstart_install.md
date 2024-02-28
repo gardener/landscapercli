@@ -16,8 +16,8 @@ landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-val
 
 ```
   -h, --help                              help for install
-      --install-oci-registry              install an OCI registry in the target cluster
-      --install-registry-ingress          install an ingress for accessing the OCI registry. 
+      --install-oci-registry              install an OCI registry in the target cluster (optional)
+      --install-registry-ingress          install an ingress for accessing the OCI registry. (optional)
                                           the credentials must be provided via the flags "--registry-username" and "--registry-password".
                                           the Landscaper instance will then be automatically configured with these credentials.
                                           prerequisites (!):
@@ -25,11 +25,11 @@ landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-val
                                            - a nginx ingress controller must be deployed in the target cluster
                                            - the command "htpasswd" must be installed on your local machine
       --kubeconfig string                 path to the kubeconfig of the target cluster
-      --landscaper-chart-version string   use a custom Landscaper chart version (corresponds to Landscaper Github release with the same version number) (default "v0.93.0")
-      --landscaper-values string          path to values.yaml for the Landscaper Helm installation
-      --namespace string                  namespace where Landscaper and the OCI registry will get installed (default "landscaper")
-      --registry-password string          password for authenticating at the OCI registry
-      --registry-username string          username for authenticating at the OCI registry
+      --landscaper-chart-version string   use a custom Landscaper chart version (corresponds to Landscaper Github release with the same version number) (optional, default "v0.98.0")
+      --landscaper-values string          path to values.yaml for the Landscaper Helm installation (optional)
+      --namespace string                  namespace where Landscaper and the OCI registry will get installed (optional, default "landscaper")
+      --registry-password string          password for authenticating at the OCI registry (optional)
+      --registry-username string          username for authenticating at the OCI registry (optional)
 ```
 
 ### Options inherited from parent commands

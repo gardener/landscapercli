@@ -29,6 +29,12 @@ import (
 
 const (
 	defaultNamespace = "landscaper"
+
+	installExample = `
+landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml
+
+landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw
+`
 )
 
 type installOptions struct {
@@ -79,7 +85,7 @@ func NewInstallCommand(ctx context.Context) *cobra.Command {
 		Use:     "install --kubeconfig [kubconfig.yaml] --landscaper-values [landscaper-values.yaml] --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw",
 		Aliases: []string{"i"},
 		Short:   "command to install Landscaper (including Container, Helm, and Manifest deployers) in a target cluster. An OCI registry for testing can be optionally installed",
-		Example: "landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw",
+		Example: installExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
@@ -100,10 +106,10 @@ func NewInstallCommand(ctx context.Context) *cobra.Command {
 
 func (o *installOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
-	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where Landscaper and the OCI registry will get installed")
-	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the Landscaper Helm installation")
-	fs.BoolVar(&o.instOCIRegistry, "install-oci-registry", false, "install an OCI registry in the target cluster")
-	fs.BoolVar(&o.instRegistryIngress, "install-registry-ingress", false, `install an ingress for accessing the OCI registry. 
+	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where Landscaper and the OCI registry will get installed (optional)")
+	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the Landscaper Helm installation (optional)")
+	fs.BoolVar(&o.instOCIRegistry, "install-oci-registry", false, "install an OCI registry in the target cluster (optional)")
+	fs.BoolVar(&o.instRegistryIngress, "install-registry-ingress", false, `install an ingress for accessing the OCI registry (optional). 
 the credentials must be provided via the flags "--registry-username" and "--registry-password".
 the Landscaper instance will then be automatically configured with these credentials.
 prerequisites (!):
@@ -111,9 +117,9 @@ prerequisites (!):
  - a nginx ingress controller must be deployed in the target cluster
  - the command "htpasswd" must be installed on your local machine`)
 	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", version.LandscaperChartVersion,
-		"use a custom Landscaper chart version (corresponds to Landscaper Github release with the same version number)")
-	fs.StringVar(&o.registryUsername, "registry-username", "", "username for authenticating at the OCI registry")
-	fs.StringVar(&o.registryPassword, "registry-password", "", "password for authenticating at the OCI registry")
+		"use a custom Landscaper chart version (optional, corresponds to Landscaper Github release with the same version number)")
+	fs.StringVar(&o.registryUsername, "registry-username", "", "username for authenticating at the OCI registry (optional)")
+	fs.StringVar(&o.registryPassword, "registry-password", "", "password for authenticating at the OCI registry (optional)")
 }
 
 func (o *installOptions) ReadLandscaperValues() error {
