@@ -3,36 +3,28 @@ package quickstart
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/gardener/landscaper/apis/core/v1alpha1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
-var crdNames = []string{
-	"componentversionoverwrites.landscaper.gardener.cloud",
-	"contexts.landscaper.gardener.cloud",
-	"dataobjects.landscaper.gardener.cloud",
-	"deployerregistrations.landscaper.gardener.cloud",
-	"deployitems.landscaper.gardener.cloud",
-	"environments.landscaper.gardener.cloud",
-	"executions.landscaper.gardener.cloud",
-	"installations.landscaper.gardener.cloud",
-	"lshealthchecks.landscaper.gardener.cloud",
-	"syncobjects.landscaper.gardener.cloud",
-	"targets.landscaper.gardener.cloud",
-	"targetsyncs.landscaper.gardener.cloud",
-}
-
-func stringInSlice(str string, list []string) bool {
-	for _, v := range list {
-		if v == str {
-			return true
-		}
-	}
-	return false
-}
+//var crdNames = []string{
+//	"componentversionoverwrites.landscaper.gardener.cloud",
+//	"contexts.landscaper.gardener.cloud",
+//	"dataobjects.landscaper.gardener.cloud",
+//	"deployerregistrations.landscaper.gardener.cloud",
+//	"deployitems.landscaper.gardener.cloud",
+//	"environments.landscaper.gardener.cloud",
+//	"executions.landscaper.gardener.cloud",
+//	"installations.landscaper.gardener.cloud",
+//	"lshealthchecks.landscaper.gardener.cloud",
+//	"syncobjects.landscaper.gardener.cloud",
+//	"targets.landscaper.gardener.cloud",
+//	"targetsyncs.landscaper.gardener.cloud",
+//}
 
 func removeCrdTargetSync(ctx context.Context, k8sClient client.Client, nextName string,
 	objectList *v1alpha1.TargetSyncList, nextCrd *extv1.CustomResourceDefinition) error {
