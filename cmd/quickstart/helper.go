@@ -7,6 +7,7 @@ import (
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 )
 
 var crdNames = []string{
@@ -250,20 +251,44 @@ func removeCrdComponentversionoverwrites(ctx context.Context, k8sClient client.C
 }
 
 func removeObject(ctx context.Context, k8sClient client.Client, object client.Object) error {
-	object.SetFinalizers(nil)
-	if err := k8sClient.Update(ctx, object); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
+	var err error
+
+	fmt.Printf("Removing object: %s\n", client.ObjectKeyFromObject(object).String())
+
+	for i := 0; i < 10; i++ {
+		if err = k8sClient.Get(ctx, client.ObjectKeyFromObject(object), object); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+			fmt.Printf("Removing object: get failed: %s\n", err.Error())
+			continue
 		}
-		return err
+
+		object.SetFinalizers(nil)
+		if err = k8sClient.Update(ctx, object); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+
+			fmt.Printf("Removing object: update failed: %s\n", err.Error())
+			continue
+		}
+
+		if err = k8sClient.Delete(ctx, object); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+
+			fmt.Printf("Removing object: delete failed: %s\n", err.Error())
+			continue
+		}
+
+		time.Sleep(time.Millisecond * 10)
 	}
 
-	if err := k8sClient.Delete(ctx, object); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
+	if err != nil {
 		return err
+	} else {
+		return fmt.Errorf("object could not be removed %s", client.ObjectKeyFromObject(object).String())
 	}
-
-	return nil
 }

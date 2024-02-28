@@ -324,7 +324,7 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 	}
 	defer func() {
 		if err := os.RemoveAll(tempDir); err != nil {
-			fmt.Printf("cannot remove temporary directory %s: %s", tempDir, err.Error())
+			fmt.Printf("cannot remove temporary directory %s: %s\n", tempDir, err.Error())
 		}
 	}()
 
@@ -382,7 +382,7 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 }
 
 func (o *installOptions) installDeployer(ctx context.Context, deployer string) error {
-	fmt.Printf("Installing %s deployer", deployer)
+	fmt.Printf("Installing %s deployer\n", deployer)
 
 	tempDir, err := os.MkdirTemp(".", fmt.Sprintf("%s-deployer-chart-tmp-*", deployer))
 	if err != nil {
@@ -390,7 +390,7 @@ func (o *installOptions) installDeployer(ctx context.Context, deployer string) e
 	}
 	defer func() {
 		if err := os.RemoveAll(tempDir); err != nil {
-			fmt.Printf("cannot remove temporary directory %s: %s", tempDir, err.Error())
+			fmt.Printf("cannot remove temporary directory %s: %s\n", tempDir, err.Error())
 		}
 	}()
 

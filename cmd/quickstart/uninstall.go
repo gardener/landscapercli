@@ -3,6 +3,7 @@ package quickstart
 import (
 	"context"
 	"fmt"
+	v1 "k8s.io/api/admissionregistration/v1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os"
 	"strings"
@@ -169,11 +170,6 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 		}
 	}
 
-	fmt.Println("Removing CRDs")
-	if err = o.deleteCrds(ctx, k8sClient, crdList); err != nil {
-		return err
-	}
-
 	err = util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", o.namespace, o.kubeconfigPath))
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -182,6 +178,16 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 		} else {
 			return err
 		}
+	}
+
+	fmt.Println("Removing Validating Webhook")
+	if err = o.deleteWebhook(ctx, k8sClient); err != nil {
+		return err
+	}
+
+	fmt.Println("Removing CRDs")
+	if err = o.deleteCrds(ctx, k8sClient, crdList); err != nil {
+		return err
 	}
 
 	if o.deleteNamespace {
@@ -292,6 +298,25 @@ func (o *uninstallOptions) deleteCrds(ctx context.Context, k8sClient client.Clie
 	}
 
 	return nil
+}
+
+func (o *uninstallOptions) deleteWebhook(ctx context.Context, k8sClient client.Client) error {
+	webhookname := "landscaper-validation-webhook"
+
+	for i := 0; i < 10; i++ {
+		webhook := &v1.ValidatingWebhookConfiguration{}
+		webhook.SetName(webhookname)
+		if err := k8sClient.Delete(ctx, webhook); err != nil {
+			if k8sErrors.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+
+		time.Sleep(time.Second * 2)
+	}
+
+	return fmt.Errorf("webhook could not be removed %s", webhookname)
 }
 
 func waitForRegistrationsRemoved(ctx context.Context, k8sClient client.Client) error {
