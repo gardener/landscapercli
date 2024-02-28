@@ -104,9 +104,9 @@ func (o *uninstallOptions) Complete(args []string) error {
 
 func (o *uninstallOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
-	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where Landscaper and the OCI registry are installed")
-	fs.BoolVar(&o.deleteNamespace, "delete-namespace", false, "deletes the namespace (otherwise secrets, service accounts etc. of the landscaper installation in the namespace are not removed)")
-	fs.BoolVar(&o.deleteCrd, "delete-crd", false, "deletes the Landscaper CRDs and all CRs of theses types without uninstalling the data deployed by them")
+	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where Landscaper and the OCI registry are installed (optional)")
+	fs.BoolVar(&o.deleteNamespace, "delete-namespace", false, "deletes the namespace (otherwise secrets, service accounts etc. of the landscaper installation in the namespace are not removed) (optional, default false)")
+	fs.BoolVar(&o.deleteCrd, "delete-crd", false, "deletes the Landscaper CRDs and all CRs of theses types without uninstalling the data deployed by them (optional, default false)")
 
 }
 
