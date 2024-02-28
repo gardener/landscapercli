@@ -30,15 +30,16 @@ type uninstallOptions struct {
 	kubeconfigPath  string
 	namespace       string
 	deleteNamespace bool
+	deleteCrd       bool
 }
 
 func NewUninstallCommand(ctx context.Context) *cobra.Command {
 	opts := &uninstallOptions{}
 	cmd := &cobra.Command{
-		Use:     "uninstall --kubeconfig [kubconfig.yaml] --delete-namespace",
+		Use:     "uninstall --kubeconfig [kubconfig.yaml] --delete-namespace --delete-crd",
 		Aliases: []string{"u"},
 		Short:   "command to uninstall Landscaper and OCI registry (from the install command) in a target cluster",
-		Example: "landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace landscaper --delete-namespace",
+		Example: "landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace landscaper --delete-namespace --delete-crd",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
@@ -105,6 +106,8 @@ func (o *uninstallOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
 	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where Landscaper and the OCI registry are installed")
 	fs.BoolVar(&o.deleteNamespace, "delete-namespace", false, "deletes the namespace (otherwise secrets, service accounts etc. of the landscaper installation in the namespace are not removed)")
+	fs.BoolVar(&o.deleteCrd, "delete-crd", false, "deletes the Landscaper CRDs and all CRs of theses types without uninstalling the data deployed by them")
+
 }
 
 func (o *uninstallOptions) uninstallOCIRegistry(ctx context.Context, k8sClient client.Client) error {
@@ -185,9 +188,11 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 		return err
 	}
 
-	fmt.Println("Removing CRDs")
-	if err = o.deleteCrds(ctx, k8sClient, crdList); err != nil {
-		return err
+	if o.deleteCrd {
+		fmt.Println("Removing CRDs")
+		if err = o.deleteCrds(ctx, k8sClient, crdList); err != nil {
+			return err
+		}
 	}
 
 	if o.deleteNamespace {
@@ -201,7 +206,6 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 		}
 	}
 
-	fmt.Println("Removing CRDs")
 	return nil
 }
 
