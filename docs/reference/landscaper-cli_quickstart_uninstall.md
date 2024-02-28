@@ -3,22 +3,23 @@
 command to uninstall Landscaper and OCI registry (from the install command) in a target cluster
 
 ```
-landscaper-cli quickstart uninstall --kubeconfig [kubconfig.yaml] --delete-namespace [flags]
+landscaper-cli quickstart uninstall --kubeconfig [kubconfig.yaml] --delete-namespace --delete-crd [flags]
 ```
 
 ### Examples
 
 ```
-landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace landscaper --delete-namespace
+landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace landscaper --delete-namespace --delete-crd
 ```
 
 ### Options
 
 ```
-      --delete-namespace    deletes the namespace (otherwise secrets, service accounts etc. of the landscaper installation in the namespace are not removed)
+      --delete-crd          deletes the Landscaper CRDs and all CRs of theses types without uninstalling the data deployed by them (optional, default false)
+      --delete-namespace    deletes the namespace (otherwise secrets, service accounts etc. of the landscaper installation in the namespace are not removed) (optional, default false)
   -h, --help                help for uninstall
       --kubeconfig string   path to the kubeconfig of the target cluster
-      --namespace string    namespace where Landscaper and the OCI registry are installed (default "landscaper")
+      --namespace string    namespace where Landscaper and the OCI registry are installed (optional) (default "landscaper")
 ```
 
 ### Options inherited from parent commands

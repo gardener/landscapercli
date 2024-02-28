@@ -23,25 +23,33 @@ If the installation succeeds you can verify the created pods with:
 
 ```
 kubectl get pods -n landscaper --kubeconfig=./kubconfig.yaml
-NAME                            READY   STATUS    RESTARTS   AGE
-container-default-container-deployer-7d7c5bf786-8lx9m   1/1     Running   0          2m15s
-helm-default-helm-deployer-555f848cd9-ltrq6             1/1     Running   0          2m10s
-landscaper-8658c96b59-qxj2g                             1/1     Running   0          2m41s
-landscaper-webhooks-589985ff45-kbm8r                    1/1     Running   0          2m41s
-manifest-default-manifest-deployer-7fbc77ff79-dklbr     1/1     Running   0          45s
+NAME                                  READY   STATUS    RESTARTS   AGE
+container-deployer-58c59cdcdd-thggs   1/1     Running   0          9s
+helm-deployer-66fc44f66b-h7262        1/1     Running   0          14s
+landscaper-6d4488d86f-fg5dg           1/1     Running   0          16s
+landscaper-main-c7d8c75db-ms2d7       1/1     Running   0          16s
+landscaper-webhooks-fbc6cd9bb-frhx5   1/1     Running   0          16s
+landscaper-webhooks-fbc6cd9bb-lgdgl   1/1     Running   0          16s
+manifest-deployer-db4466cc5-g99wm     1/1     Running   0          12s
 ```
 
 You see the central pods of the landscaper and its webhook as well as one pod for each deployer.  
 
-If you want to install the landscaper and the deployer in another namespace and/or provide some more configuration values,
-you might call the command in the following form:
+To install a specific version of the landscaper chart, use the `landscaper-chart-version` argument.
+
+If you want to install the landscaper and the deployer in another namespace use the `namespace` argument.
+
+The default settings for the installation of the Landscaper are usually sufficient. If you want to provide some 
+other configuration values, you might call the command in the following form:
 
 ```
-landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper
+landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml 
 ```
 
 `landscaper-values.yaml` is the values file of the landscaper. See [here](#landscaper-values) for a minimal example. 
-To install a specific version of the landscaper chart, use the `landscaper-chart-version` argument.
+In the `landscaper-values.yaml` it is not possible to configure any of the deployer, enable the Landscaper agent or
+deployer registration. The Landscaper agent and deployer configuration will be removed in the near future and 
+particular values files for the different deployer will be introduced later, if required.
 
 For more details on the cli usage, consult [landscaper-cli_quickstart_install reference](../../reference/landscaper-cli_quickstart_install.md).
 
@@ -112,7 +120,7 @@ This should give the output:
 
 indicating an empty registry.
 
-Afterwards, you can use the tools of your choice to push artifacts against the localhost:5000 registry url, e.g. 
+Afterward, you can use the tools of your choice to push artifacts against the localhost:5000 registry url, e.g. 
 
 TODO: verify special /etc/hosts domain name for docker push
 
@@ -127,15 +135,6 @@ landscaper:
   landscaper: 
     registryConfig: # contains optional oci secrets
       allowPlainHttpRegistries: false
-      secrets: {}
-#       <name>: <docker config json>
-
-    deployers:
-    - container
-    - helm
-    - manifest
-#   - mock
-
 ```
 
 
