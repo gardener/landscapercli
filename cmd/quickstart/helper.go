@@ -11,21 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//var crdNames = []string{
-//	"componentversionoverwrites.landscaper.gardener.cloud",
-//	"contexts.landscaper.gardener.cloud",
-//	"dataobjects.landscaper.gardener.cloud",
-//	"deployerregistrations.landscaper.gardener.cloud",
-//	"deployitems.landscaper.gardener.cloud",
-//	"environments.landscaper.gardener.cloud",
-//	"executions.landscaper.gardener.cloud",
-//	"installations.landscaper.gardener.cloud",
-//	"lshealthchecks.landscaper.gardener.cloud",
-//	"syncobjects.landscaper.gardener.cloud",
-//	"targets.landscaper.gardener.cloud",
-//	"targetsyncs.landscaper.gardener.cloud",
-//}
-
 func removeCrdTargetSync(ctx context.Context, k8sClient client.Client, nextName string,
 	objectList *v1alpha1.TargetSyncList, nextCrd *extv1.CustomResourceDefinition) error {
 	fmt.Println("Removing objects of CRD: " + nextName)

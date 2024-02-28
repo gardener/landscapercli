@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"os"
 	"path"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"sigs.k8s.io/yaml"
 
@@ -461,7 +462,7 @@ func (o *installOptions) installOCIRegistry(ctx context.Context, k8sClient clien
 	return nil
 }
 
-func (o *installOptions) waitForCrds(ctx context.Context) interface{} {
+func (o *installOptions) waitForCrds(ctx context.Context) error {
 	cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfigPath)
 	if err != nil {
 		return fmt.Errorf("cannot parse K8s config: %w", err)
@@ -470,6 +471,10 @@ func (o *installOptions) waitForCrds(ctx context.Context) interface{} {
 	k8sClient, err := client.New(cfg, client.Options{
 		Scheme: scheme,
 	})
+
+	if err != nil {
+		return fmt.Errorf("cannot build K8s client: %w", err)
+	}
 
 	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 1*time.Minute, true, func(ctx context.Context) (done bool, err error) {
 		fmt.Println("waiting for CRDs")
