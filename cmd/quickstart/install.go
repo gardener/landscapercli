@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"sigs.k8s.io/yaml"
 
@@ -18,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -185,6 +188,10 @@ func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 
 	if err := o.installLandscaper(ctx); err != nil {
 		return fmt.Errorf("cannot install landscaper: %w", err)
+	}
+
+	if err := o.waitForCrds(ctx); err != nil {
+		return fmt.Errorf("waiting for crds failed: %w", err)
 	}
 
 	if err := o.installDeployer(ctx, "helm"); err != nil {
@@ -452,4 +459,55 @@ func (o *installOptions) installOCIRegistry(ctx context.Context, k8sClient clien
 
 	fmt.Print("OCI registry installation succeeded!\n\n")
 	return nil
+}
+
+func (o *installOptions) waitForCrds(ctx context.Context) interface{} {
+	cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("cannot parse K8s config: %w", err)
+	}
+
+	k8sClient, err := client.New(cfg, client.Options{
+		Scheme: scheme,
+	})
+
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 1*time.Minute, true, func(ctx context.Context) (done bool, err error) {
+		fmt.Println("waiting for CRDs")
+
+		crdName := "contexts.landscaper.gardener.cloud"
+		if crdExists := o.crdExists(ctx, k8sClient, crdName); !crdExists {
+			return false, nil
+		}
+
+		crdName = "dataobjects.landscaper.gardener.cloud"
+		if crdExists := o.crdExists(ctx, k8sClient, crdName); !crdExists {
+			return false, nil
+		}
+
+		crdName = "deployitems.landscaper.gardener.cloud"
+		if crdExists := o.crdExists(ctx, k8sClient, crdName); !crdExists {
+			return false, nil
+		}
+
+		crdName = "targets.landscaper.gardener.cloud"
+		if crdExists := o.crdExists(ctx, k8sClient, crdName); !crdExists {
+			return false, nil
+		}
+
+		return true, nil
+	})
+
+	return err
+}
+
+func (o *installOptions) crdExists(ctx context.Context, k8sClient client.Client, crdName string) bool {
+	crd := &extv1.CustomResourceDefinition{}
+	crd.SetName(crdName)
+
+	if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(crd), crd); err != nil {
+		fmt.Printf("Crd not found: %s\n\n", crdName)
+		return false
+	}
+
+	return true
 }
