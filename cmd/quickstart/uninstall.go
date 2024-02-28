@@ -133,7 +133,6 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", o.namespace, o.kubeconfigPath))
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			// Ignore error if the release that should be deleted was not found ;)
 			fmt.Println("Release not found...Skipping")
 		} else {
 			return err
