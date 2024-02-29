@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
