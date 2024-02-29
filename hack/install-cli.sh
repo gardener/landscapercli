@@ -10,15 +10,12 @@ CURRENT_DIR=$(dirname $0)
 PROJECT_ROOT="${CURRENT_DIR}"/..
 
 COMPONENT_CLI_VERSION=$(echo $COMPONENT_CLI_REF | awk '{print $2}')
-LANDSCAPER_VERSION=$(echo $LANDSCAPER_REF | awk '{print $2}')
 GITTREESTATE=`([ -z "$(git status --porcelain 2>/dev/null)" ] && echo clean || echo dirty)`
 
 
 go install \
   -ldflags "-X github.com/gardener/landscapercli/pkg/version.LandscaperCliVersion=$EFFECTIVE_VERSION \
             -X github.com/gardener/landscapercli/pkg/version.ComponentCliVersion=$COMPONENT_CLI_VERSION \
-            -X github.com/gardener/landscapercli/pkg/version.LandscaperGitVersion=$LANDSCAPER_VERSION \
-            -X github.com/gardener/landscapercli/pkg/version.LandscaperChartVersion=$LANDSCAPER_VERSION \
             -X github.com/gardener/landscapercli/pkg/version.gitTreeState=$GITTREESTATE \
             -X github.com/gardener/landscapercli/pkg/version.gitCommit=$(git rev-parse --verify HEAD)" \
   ${PROJECT_ROOT}/landscaper-cli

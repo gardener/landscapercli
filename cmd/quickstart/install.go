@@ -34,7 +34,7 @@ import (
 const (
 	defaultNamespace = "landscaper"
 
-	noVersion = "noversion"
+	latestRelease = "latest release"
 
 	installExample = `
 landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml
@@ -122,8 +122,8 @@ prerequisites (!):
  - the target cluster must be a Gardener Shoot (TLS is provided via the Gardener cert manager)
  - a nginx ingress controller must be deployed in the target cluster
  - the command "htpasswd" must be installed on your local machine`)
-	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", noVersion,
-		"use a custom Landscaper chart version (optional, default latest release)")
+	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", latestRelease,
+		"use a custom Landscaper chart version (optional)")
 	fs.StringVar(&o.registryUsername, "registry-username", "", "username for authenticating at the OCI registry (optional)")
 	fs.StringVar(&o.registryPassword, "registry-password", "", "password for authenticating at the OCI registry (optional)")
 }
@@ -190,7 +190,7 @@ func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 	}
 
 	version := o.landscaperChartVersion
-	if version == noVersion {
+	if version == latestRelease {
 		version, err = version2.GetRelease()
 		if err != nil {
 			return fmt.Errorf("cannot get latest Landscaper release: %w", err)
