@@ -326,7 +326,7 @@ func (t *componentCreateTest) setBaseURL(ctx context.Context) error {
 	}
 
 	oldCdString := string(data)
-	baseURLElement := fmt.Sprintf(`baseUrl: "%s"`, t.config.RegistryBaseURL)
+	baseURLElement := fmt.Sprintf(`baseUrl: "%s"`, t.config.ExternalRegistryBaseURL)
 	newCdString := strings.Replace(oldCdString, `baseUrl: ""`, baseURLElement, 1)
 
 	err = os.WriteFile(componentDescriptorPath, []byte(newCdString), 0755)
@@ -398,7 +398,7 @@ func (t *componentCreateTest) createTarget(ctx context.Context) error {
 func (t *componentCreateTest) createInstallation(ctx context.Context, contextName string) error {
 	fmt.Printf("Creating installation %s\n", t.installationName)
 
-	repoCtx, _ := cdv2.NewUnstructured(cdv2.NewOCIRegistryRepository(t.config.RegistryBaseURL, ""))
+	repoCtx, _ := cdv2.NewUnstructured(cdv2.NewOCIRegistryRepository(t.config.ExternalRegistryBaseURL, ""))
 	installation := lsv1alpha1.Installation{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      t.installationName,
