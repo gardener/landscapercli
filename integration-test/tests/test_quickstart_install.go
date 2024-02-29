@@ -2,12 +2,9 @@ package tests
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"time"
-
-	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -83,7 +80,9 @@ func (t *quickstartInstallTest) run() error {
 		return fmt.Errorf("cannot create target: %w", err)
 	}
 
-	contextName, err := t.createContext(ctx)
+	contextName := "installcontext"
+	err = inttestutil.CreateContext(ctx, t.k8sClient, t.externalRegistryBaseURL,
+		t.namespace, contextName)
 	if err != nil {
 		return fmt.Errorf("cannot create context: %w", err)
 	}
@@ -109,74 +108,6 @@ func (t *quickstartInstallTest) run() error {
 	fmt.Println("Installation successful")
 
 	return nil
-}
-
-type DockerConfigJson struct {
-	Auths map[string]DockerConfigEntry `json:"auths"`
-}
-
-type DockerConfigEntry struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Email    string `json:"email,omitempty"`
-	Auth     string `json:"auth"`
-}
-
-func (t *quickstartInstallTest) createContext(ctx context.Context) (string, error) {
-	auth := base64.StdEncoding.EncodeToString([]byte(inttestutil.Testuser + ":" + inttestutil.Testpw))
-	dockerConfigJson := DockerConfigJson{
-		Auths: map[string]DockerConfigEntry{
-			t.externalRegistryBaseURL: {
-				Username: inttestutil.Testuser,
-				Password: inttestutil.Testpw,
-				Email:    "test@test.com",
-				Auth:     auth,
-			},
-		},
-	}
-
-	dockerConfigJsonBytes, _ := json.Marshal(dockerConfigJson)
-	dockerConfigJsonString := string(dockerConfigJsonBytes)
-
-	secretAndContextName := "installcontext"
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretAndContextName,
-			Namespace: t.namespace,
-		},
-		Data: map[string][]byte{
-			".dockerconfigjson": []byte(dockerConfigJsonString),
-		},
-		Type: corev1.SecretTypeDockerConfigJson,
-	}
-
-	err := t.k8sClient.Create(ctx, secret)
-	if err != nil {
-		return "", err
-	}
-
-	repoCtx := &cdv2.UnstructuredTypedObject{}
-	repoCtx.UnmarshalJSON([]byte(fmt.Sprintf(`{"type": "OCIRegistry", "baseUrl": "%s"}`, t.externalRegistryBaseURL)))
-	lscontext := &lsv1alpha1.Context{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretAndContextName,
-			Namespace: t.namespace,
-		},
-		ContextConfiguration: lsv1alpha1.ContextConfiguration{
-			RegistryPullSecrets: []corev1.LocalObjectReference{corev1.LocalObjectReference{
-				Name: secretAndContextName,
-			}},
-			RepositoryContext: repoCtx,
-			UseOCM:            true,
-		},
-	}
-
-	err = t.k8sClient.Create(ctx, lscontext)
-	if err != nil {
-		return "", err
-	}
-
-	return secretAndContextName, nil
 }
 
 func buildHelmInstallation(name string, target *lsv1alpha1.Target, helmChartRef, appNamespace, contextName string) (*lsv1alpha1.Installation, error) {

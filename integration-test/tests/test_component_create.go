@@ -114,7 +114,14 @@ func (t *componentCreateTest) run() error {
 		return err
 	}
 
-	err = t.createInstallation(ctx)
+	contextName := "createcontext"
+	err = inttestutil.CreateContext(ctx, t.k8sClient, t.config.ExternalRegistryBaseURL,
+		t.config.TestNamespace, contextName)
+	if err != nil {
+		return fmt.Errorf("cannot create context: %w", err)
+	}
+
+	err = t.createInstallation(ctx, contextName)
 	if err != nil {
 		return err
 	}
@@ -388,7 +395,7 @@ func (t *componentCreateTest) createTarget(ctx context.Context) error {
 	return nil
 }
 
-func (t *componentCreateTest) createInstallation(ctx context.Context) error {
+func (t *componentCreateTest) createInstallation(ctx context.Context, contextName string) error {
 	fmt.Printf("Creating installation %s\n", t.installationName)
 
 	repoCtx, _ := cdv2.NewUnstructured(cdv2.NewOCIRegistryRepository(t.config.RegistryBaseURL, ""))
@@ -401,6 +408,7 @@ func (t *componentCreateTest) createInstallation(ctx context.Context) error {
 			},
 		},
 		Spec: lsv1alpha1.InstallationSpec{
+			Context: contextName,
 			ComponentDescriptor: &lsv1alpha1.ComponentDescriptorDefinition{
 				Reference: &lsv1alpha1.ComponentDescriptorReference{
 					RepositoryContext: &repoCtx,
