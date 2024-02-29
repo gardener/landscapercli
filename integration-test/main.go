@@ -129,6 +129,14 @@ func run() error {
 		return fmt.Errorf("timeout while waiting for pods")
 	}
 
+	fmt.Println("========== Fetching ingress to OCI registry ==========")
+	ingressUrl, err := util.CheckIngressReady(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries)
+	if err != nil {
+		return fmt.Errorf("error fetching ingress url: %w", err)
+	}
+	config.ExternalRegistryBaseURL = ingressUrl
+	fmt.Println("External registry base URL: " + config.ExternalRegistryBaseURL)
+
 	fmt.Println("========== Starting port-forward to OCI registry ==========")
 	resultChan := make(chan util.CmdResult)
 	portforwardCmd, err := startOCIRegistryPortForward(k8sClient, config.LandscaperNamespace, config.Kubeconfig, resultChan)
@@ -157,7 +165,7 @@ func run() error {
 	time.Sleep(5 * time.Second)
 
 	fmt.Println("========== Uploading echo-server helm chart to OCI registry ==========")
-	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace)
+	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace, config.ExternalRegistryBaseURL)
 	if err != nil {
 		return fmt.Errorf("upload of echo-server helm chart failed: %w", err)
 	}
@@ -237,7 +245,7 @@ func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigP
 	return portforwardCmd, nil
 }
 
-func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
+func uploadEchoServerHelmChart(landscaperNamespace, externalRegistryBaseURL string) (string, error) {
 	tempDir1, err := os.MkdirTemp(".", "landscaper-chart-tmp1-*")
 	if err != nil {
 		return "", err
@@ -276,7 +284,7 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 		return "", fmt.Errorf("helm push failed: %w", err)
 	}
 
-	helmChartRef := fmt.Sprintf("oci-registry.%s.svc.cluster.local:5000/echo-server:1.1.0", landscaperNamespace)
+	helmChartRef := externalRegistryBaseURL + "/echo-server:1.1.0"
 	return helmChartRef, nil
 }
 
@@ -321,9 +329,12 @@ func runQuickstartInstall(config *inttestutil.Config) error {
 	installArgs := []string{
 		"--kubeconfig",
 		config.Kubeconfig,
-		"--landscaper-values",
-		tmpFile.Name(),
 		"--install-oci-registry",
+		"--install-registry-ingress",
+		"--registry-username",
+		inttestutil.Testuser,
+		"--registry-password",
+		inttestutil.Testpw,
 		"--namespace",
 		config.LandscaperNamespace,
 	}

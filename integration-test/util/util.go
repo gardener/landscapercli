@@ -2,10 +2,21 @@ package util
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/uuid"
 
 	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	"github.com/stretchr/testify/assert"
 )
+
+const (
+	Testuser = "testuser"
+)
+
+var Testpw string
+
+func init() {
+	Testpw = string(uuid.NewUUID())
+}
 
 // DummyTestingT is a utility struct for using assertions from "github.com/stretchr/testify/assert"
 // in the integration tests (outside of unit tests)
