@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
+	version2 "github.com/gardener/landscapercli/pkg/version"
+
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"sigs.k8s.io/yaml"
-
-	"github.com/gardener/landscapercli/pkg/version"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -33,6 +33,8 @@ import (
 
 const (
 	defaultNamespace = "landscaper"
+
+	noVersion = "noversion"
 
 	installExample = `
 landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml
@@ -120,8 +122,8 @@ prerequisites (!):
  - the target cluster must be a Gardener Shoot (TLS is provided via the Gardener cert manager)
  - a nginx ingress controller must be deployed in the target cluster
  - the command "htpasswd" must be installed on your local machine`)
-	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", version.LandscaperChartVersion,
-		"use a custom Landscaper chart version (optional, corresponds to Landscaper Github release with the same version number)")
+	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", noVersion,
+		"use a custom Landscaper chart version (optional, default latest release)")
 	fs.StringVar(&o.registryUsername, "registry-username", "", "username for authenticating at the OCI registry (optional)")
 	fs.StringVar(&o.registryPassword, "registry-password", "", "password for authenticating at the OCI registry (optional)")
 }
@@ -187,7 +189,15 @@ func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 		}
 	}
 
-	if err := o.installLandscaper(ctx); err != nil {
+	version := o.landscaperChartVersion
+	if version == noVersion {
+		version, err = version2.GetRelease()
+		if err != nil {
+			return fmt.Errorf("cannot get latest Landscaper release: %w", err)
+		}
+	}
+
+	if err := o.installLandscaper(ctx, version); err != nil {
 		return fmt.Errorf("cannot install landscaper: %w", err)
 	}
 
@@ -195,15 +205,15 @@ func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 		return fmt.Errorf("waiting for crds failed: %w", err)
 	}
 
-	if err := o.installDeployer(ctx, "helm"); err != nil {
+	if err := o.installDeployer(ctx, "helm", version); err != nil {
 		return fmt.Errorf("cannot install helm deployer: %w", err)
 	}
 
-	if err := o.installDeployer(ctx, "manifest"); err != nil {
+	if err := o.installDeployer(ctx, "manifest", version); err != nil {
 		return fmt.Errorf("cannot install manifest deployer: %w", err)
 	}
 
-	if err := o.installDeployer(ctx, "container"); err != nil {
+	if err := o.installDeployer(ctx, "container", version); err != nil {
 		return fmt.Errorf("cannot install container deployer: %w", err)
 	}
 
@@ -329,7 +339,7 @@ landscaper:
 	return []byte(landscaperValuesOverride), nil
 }
 
-func (o *installOptions) installLandscaper(ctx context.Context) error {
+func (o *installOptions) installLandscaper(ctx context.Context, version string) error {
 	fmt.Println("Installing Landscaper")
 
 	tempDir, err := os.MkdirTemp(".", "landscaper-chart-tmp-*")
@@ -342,7 +352,7 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 		}
 	}()
 
-	landscaperChartURI := fmt.Sprintf("oci://europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper/github.com/gardener/landscaper/charts/landscaper --untar --version %s", o.landscaperChartVersion)
+	landscaperChartURI := fmt.Sprintf("oci://europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper/github.com/gardener/landscaper/charts/landscaper --untar --version %s", version)
 	pullCmd := fmt.Sprintf("helm pull %s -d %s", landscaperChartURI, tempDir)
 	if err := util.ExecCommandBlocking(pullCmd); err != nil {
 		return err
@@ -395,7 +405,7 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 	return nil
 }
 
-func (o *installOptions) installDeployer(ctx context.Context, deployer string) error {
+func (o *installOptions) installDeployer(ctx context.Context, deployer, version string) error {
 	fmt.Printf("Installing %s deployer\n", deployer)
 
 	tempDir, err := os.MkdirTemp(".", fmt.Sprintf("%s-deployer-chart-tmp-*", deployer))
@@ -409,7 +419,7 @@ func (o *installOptions) installDeployer(ctx context.Context, deployer string) e
 	}()
 
 	landscaperChartURI := fmt.Sprintf("oci://europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper/github.com/gardener/landscaper/%s-deployer/charts/%s-deployer --untar --version %s",
-		deployer, deployer, o.landscaperChartVersion)
+		deployer, deployer, version)
 	pullCmd := fmt.Sprintf("helm pull %s -d %s", landscaperChartURI, tempDir)
 	if err := util.ExecCommandBlocking(pullCmd); err != nil {
 		return err
