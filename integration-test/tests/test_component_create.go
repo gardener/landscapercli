@@ -23,7 +23,7 @@ import (
 
 func RunComponentCreateTest(k8sClient client.Client, target *lsv1alpha1.Target, config *inttestutil.Config) error {
 	const (
-		componentName    = "github.com/gardener/landscapercli/nginx"
+		componentName    = "github.com/gardener/landscapercli/helloworld"
 		componentVersion = "v0.1.0"
 		testRootDir      = "landscapercli-integrationtest"
 		componentDirName = "demo-component"
@@ -166,7 +166,7 @@ func (t *componentCreateTest) addHelmDeployItemWithExternalChart(ctx context.Con
 	outBuf := &bytes.Buffer{}
 	cmd.SetOut(outBuf)
 	args := []string{
-		"nginx",
+		"helloworld",
 		"--component-directory",
 		t.componentDir,
 		"--oci-reference",
@@ -176,7 +176,7 @@ func (t *componentCreateTest) addHelmDeployItemWithExternalChart(ctx context.Con
 		"--cluster-param",
 		"target-cluster",
 		"--target-ns-param",
-		"nginx-namespace",
+		"helloworld-namespace",
 	}
 	cmd.SetArgs(args)
 
@@ -430,12 +430,12 @@ func (t *componentCreateTest) createInstallation(ctx context.Context, contextNam
 				},
 			},
 			ImportDataMappings: map[string]lsv1alpha1.AnyJSON{
-				"nginx-namespace": {RawMessage: []byte(`"` + t.config.TestNamespace + `"`)},
-				"password-1":      {RawMessage: []byte(`"pw1"`)},
-				"password-2":      {RawMessage: []byte(`"pw2"`)},
-				"word":            {RawMessage: []byte(`"test"`)},
-				"sleepTimeBefore": {RawMessage: []byte(`0`)},
-				"sleepTimeAfter":  {RawMessage: []byte(`0`)},
+				"helloworld-namespace": {RawMessage: []byte(`"` + t.config.TestNamespace + `"`)},
+				"password-1":           {RawMessage: []byte(`"pw1"`)},
+				"password-2":           {RawMessage: []byte(`"pw2"`)},
+				"word":                 {RawMessage: []byte(`"test"`)},
+				"sleepTimeBefore":      {RawMessage: []byte(`0`)},
+				"sleepTimeAfter":       {RawMessage: []byte(`0`)},
 			},
 		},
 	}
