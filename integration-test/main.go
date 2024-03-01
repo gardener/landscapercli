@@ -92,15 +92,16 @@ func run() error {
 		return fmt.Errorf("cannot parse K8s config: %w", err)
 	}
 
-	k8sClient, err := client.New(cfg, client.Options{
-		Scheme: scheme,
+	// we need a client with minimal scope because some CRDs might not already available
+	reducedk8sClient, err := client.New(cfg, client.Options{
+		Scheme: runtime.NewScheme(),
 	})
 	if err != nil {
-		return fmt.Errorf("cannot build K8s client: %w", err)
+		return fmt.Errorf("cannot build reduced K8s client: %w", err)
 	}
 
 	fmt.Println("========== Cleaning up before test ==========")
-	if err := forceDeleteNamespace(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries); err != nil {
+	if err := forceDeleteNamespace(reducedk8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries); err != nil {
 		return fmt.Errorf("Cleaning up before test: failed to delete namespace %s: %w", config.LandscaperNamespace, err)
 	}
 
@@ -114,6 +115,13 @@ func run() error {
 	fmt.Println("========== Running landscaper-cli quickstart install ==========")
 	if err := runQuickstartInstall(config); err != nil {
 		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
+	}
+
+	k8sClient, err := client.New(cfg, client.Options{
+		Scheme: scheme,
+	})
+	if err != nil {
+		return fmt.Errorf("cannot build K8s client: %w", err)
 	}
 
 	fmt.Println("Waiting for pods to get ready")
