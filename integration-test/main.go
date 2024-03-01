@@ -15,10 +15,7 @@ import (
 
 	componentclilog "github.com/gardener/component-cli/pkg/logger"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
-	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -92,19 +89,7 @@ func run() error {
 		return fmt.Errorf("cannot parse K8s config: %w", err)
 	}
 
-	// we need a client with minimal scope because some CRDs might not already available
-	reducedk8sClient, err := client.New(cfg, client.Options{
-		Scheme: runtime.NewScheme(),
-	})
-	if err != nil {
-		return fmt.Errorf("cannot build reduced K8s client: %w", err)
-	}
-
 	fmt.Println("========== Cleaning up before test ==========")
-	if err := forceDeleteNamespace(reducedk8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries); err != nil {
-		return fmt.Errorf("Cleaning up before test: failed to delete namespace %s: %w", config.LandscaperNamespace, err)
-	}
-
 	if err := runQuickstartUninstall(config); err != nil {
 		return fmt.Errorf("landscaper-cli quickstart uninstall failed: %w", err)
 	}
@@ -431,38 +416,6 @@ func (ReplicasPatch) Data(obj client.Object) ([]byte, error) {
 	}
 
 	return patchRaw, nil
-}
-
-func forceDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
-	ctx := context.Background()
-
-	validationConfig := &admissionv1.ValidatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "landscaper-validation-webhook",
-			Namespace: namespace,
-		},
-	}
-
-	if err := k8sClient.Delete(ctx, validationConfig); err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("failed to delete validating webhook configuration %s/landscaper-validation-webhook: %w", namespace, err)
-		}
-	}
-
-	namespaceRes := &corev1.Namespace{}
-	if err := k8sClient.Get(context.Background(), types.NamespacedName{Name: namespace}, namespaceRes); err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("failed to get landscaper namespace %s: %w", namespace, err)
-		}
-	} else {
-		if err := removeFinalizerLandscaperResources(ctx, k8sClient, namespace); err != nil {
-			return fmt.Errorf("failed to remove landscaper finalizers in namespace %s: %w", namespace, err)
-		}
-		if err := util.DeleteNamespace(k8sClient, namespace, sleepTime, maxRetries); err != nil {
-			return fmt.Errorf("forceDeleteNamespace: failed to delete namespace %s: %w", namespace, err)
-		}
-	}
-	return nil
 }
 
 func removeFinalizerLandscaperResources(ctx context.Context, k8sClient client.Client, namespace string) error {
