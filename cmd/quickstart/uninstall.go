@@ -4,24 +4,22 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
-	v1 "k8s.io/api/admissionregistration/v1"
-	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
-
+	"github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	v1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/gardener/landscaper/apis/core/v1alpha1"
 
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
@@ -221,80 +219,31 @@ func (o *uninstallOptions) containsDeployerRegistration(crds *extv1.CustomResour
 }
 
 func (o *uninstallOptions) deleteCrds(ctx context.Context, k8sClient client.Client, crds *extv1.CustomResourceDefinitionList) error {
+	landscaperCRDNames := []string{
+		"componentversionoverwrites.landscaper.gardener.cloud",
+		"contexts.landscaper.gardener.cloud",
+		"dataobjects.landscaper.gardener.cloud",
+		"deployerregistrations.landscaper.gardener.cloud",
+		"deployitems.landscaper.gardener.cloud",
+		"environments.landscaper.gardener.cloud",
+		"executions.landscaper.gardener.cloud",
+		"installations.landscaper.gardener.cloud",
+		"lshealthchecks.landscaper.gardener.cloud",
+		"syncobjects.landscaper.gardener.cloud",
+		"targets.landscaper.gardener.cloud",
+		"targetsyncs.landscaper.gardener.cloud",
+	}
+
 	for i := range crds.Items {
-		nextCrd := &crds.Items[i]
+		crd := &crds.Items[i]
+		if slices.Contains(landscaperCRDNames, crd.Name) {
 
-		found := true
+			if err := removeObjects(ctx, k8sClient, crd); err != nil {
+				return err
+			}
 
-		nextName := nextCrd.Name
-		switch nextName {
-		case "componentversionoverwrites.landscaper.gardener.cloud":
-			objectList := &v1alpha1.ComponentVersionOverwritesList{}
-			if err := removeCrdComponentversionoverwrites(ctx, k8sClient, nextName, objectList, nextCrd); err != nil {
-				return err
-			}
-		case "contexts.landscaper.gardener.cloud":
-			objectList := &v1alpha1.ContextList{}
-			if err := removeCrdContext(ctx, k8sClient, nextName, objectList, nextCrd); err != nil {
-				return err
-			}
-		case "dataobjects.landscaper.gardener.cloud":
-			objectList := &v1alpha1.DataObjectList{}
-			if err := removeCrdDataObject(ctx, k8sClient, nextName, objectList, nextCrd); err != nil {
-				return err
-			}
-		case "deployerregistrations.landscaper.gardener.cloud":
-			objectList := &v1alpha1.DeployerRegistrationList{}
-			if err := removeCrdDeployerRegistration(ctx, k8sClient, nextName, objectList, nextCrd); err != nil {
-				return err
-			}
-		case "deployitems.landscaper.gardener.cloud":
-			objectList := &v1alpha1.DeployItemList{}
-			if err := removeCrdDeployItem(ctx, k8sClient, nextName, objectList, nextCrd); err != nil {
-				return err
-			}
-		case "environments.landscaper.gardener.cloud":
-			objectList := &v1alpha1.EnvironmentList{}
-			if err := removeCrdEnvironment(ctx, k8sClient, nextName, objectList, nextCrd); err != nil {
-				return err
-			}
-		case "executions.landscaper.gardener.cloud":
-			objectList := &v1alpha1.ExecutionList{}
-			if err := removeCrdExecution(ctx, k8sClient, nextName, objectList, nextCrd); err != nil {
-				return err
-			}
-		case "installations.landscaper.gardener.cloud":
-			objectList := &v1alpha1.InstallationList{}
-			if err := removeCrdInstallation(ctx, k8sClient, nextName, objectList, nextCrd); err != nil {
-				return err
-			}
-		case "lshealthchecks.landscaper.gardener.cloud":
-			objectList := &v1alpha1.LsHealthCheckList{}
-			if err := removeCrdLsHealthCheck(ctx, k8sClient, nextName, objectList, nextCrd); err != nil {
-				return err
-			}
-		case "syncobjects.landscaper.gardener.cloud":
-			objectList := &v1alpha1.SyncObjectList{}
-			if err := removeCrdSyncObject(ctx, k8sClient, nextName, objectList, nextCrd); err != nil {
-				return err
-			}
-		case "targets.landscaper.gardener.cloud":
-			objectList := &v1alpha1.TargetList{}
-			if err := removeCrdTarget(ctx, k8sClient, nextName, objectList, nextCrd); err != nil {
-				return err
-			}
-		case "targetsyncs.landscaper.gardener.cloud":
-			objectList := &v1alpha1.TargetSyncList{}
-			if err := removeCrdTargetSync(ctx, k8sClient, nextName, objectList, nextCrd); err != nil {
-				return err
-			}
-		default:
-			found = false
-		}
-
-		if found {
-			fmt.Println("Removing CRD: " + nextName)
-			if err := k8sClient.Delete(ctx, nextCrd); err != nil {
+			fmt.Println("Removing CRD: " + crd.Name)
+			if err := k8sClient.Delete(ctx, crd); err != nil {
 				if !k8sErrors.IsNotFound(err) {
 					return err
 				}

@@ -5,222 +5,34 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gardener/landscaper/apis/core/v1alpha1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func removeCrdTargetSync(ctx context.Context, k8sClient client.Client, nextName string,
-	objectList *v1alpha1.TargetSyncList, nextCrd *extv1.CustomResourceDefinition) error {
-	fmt.Println("Removing objects of CRD: " + nextName)
+func removeObjects(ctx context.Context, k8sClient client.Client, crd *extv1.CustomResourceDefinition) error {
+	for k := range crd.Spec.Versions {
+		gvk := schema.GroupVersionKind{
+			Group:   crd.Spec.Group,
+			Version: crd.Spec.Versions[k].Name,
+			Kind:    crd.Spec.Names.Kind,
+		}
 
-	if err := k8sClient.List(ctx, objectList); err != nil {
-		return err
-	}
+		fmt.Printf("Removing objects of type %s\n", gvk)
 
-	for i := range objectList.Items {
-		nextItem := &objectList.Items[i]
-		if err := removeObject(ctx, k8sClient, nextItem); err != nil {
+		objectList := &unstructured.UnstructuredList{}
+		objectList.SetGroupVersionKind(gvk)
+		if err := k8sClient.List(ctx, objectList); err != nil {
 			return err
 		}
-	}
 
-	return nil
-}
-
-func removeCrdTarget(ctx context.Context, k8sClient client.Client, nextName string,
-	objectList *v1alpha1.TargetList, nextCrd *extv1.CustomResourceDefinition) error {
-	fmt.Println("Removing objects of CRD: " + nextName)
-
-	if err := k8sClient.List(ctx, objectList); err != nil {
-		return err
-	}
-
-	for i := range objectList.Items {
-		nextItem := &objectList.Items[i]
-		if err := removeObject(ctx, k8sClient, nextItem); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func removeCrdSyncObject(ctx context.Context, k8sClient client.Client, nextName string,
-	objectList *v1alpha1.SyncObjectList, nextCrd *extv1.CustomResourceDefinition) error {
-	fmt.Println("Removing objects of CRD: " + nextName)
-
-	if err := k8sClient.List(ctx, objectList); err != nil {
-		return err
-	}
-
-	for i := range objectList.Items {
-		nextItem := &objectList.Items[i]
-		if err := removeObject(ctx, k8sClient, nextItem); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func removeCrdLsHealthCheck(ctx context.Context, k8sClient client.Client, nextName string,
-	objectList *v1alpha1.LsHealthCheckList, nextCrd *extv1.CustomResourceDefinition) error {
-	fmt.Println("Removing objects of CRD: " + nextName)
-
-	if err := k8sClient.List(ctx, objectList); err != nil {
-		return err
-	}
-
-	for i := range objectList.Items {
-		nextItem := &objectList.Items[i]
-		if err := removeObject(ctx, k8sClient, nextItem); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func removeCrdInstallation(ctx context.Context, k8sClient client.Client, nextName string,
-	objectList *v1alpha1.InstallationList, nextCrd *extv1.CustomResourceDefinition) error {
-	fmt.Println("Removing objects of CRD: " + nextName)
-
-	if err := k8sClient.List(ctx, objectList); err != nil {
-		return err
-	}
-
-	for i := range objectList.Items {
-		nextItem := &objectList.Items[i]
-		if err := removeObject(ctx, k8sClient, nextItem); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func removeCrdExecution(ctx context.Context, k8sClient client.Client, nextName string,
-	objectList *v1alpha1.ExecutionList, nextCrd *extv1.CustomResourceDefinition) error {
-	fmt.Println("Removing objects of CRD: " + nextName)
-
-	if err := k8sClient.List(ctx, objectList); err != nil {
-		return err
-	}
-
-	for i := range objectList.Items {
-		nextItem := &objectList.Items[i]
-		if err := removeObject(ctx, k8sClient, nextItem); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func removeCrdEnvironment(ctx context.Context, k8sClient client.Client, nextName string,
-	objectList *v1alpha1.EnvironmentList, nextCrd *extv1.CustomResourceDefinition) error {
-	fmt.Println("Removing objects of CRD: " + nextName)
-
-	if err := k8sClient.List(ctx, objectList); err != nil {
-		return err
-	}
-
-	for i := range objectList.Items {
-		nextItem := &objectList.Items[i]
-		if err := removeObject(ctx, k8sClient, nextItem); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func removeCrdDeployItem(ctx context.Context, k8sClient client.Client, nextName string,
-	objectList *v1alpha1.DeployItemList, nextCrd *extv1.CustomResourceDefinition) error {
-	fmt.Println("Removing objects of CRD: " + nextName)
-
-	if err := k8sClient.List(ctx, objectList); err != nil {
-		return err
-	}
-
-	for i := range objectList.Items {
-		nextItem := &objectList.Items[i]
-		if err := removeObject(ctx, k8sClient, nextItem); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func removeCrdDeployerRegistration(ctx context.Context, k8sClient client.Client, nextName string,
-	objectList *v1alpha1.DeployerRegistrationList, nextCrd *extv1.CustomResourceDefinition) error {
-	fmt.Println("Removing objects of CRD: " + nextName)
-
-	if err := k8sClient.List(ctx, objectList); err != nil {
-		return err
-	}
-
-	for i := range objectList.Items {
-		nextItem := &objectList.Items[i]
-		if err := removeObject(ctx, k8sClient, nextItem); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func removeCrdDataObject(ctx context.Context, k8sClient client.Client, nextName string,
-	objectList *v1alpha1.DataObjectList, nextCrd *extv1.CustomResourceDefinition) error {
-	fmt.Println("Removing objects of CRD: " + nextName)
-
-	if err := k8sClient.List(ctx, objectList); err != nil {
-		return err
-	}
-
-	for i := range objectList.Items {
-		nextItem := &objectList.Items[i]
-		if err := removeObject(ctx, k8sClient, nextItem); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func removeCrdContext(ctx context.Context, k8sClient client.Client, nextName string,
-	objectList *v1alpha1.ContextList, nextCrd *extv1.CustomResourceDefinition) error {
-	fmt.Println("Removing objects of CRD: " + nextName)
-
-	if err := k8sClient.List(ctx, objectList); err != nil {
-		return err
-	}
-
-	for i := range objectList.Items {
-		nextItem := &objectList.Items[i]
-		if err := removeObject(ctx, k8sClient, nextItem); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func removeCrdComponentversionoverwrites(ctx context.Context, k8sClient client.Client, nextName string,
-	objectList *v1alpha1.ComponentVersionOverwritesList, nextCrd *extv1.CustomResourceDefinition) error {
-	fmt.Println("Removing objects of CRD: " + nextName)
-
-	if err := k8sClient.List(ctx, objectList); err != nil {
-		return err
-	}
-
-	for i := range objectList.Items {
-		nextItem := &objectList.Items[i]
-		if err := removeObject(ctx, k8sClient, nextItem); err != nil {
-			return err
+		for i := range objectList.Items {
+			item := &objectList.Items[i]
+			if err := removeObject(ctx, k8sClient, item); err != nil {
+				return err
+			}
 		}
 	}
 
