@@ -295,6 +295,7 @@ func runQuickstartUninstall(config *inttestutil.Config) error {
 		"--namespace",
 		config.LandscaperNamespace,
 		"--delete-namespace",
+		"--delete-crd",
 	}
 	uninstallCmd := quickstart.NewUninstallCommand(context.TODO())
 	uninstallCmd.SetArgs(uninstallArgs)
