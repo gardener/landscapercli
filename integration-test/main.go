@@ -104,10 +104,6 @@ func run() error {
 		return fmt.Errorf("Cleaning up before test: failed to delete namespace %s: %w", config.LandscaperNamespace, err)
 	}
 
-	if err := forceDeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries); err != nil {
-		return fmt.Errorf("Cleaning up before test: failed to delete namespace %s: %w", config.TestNamespace, err)
-	}
-
 	if err := runQuickstartUninstall(config); err != nil {
 		return fmt.Errorf("landscaper-cli quickstart uninstall failed: %w", err)
 	}
