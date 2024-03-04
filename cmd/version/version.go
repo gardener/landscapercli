@@ -2,6 +2,7 @@ package version
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/gardener/landscapercli/pkg/version"
 
@@ -37,7 +38,13 @@ func NewVersionCommand() *cobra.Command {
 				fmt.Printf("  Platform: %s\n", v.Platform)
 			}
 
-			fmt.Printf("\nCompatible Landscaper Version: %s", version.LandscaperGitVersion)
+			release, err := version.GetRelease()
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
+			fmt.Printf("\nDefault Landscaper Version: %s", release)
 
 			fmt.Printf("\nCompatible and included Component-Cli Version: %s", version.ComponentCliVersion)
 			fmt.Printf("\n\n")

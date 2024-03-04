@@ -10,19 +10,11 @@ import (
 	"text/template"
 	"time"
 
-	v1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
-
 	componentclilog "github.com/gardener/component-cli/pkg/logger"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
-	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/json"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -92,22 +84,7 @@ func run() error {
 		return fmt.Errorf("cannot parse K8s config: %w", err)
 	}
 
-	k8sClient, err := client.New(cfg, client.Options{
-		Scheme: scheme,
-	})
-	if err != nil {
-		return fmt.Errorf("cannot build K8s client: %w", err)
-	}
-
 	fmt.Println("========== Cleaning up before test ==========")
-	if err := forceDeleteNamespace(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries); err != nil {
-		return fmt.Errorf("Cleaning up before test: failed to delete namespace %s: %w", config.LandscaperNamespace, err)
-	}
-
-	if err := forceDeleteNamespace(k8sClient, config.TestNamespace, config.SleepTime, config.MaxRetries); err != nil {
-		return fmt.Errorf("Cleaning up before test: failed to delete namespace %s: %w", config.TestNamespace, err)
-	}
-
 	if err := runQuickstartUninstall(config); err != nil {
 		return fmt.Errorf("landscaper-cli quickstart uninstall failed: %w", err)
 	}
@@ -120,6 +97,13 @@ func run() error {
 		return fmt.Errorf("landscaper-cli quickstart install failed: %w", err)
 	}
 
+	k8sClient, err := client.New(cfg, client.Options{
+		Scheme: scheme,
+	})
+	if err != nil {
+		return fmt.Errorf("cannot build K8s client: %w", err)
+	}
+
 	fmt.Println("Waiting for pods to get ready")
 	timeout, err := util.CheckAndWaitUntilAllPodsAreReady(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries)
 	if err != nil {
@@ -128,6 +112,14 @@ func run() error {
 	if timeout {
 		return fmt.Errorf("timeout while waiting for pods")
 	}
+
+	fmt.Println("========== Fetching ingress to OCI registry ==========")
+	ingressUrl, err := util.CheckIngressReady(k8sClient, config.LandscaperNamespace, config.SleepTime, config.MaxRetries)
+	if err != nil {
+		return fmt.Errorf("error fetching ingress url: %w", err)
+	}
+	config.ExternalRegistryBaseURL = ingressUrl
+	fmt.Println("External registry base URL: " + config.ExternalRegistryBaseURL)
 
 	fmt.Println("========== Starting port-forward to OCI registry ==========")
 	resultChan := make(chan util.CmdResult)
@@ -157,7 +149,7 @@ func run() error {
 	time.Sleep(5 * time.Second)
 
 	fmt.Println("========== Uploading echo-server helm chart to OCI registry ==========")
-	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace)
+	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace, config.ExternalRegistryBaseURL)
 	if err != nil {
 		return fmt.Errorf("upload of echo-server helm chart failed: %w", err)
 	}
@@ -237,7 +229,7 @@ func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigP
 	return portforwardCmd, nil
 }
 
-func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
+func uploadEchoServerHelmChart(landscaperNamespace, externalRegistryBaseURL string) (string, error) {
 	tempDir1, err := os.MkdirTemp(".", "landscaper-chart-tmp1-*")
 	if err != nil {
 		return "", err
@@ -276,7 +268,7 @@ func uploadEchoServerHelmChart(landscaperNamespace string) (string, error) {
 		return "", fmt.Errorf("helm push failed: %w", err)
 	}
 
-	helmChartRef := fmt.Sprintf("oci-registry.%s.svc.cluster.local:5000/echo-server:1.1.0", landscaperNamespace)
+	helmChartRef := externalRegistryBaseURL + "/echo-server:1.1.0"
 	return helmChartRef, nil
 }
 
@@ -287,6 +279,7 @@ func runQuickstartUninstall(config *inttestutil.Config) error {
 		"--namespace",
 		config.LandscaperNamespace,
 		"--delete-namespace",
+		"--delete-crd",
 	}
 	uninstallCmd := quickstart.NewUninstallCommand(context.TODO())
 	uninstallCmd.SetArgs(uninstallArgs)
@@ -321,9 +314,12 @@ func runQuickstartInstall(config *inttestutil.Config) error {
 	installArgs := []string{
 		"--kubeconfig",
 		config.Kubeconfig,
-		"--landscaper-values",
-		tmpFile.Name(),
 		"--install-oci-registry",
+		"--install-registry-ingress",
+		"--registry-username",
+		inttestutil.Testuser,
+		"--registry-password",
+		inttestutil.Testpw,
 		"--namespace",
 		config.LandscaperNamespace,
 	}
@@ -371,165 +367,4 @@ landscaper:
 	}
 
 	return b.Bytes(), nil
-}
-
-type FinalizerPatch struct {
-}
-
-func (FinalizerPatch) Type() types.PatchType {
-	return types.MergePatchType
-}
-
-func (FinalizerPatch) Data(obj client.Object) ([]byte, error) {
-	patch := map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"finalizers": nil,
-		},
-	}
-
-	patchRaw, err := json.Marshal(patch)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal patch: %w", err)
-	}
-
-	return patchRaw, nil
-}
-
-type ReplicasPatch struct {
-}
-
-func (ReplicasPatch) Type() types.PatchType {
-	return types.MergePatchType
-}
-
-func (ReplicasPatch) Data(obj client.Object) ([]byte, error) {
-	patch := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"replicas": 0,
-		},
-	}
-
-	patchRaw, err := json.Marshal(patch)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal patch: %w", err)
-	}
-
-	return patchRaw, nil
-}
-
-func forceDeleteNamespace(k8sClient client.Client, namespace string, sleepTime time.Duration, maxRetries int) error {
-	ctx := context.Background()
-
-	validationConfig := &admissionv1.ValidatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "landscaper-validation-webhook",
-			Namespace: namespace,
-		},
-	}
-
-	if err := k8sClient.Delete(ctx, validationConfig); err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("failed to delete validating webhook configuration %s/landscaper-validation-webhook: %w", namespace, err)
-		}
-	}
-
-	namespaceRes := &corev1.Namespace{}
-	if err := k8sClient.Get(context.Background(), types.NamespacedName{Name: namespace}, namespaceRes); err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			return fmt.Errorf("failed to get landscaper namespace %s: %w", namespace, err)
-		}
-	} else {
-		if err := removeFinalizerLandscaperResources(ctx, k8sClient, namespace); err != nil {
-			return fmt.Errorf("failed to remove landscaper finalizers in namespace %s: %w", namespace, err)
-		}
-		if err := util.DeleteNamespace(k8sClient, namespace, sleepTime, maxRetries); err != nil {
-			return fmt.Errorf("forceDeleteNamespace: failed to delete namespace %s: %w", namespace, err)
-		}
-	}
-	return nil
-}
-
-func removeFinalizerLandscaperResources(ctx context.Context, k8sClient client.Client, namespace string) error {
-	patch := FinalizerPatch{}
-
-	// Scale down the deployments, so that there are in particular no more landscaper pods that could re-create the
-	// finalizers that we are going to remove below.
-	deploymentList := &v1.DeploymentList{}
-	if err := k8sClient.List(ctx, deploymentList, &client.ListOptions{Namespace: namespace}); err != nil {
-		return fmt.Errorf("failed to list deployments: %w", err)
-	}
-
-	replicaPatch := ReplicasPatch{}
-	for _, deployment := range deploymentList.Items {
-		if err := k8sClient.Patch(ctx, &deployment, replicaPatch); err != nil {
-			return fmt.Errorf("failed to scale down deployment %q: %w", deployment.Name, err)
-		}
-
-		if err := wait.PollUntilContextTimeout(ctx, time.Second, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {
-			deploy := &v1.Deployment{}
-			if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(&deployment), deploy); err != nil {
-				return false, fmt.Errorf("failed to get deployment %q: %w", deployment.Name, err)
-			}
-			return deploy.Status.Replicas == 0, nil
-		}); err != nil {
-			return fmt.Errorf("failed to wait until deployment %q was scaled down: %w", deployment.Name, err)
-		}
-	}
-
-	podList := &corev1.PodList{}
-	if err := k8sClient.List(ctx, podList, &client.ListOptions{Namespace: namespace}); err != nil {
-		return fmt.Errorf("failed to list pods: %w", err)
-	}
-
-	for _, pod := range podList.Items {
-		if err := k8sClient.Patch(ctx, &pod, patch); err != nil {
-			return fmt.Errorf("failed to patch pod %q: %w", pod.Name, err)
-		}
-	}
-
-	deployerRegList := &lsv1alpha1.DeployerRegistrationList{}
-	if err := k8sClient.List(ctx, deployerRegList, &client.ListOptions{Namespace: namespace}); err != nil {
-		return fmt.Errorf("failed to list deployer registrations: %w", err)
-	}
-
-	for _, deployerReg := range deployerRegList.Items {
-		if err := k8sClient.Patch(ctx, &deployerReg, patch); err != nil {
-			return fmt.Errorf("failed to patch deployer registration %q: %w", deployerReg.Name, err)
-		}
-	}
-
-	installationList := &lsv1alpha1.InstallationList{}
-	if err := k8sClient.List(ctx, installationList, &client.ListOptions{Namespace: namespace}); err != nil {
-		return fmt.Errorf("failed to list installations: %w", err)
-	}
-
-	for _, installation := range installationList.Items {
-		if err := k8sClient.Patch(ctx, &installation, patch); err != nil {
-			return fmt.Errorf("failed to patch installation %q: %w", installation.Name, err)
-		}
-	}
-
-	executionList := &lsv1alpha1.ExecutionList{}
-	if err := k8sClient.List(ctx, executionList, &client.ListOptions{Namespace: namespace}); err != nil {
-		return fmt.Errorf("failed to list executions: %w", err)
-	}
-
-	for _, execution := range executionList.Items {
-		if err := k8sClient.Patch(ctx, &execution, patch); err != nil {
-			return fmt.Errorf("failed to patch execution %q: %w", execution.Name, err)
-		}
-	}
-
-	deployItemList := &lsv1alpha1.DeployItemList{}
-	if err := k8sClient.List(ctx, deployItemList, &client.ListOptions{Namespace: namespace}); err != nil {
-		return fmt.Errorf("failed to list deploy items: %w", err)
-	}
-
-	for _, deployItem := range deployItemList.Items {
-		if err := k8sClient.Patch(ctx, &deployItem, patch); err != nil {
-			return fmt.Errorf("failed to patch deploy item %q: %w", deployItem.Name, err)
-		}
-	}
-
-	return nil
 }

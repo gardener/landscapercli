@@ -9,15 +9,19 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
+
+	version2 "github.com/gardener/landscapercli/pkg/version"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"sigs.k8s.io/yaml"
-
-	"github.com/gardener/landscapercli/pkg/version"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -29,6 +33,14 @@ import (
 
 const (
 	defaultNamespace = "landscaper"
+
+	latestRelease = "latest release"
+
+	installExample = `
+landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml
+
+landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw
+`
 )
 
 type installOptions struct {
@@ -79,7 +91,7 @@ func NewInstallCommand(ctx context.Context) *cobra.Command {
 		Use:     "install --kubeconfig [kubconfig.yaml] --landscaper-values [landscaper-values.yaml] --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw",
 		Aliases: []string{"i"},
 		Short:   "command to install Landscaper (including Container, Helm, and Manifest deployers) in a target cluster. An OCI registry for testing can be optionally installed",
-		Example: "landscaper-cli quickstart install --kubeconfig ./kubconfig.yaml --landscaper-values ./landscaper-values.yaml --namespace landscaper --install-oci-registry --install-registry-ingress --registry-username testuser --registry-password some-pw",
+		Example: installExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
@@ -100,20 +112,20 @@ func NewInstallCommand(ctx context.Context) *cobra.Command {
 
 func (o *installOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
-	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where Landscaper and the OCI registry will get installed")
-	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the Landscaper Helm installation")
-	fs.BoolVar(&o.instOCIRegistry, "install-oci-registry", false, "install an OCI registry in the target cluster")
-	fs.BoolVar(&o.instRegistryIngress, "install-registry-ingress", false, `install an ingress for accessing the OCI registry. 
+	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where Landscaper and the OCI registry will get installed (optional)")
+	fs.StringVar(&o.landscaperValuesPath, "landscaper-values", "", "path to values.yaml for the Landscaper Helm installation (optional)")
+	fs.BoolVar(&o.instOCIRegistry, "install-oci-registry", false, "install an OCI registry in the target cluster (optional)")
+	fs.BoolVar(&o.instRegistryIngress, "install-registry-ingress", false, `install an ingress for accessing the OCI registry (optional). 
 the credentials must be provided via the flags "--registry-username" and "--registry-password".
 the Landscaper instance will then be automatically configured with these credentials.
 prerequisites (!):
  - the target cluster must be a Gardener Shoot (TLS is provided via the Gardener cert manager)
  - a nginx ingress controller must be deployed in the target cluster
  - the command "htpasswd" must be installed on your local machine`)
-	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", version.LandscaperChartVersion,
-		"use a custom Landscaper chart version (corresponds to Landscaper Github release with the same version number)")
-	fs.StringVar(&o.registryUsername, "registry-username", "", "username for authenticating at the OCI registry")
-	fs.StringVar(&o.registryPassword, "registry-password", "", "password for authenticating at the OCI registry")
+	fs.StringVar(&o.landscaperChartVersion, "landscaper-chart-version", latestRelease,
+		"use a custom Landscaper chart version (optional)")
+	fs.StringVar(&o.registryUsername, "registry-username", "", "username for authenticating at the OCI registry (optional)")
+	fs.StringVar(&o.registryPassword, "registry-password", "", "password for authenticating at the OCI registry (optional)")
 }
 
 func (o *installOptions) ReadLandscaperValues() error {
@@ -177,8 +189,32 @@ func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 		}
 	}
 
-	if err := o.installLandscaper(ctx); err != nil {
+	version := o.landscaperChartVersion
+	if version == latestRelease {
+		version, err = version2.GetRelease()
+		if err != nil {
+			return fmt.Errorf("cannot get latest Landscaper release: %w", err)
+		}
+	}
+
+	if err := o.installLandscaper(ctx, version); err != nil {
 		return fmt.Errorf("cannot install landscaper: %w", err)
+	}
+
+	if err := o.waitForCrds(ctx); err != nil {
+		return fmt.Errorf("waiting for crds failed: %w", err)
+	}
+
+	if err := o.installDeployer(ctx, "helm", version); err != nil {
+		return fmt.Errorf("cannot install helm deployer: %w", err)
+	}
+
+	if err := o.installDeployer(ctx, "manifest", version); err != nil {
+		return fmt.Errorf("cannot install manifest deployer: %w", err)
+	}
+
+	if err := o.installDeployer(ctx, "container", version); err != nil {
+		return fmt.Errorf("cannot install container deployer: %w", err)
 	}
 
 	if o.instOCIRegistry {
@@ -259,23 +295,17 @@ func (o *installOptions) Complete(args []string) error {
 }
 
 func (o *installOptions) generateLandscaperValuesOverride() ([]byte, error) {
-	defaultDeployers := ""
-	if len(o.landscaperValues.Landscaper.Landscaper.Deployers) == 0 {
-		defaultDeployers = `
-    deployers:
-    - container
-    - helm
-    - manifest`
-	}
 
 	landscaperValuesOverride := fmt.Sprintf(`
 landscaper:
-  landscaper:%s
+  landscaper:
+    deployers: []
     deployerManagement:
+      disable: true
       namespace: %s
       agent:
-        namespace: %s
-`, defaultDeployers, o.namespace, o.namespace)
+        disable: true
+`, o.namespace)
 
 	if o.instRegistryIngress {
 		// when installing the ingress, we must add the registry credentials to the Landscaper values file
@@ -309,7 +339,7 @@ landscaper:
 	return []byte(landscaperValuesOverride), nil
 }
 
-func (o *installOptions) installLandscaper(ctx context.Context) error {
+func (o *installOptions) installLandscaper(ctx context.Context, version string) error {
 	fmt.Println("Installing Landscaper")
 
 	tempDir, err := os.MkdirTemp(".", "landscaper-chart-tmp-*")
@@ -318,11 +348,11 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 	}
 	defer func() {
 		if err := os.RemoveAll(tempDir); err != nil {
-			fmt.Printf("cannot remove temporary directory %s: %s", tempDir, err.Error())
+			fmt.Printf("cannot remove temporary directory %s: %s\n", tempDir, err.Error())
 		}
 	}()
 
-	landscaperChartURI := fmt.Sprintf("oci://europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper/github.com/gardener/landscaper/charts/landscaper --untar --version %s", o.landscaperChartVersion)
+	landscaperChartURI := fmt.Sprintf("oci://europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper/github.com/gardener/landscaper/charts/landscaper --untar --version %s", version)
 	pullCmd := fmt.Sprintf("helm pull %s -d %s", landscaperChartURI, tempDir)
 	if err := util.ExecCommandBlocking(pullCmd); err != nil {
 		return err
@@ -371,6 +401,54 @@ func (o *installOptions) installLandscaper(ctx context.Context) error {
 	}
 
 	fmt.Printf("Landscaper installation succeeded!\n\n")
+
+	return nil
+}
+
+func (o *installOptions) installDeployer(ctx context.Context, deployer, version string) error {
+	fmt.Printf("Installing %s deployer\n", deployer)
+
+	tempDir, err := os.MkdirTemp(".", fmt.Sprintf("%s-deployer-chart-tmp-*", deployer))
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			fmt.Printf("cannot remove temporary directory %s: %s\n", tempDir, err.Error())
+		}
+	}()
+
+	landscaperChartURI := fmt.Sprintf("oci://europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper/github.com/gardener/landscaper/%s-deployer/charts/%s-deployer --untar --version %s",
+		deployer, deployer, version)
+	pullCmd := fmt.Sprintf("helm pull %s -d %s", landscaperChartURI, tempDir)
+	if err := util.ExecCommandBlocking(pullCmd); err != nil {
+		return err
+	}
+
+	fileInfos, err := os.ReadDir(tempDir)
+	if err != nil {
+		return err
+	}
+
+	if len(fileInfos) != 1 {
+		return fmt.Errorf("found more than 1 item in temp directory for %s Chart export", deployer)
+	}
+	chartPath := path.Join(tempDir, fileInfos[0].Name())
+
+	installCommand := fmt.Sprintf(
+		"helm upgrade --install --namespace %s %s-deployer %s --kubeconfig %s",
+		o.namespace,
+		deployer,
+		chartPath,
+		o.kubeconfigPath,
+	)
+
+	if err := util.ExecCommandBlocking(installCommand); err != nil {
+		return err
+	}
+
+	fmt.Printf("%s installation succeeded!\n\n", deployer)
+
 	return nil
 }
 
@@ -392,4 +470,59 @@ func (o *installOptions) installOCIRegistry(ctx context.Context, k8sClient clien
 
 	fmt.Print("OCI registry installation succeeded!\n\n")
 	return nil
+}
+
+func (o *installOptions) waitForCrds(ctx context.Context) error {
+	cfg, err := clientcmd.BuildConfigFromFlags("", o.kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("cannot parse K8s config: %w", err)
+	}
+
+	k8sClient, err := client.New(cfg, client.Options{
+		Scheme: scheme,
+	})
+
+	if err != nil {
+		return fmt.Errorf("cannot build K8s client: %w", err)
+	}
+
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 1*time.Minute, true, func(ctx context.Context) (done bool, err error) {
+		fmt.Println("waiting for CRDs")
+
+		crdName := "contexts.landscaper.gardener.cloud"
+		if crdExists := o.crdExists(ctx, k8sClient, crdName); !crdExists {
+			return false, nil
+		}
+
+		crdName = "dataobjects.landscaper.gardener.cloud"
+		if crdExists := o.crdExists(ctx, k8sClient, crdName); !crdExists {
+			return false, nil
+		}
+
+		crdName = "deployitems.landscaper.gardener.cloud"
+		if crdExists := o.crdExists(ctx, k8sClient, crdName); !crdExists {
+			return false, nil
+		}
+
+		crdName = "targets.landscaper.gardener.cloud"
+		if crdExists := o.crdExists(ctx, k8sClient, crdName); !crdExists {
+			return false, nil
+		}
+
+		return true, nil
+	})
+
+	return err
+}
+
+func (o *installOptions) crdExists(ctx context.Context, k8sClient client.Client, crdName string) bool {
+	crd := &extv1.CustomResourceDefinition{}
+	crd.SetName(crdName)
+
+	if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(crd), crd); err != nil {
+		fmt.Printf("Crd not found: %s\n\n", crdName)
+		return false
+	}
+
+	return true
 }

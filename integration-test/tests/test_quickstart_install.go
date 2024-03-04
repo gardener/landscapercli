@@ -23,12 +23,13 @@ func RunQuickstartInstallTest(k8sClient client.Client, target *lsv1alpha1.Target
 	}
 
 	test := quickstartInstallTest{
-		k8sClient:    k8sClient,
-		target:       target,
-		helmChartRef: helmChartRef,
-		namespace:    config.TestNamespace,
-		sleepTime:    config.SleepTime,
-		maxRetries:   config.MaxRetries,
+		k8sClient:               k8sClient,
+		target:                  target,
+		helmChartRef:            helmChartRef,
+		namespace:               config.TestNamespace,
+		sleepTime:               config.SleepTime,
+		maxRetries:              config.MaxRetries,
+		externalRegistryBaseURL: config.ExternalRegistryBaseURL,
 	}
 	err = test.run()
 	if err != nil {
@@ -46,12 +47,13 @@ func RunQuickstartInstallTest(k8sClient client.Client, target *lsv1alpha1.Target
 }
 
 type quickstartInstallTest struct {
-	k8sClient    client.Client
-	target       *lsv1alpha1.Target
-	helmChartRef string
-	namespace    string
-	sleepTime    time.Duration
-	maxRetries   int
+	k8sClient               client.Client
+	target                  *lsv1alpha1.Target
+	helmChartRef            string
+	namespace               string
+	sleepTime               time.Duration
+	maxRetries              int
+	externalRegistryBaseURL string
 }
 
 func (t *quickstartInstallTest) run() error {
@@ -78,7 +80,14 @@ func (t *quickstartInstallTest) run() error {
 		return fmt.Errorf("cannot create target: %w", err)
 	}
 
-	inst, err := buildHelmInstallation(instName, t.target, t.helmChartRef, t.namespace)
+	contextName := "installcontext"
+	err = inttestutil.CreateContext(ctx, t.k8sClient, t.externalRegistryBaseURL,
+		t.namespace, contextName)
+	if err != nil {
+		return fmt.Errorf("cannot create context: %w", err)
+	}
+
+	inst, err := buildHelmInstallation(instName, t.target, t.helmChartRef, t.namespace, contextName)
 	if err != nil {
 		return fmt.Errorf("cannot build helm installation: %w", err)
 	}
@@ -101,7 +110,7 @@ func (t *quickstartInstallTest) run() error {
 	return nil
 }
 
-func buildHelmInstallation(name string, target *lsv1alpha1.Target, helmChartRef, appNamespace string) (*lsv1alpha1.Installation, error) {
+func buildHelmInstallation(name string, target *lsv1alpha1.Target, helmChartRef, appNamespace, contextName string) (*lsv1alpha1.Installation, error) {
 	inlineBlueprint := fmt.Sprintf(`
         apiVersion: landscaper.gardener.cloud/v1alpha1
         kind: Blueprint
@@ -159,6 +168,7 @@ func buildHelmInstallation(name string, target *lsv1alpha1.Target, helmChartRef,
 			},
 		},
 		Spec: lsv1alpha1.InstallationSpec{
+			Context: contextName,
 			Blueprint: lsv1alpha1.BlueprintDefinition{
 				Inline: &lsv1alpha1.InlineBlueprint{
 					Filesystem: lsv1alpha1.AnyJSON{RawMessage: marshalledFilesystem},

@@ -1,6 +1,8 @@
 # Quickstart Install
 
-The `quickstart uninstall` command allows to uninstall the landscaper and OCI registry in a specified kubernetes cluster, such as a minikube, kind or garden shoot cluster. It is intended to be used to uninstall the landscaper and OCI registry from the `quickstart install` command.
+The `quickstart uninstall` command allows to uninstall the landscaper and OCI registry in a specified kubernetes cluster, 
+such as a minikube, kind or garden shoot cluster. It is intended to be used to uninstall the landscaper and OCI registry 
+from the `quickstart install` command.
 
 # Prerequisites
 - K8s cluster

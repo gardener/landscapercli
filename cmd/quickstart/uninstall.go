@@ -4,21 +4,22 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
-
+	"github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	v1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/gardener/landscaper/apis/core/v1alpha1"
 
 	"github.com/gardener/landscapercli/pkg/logger"
 	"github.com/gardener/landscapercli/pkg/util"
@@ -28,15 +29,16 @@ type uninstallOptions struct {
 	kubeconfigPath  string
 	namespace       string
 	deleteNamespace bool
+	deleteCrd       bool
 }
 
 func NewUninstallCommand(ctx context.Context) *cobra.Command {
 	opts := &uninstallOptions{}
 	cmd := &cobra.Command{
-		Use:     "uninstall --kubeconfig [kubconfig.yaml] --delete-namespace",
+		Use:     "uninstall --kubeconfig [kubconfig.yaml] --delete-namespace --delete-crd",
 		Aliases: []string{"u"},
 		Short:   "command to uninstall Landscaper and OCI registry (from the install command) in a target cluster",
-		Example: "landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace landscaper --delete-namespace",
+		Example: "landscaper-cli quickstart uninstall --kubeconfig ./kubconfig.yaml --namespace landscaper --delete-namespace --delete-crd",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := opts.Complete(args); err != nil {
 				fmt.Println(err.Error())
@@ -101,8 +103,10 @@ func (o *uninstallOptions) Complete(args []string) error {
 
 func (o *uninstallOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.kubeconfigPath, "kubeconfig", "", "path to the kubeconfig of the target cluster")
-	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where Landscaper and the OCI registry are installed")
-	fs.BoolVar(&o.deleteNamespace, "delete-namespace", false, "deletes the namespace (otherwise secrets, service accounts etc. of the landscaper installation in the namespace are not removed)")
+	fs.StringVar(&o.namespace, "namespace", defaultNamespace, "namespace where Landscaper and the OCI registry are installed (optional)")
+	fs.BoolVar(&o.deleteNamespace, "delete-namespace", false, "deletes the namespace (otherwise secrets, service accounts etc. of the landscaper installation in the namespace are not removed) (optional, default false)")
+	fs.BoolVar(&o.deleteCrd, "delete-crd", false, "deletes the Landscaper CRDs and all CRs of theses types without uninstalling the data deployed by them (optional, default false)")
+
 }
 
 func (o *uninstallOptions) uninstallOCIRegistry(ctx context.Context, k8sClient client.Client) error {
@@ -115,27 +119,77 @@ func (o *uninstallOptions) uninstallOCIRegistry(ctx context.Context, k8sClient c
 
 func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient client.Client) error {
 	fmt.Println("Removing deployer registrations")
-	deployerRegistrations := v1alpha1.DeployerRegistrationList{}
-	if err := k8sClient.List(ctx, &deployerRegistrations); err != nil {
+
+	crdList := &extv1.CustomResourceDefinitionList{}
+	if err := k8sClient.List(ctx, crdList); err != nil {
 		return err
 	}
 
-	for _, registration := range deployerRegistrations.Items {
-		if err := k8sClient.Delete(ctx, &registration); err != nil {
+	if o.containsDeployerRegistration(crdList) {
+		deployerRegistrations := v1alpha1.DeployerRegistrationList{}
+		if err := k8sClient.List(ctx, &deployerRegistrations); err != nil {
+			return err
+		}
+
+		for _, registration := range deployerRegistrations.Items {
+			if err := k8sClient.Delete(ctx, &registration); err != nil {
+				return err
+			}
+		}
+
+		if err := waitForRegistrationsRemoved(ctx, k8sClient); err != nil {
 			return err
 		}
 	}
 
-	if err := waitForRegistrationsRemoved(ctx, k8sClient); err != nil {
-		return err
-	}
-
-	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", o.namespace, o.kubeconfigPath))
+	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s helm-deployer --kubeconfig %s", o.namespace, o.kubeconfigPath))
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			// Ignore error if the release that should be deleted was not found ;)
-			fmt.Println("Release not found...Skipping")
+			fmt.Println("Helm deployer release not found...Skipping")
 		} else {
+			return err
+		}
+	}
+
+	err = util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s manifest-deployer --kubeconfig %s", o.namespace, o.kubeconfigPath))
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			// Ignore error if the release that should be deleted was not found ;)
+			fmt.Println("Manifest deployer release not found...Skipping")
+		} else {
+			return err
+		}
+	}
+
+	err = util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s container-deployer --kubeconfig %s", o.namespace, o.kubeconfigPath))
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			// Ignore error if the release that should be deleted was not found ;)
+			fmt.Println("Container deployer release not found...Skipping")
+		} else {
+			return err
+		}
+	}
+
+	err = util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s landscaper --kubeconfig %s", o.namespace, o.kubeconfigPath))
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			// Ignore error if the release that should be deleted was not found ;)
+			fmt.Println("Landscaper release not found...Skipping")
+		} else {
+			return err
+		}
+	}
+
+	fmt.Println("Removing Validating Webhook")
+	if err = o.deleteWebhook(ctx, k8sClient); err != nil {
+		return err
+	}
+
+	if o.deleteCrd {
+		fmt.Println("Removing CRDs")
+		if err = o.deleteCrds(ctx, k8sClient, crdList); err != nil {
 			return err
 		}
 	}
@@ -152,6 +206,72 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 	}
 
 	return nil
+}
+
+func (o *uninstallOptions) containsDeployerRegistration(crds *extv1.CustomResourceDefinitionList) bool {
+	for i := range crds.Items {
+		if crds.Items[i].Name == "deployerregistrations.landscaper.gardener.cloud" {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (o *uninstallOptions) deleteCrds(ctx context.Context, k8sClient client.Client, crds *extv1.CustomResourceDefinitionList) error {
+
+	landscaperCRDNames := []string{
+		"componentversionoverwrites.landscaper.gardener.cloud",
+		"contexts.landscaper.gardener.cloud",
+		"dataobjects.landscaper.gardener.cloud",
+		"deployerregistrations.landscaper.gardener.cloud",
+		"deployitems.landscaper.gardener.cloud",
+		"environments.landscaper.gardener.cloud",
+		"executions.landscaper.gardener.cloud",
+		"installations.landscaper.gardener.cloud",
+		"lshealthchecks.landscaper.gardener.cloud",
+		"syncobjects.landscaper.gardener.cloud",
+		"targets.landscaper.gardener.cloud",
+		"targetsyncs.landscaper.gardener.cloud",
+	}
+
+	for i := range crds.Items {
+		crd := &crds.Items[i]
+		if slices.Contains(landscaperCRDNames, crd.Name) {
+
+			if err := removeObjects(ctx, k8sClient, crd); err != nil {
+				return err
+			}
+
+			fmt.Println("Removing CRD: " + crd.Name)
+			if err := k8sClient.Delete(ctx, crd); err != nil {
+				if !k8sErrors.IsNotFound(err) {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (o *uninstallOptions) deleteWebhook(ctx context.Context, k8sClient client.Client) error {
+	webhookname := "landscaper-validation-webhook"
+
+	for i := 0; i < 10; i++ {
+		webhook := &v1.ValidatingWebhookConfiguration{}
+		webhook.SetName(webhookname)
+		if err := k8sClient.Delete(ctx, webhook); err != nil {
+			if k8sErrors.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+
+		time.Sleep(time.Second * 2)
+	}
+
+	return fmt.Errorf("webhook could not be removed %s", webhookname)
 }
 
 func waitForRegistrationsRemoved(ctx context.Context, k8sClient client.Client) error {
