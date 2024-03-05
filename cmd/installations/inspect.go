@@ -25,7 +25,6 @@ type statusOptions struct {
 
 	allNamespaces  bool
 	detailMode     bool
-	showExecutions bool
 	showOnlyFailed bool
 
 	oyaml bool
@@ -133,13 +132,7 @@ func (o *statusOptions) run(ctx context.Context, cmd *cobra.Command, log logr.Lo
 		return nil
 	}
 
-	transformer := inspect.Transformer{
-		DetailedMode:   o.detailMode,
-		ShowExecutions: o.showExecutions,
-		ShowOnlyFailed: o.showOnlyFailed,
-		ShowNamespaces: o.allNamespaces,
-		WideMode:       o.owide,
-	}
+	transformer := inspect.NewTransformer(o.detailMode, o.showOnlyFailed, o.allNamespaces, o.owide)
 
 	transformedTrees, err := transformer.TransformToPrintableTrees(installationTrees)
 	if err != nil {
@@ -164,7 +157,6 @@ func (o *statusOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVarP(&o.namespace, "namespace", "n", "", "namespace of the installation. Required if --kubeconfig is used.")
 	fs.BoolVarP(&o.allNamespaces, "all-namespaces", "A", false, "if present, lists installations across all namespaces. No installation name may be given and any given namespace will be ignored.")
 	fs.BoolVarP(&o.detailMode, "show-details", "d", false, "show detailed information about installations, executions and deployitems. Similar to kubectl describe installation installation-name.")
-	fs.BoolVarP(&o.showExecutions, "show-executions", "e", false, "show the executions in the tree. By default, the executions are not shown.")
 	fs.BoolVarP(&o.showOnlyFailed, "show-failed", "f", false, "show only items that are in phase 'Failed'. It also prints parent elements to the failed items.")
 	fs.BoolVarP(&o.oyaml, "oyaml", "y", false, "output in yaml format. Equivalent to '-o yaml'.")
 	fs.BoolVarP(&o.ojson, "ojson", "j", false, "output in json format. Equivalent to '-o json'.")

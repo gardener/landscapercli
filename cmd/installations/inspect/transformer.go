@@ -13,33 +13,42 @@ import (
 
 // Transformer can transform from []*InstallationTree to printable []PrintableTreeNodes with different transformation options.
 type Transformer struct {
-	DetailedMode   bool
-	ShowExecutions bool
-	ShowOnlyFailed bool
-	ShowNamespaces bool
-	WideMode       bool
+	detailedMode   bool
+	showOnlyFailed bool
+	showNamespaces bool
+	wideMode       bool
+}
+
+func NewTransformer(detailedMode, showOnlyFailed, showNamespaces, wideMode bool) *Transformer {
+	return &Transformer{
+		detailedMode:   detailedMode,
+		showOnlyFailed: showOnlyFailed,
+		showNamespaces: showNamespaces,
+		wideMode:       wideMode,
+	}
 }
 
 // TransformToPrintableTrees transform a []*InstallationTree to []PrintableTreeNodes for the Printer.
-func (t Transformer) TransformToPrintableTrees(installationTrees []*InstallationTree) ([]PrintableTreeNode, error) {
+func (t *Transformer) TransformToPrintableTrees(installationTrees []*InstallationTree) ([]PrintableTreeNode, error) {
 	var printableTrees []PrintableTreeNode
 
 	for _, installationTree := range installationTrees {
-		if t.ShowOnlyFailed {
+		if t.showOnlyFailed {
 			installationTree = installationTree.filterForFailedInstallation()
 		}
 
-		transformedInstallaltion, err := t.transformInstallation(installationTree)
+		check := &outdatedCheck{installationTree.Installation.Status.JobID}
+		transformedInstallation, err := t.transformInstallation(installationTree, check)
 		if err != nil {
 			return nil, fmt.Errorf("error in installation %s: %w", installationTree.Installation.Name, err)
 		}
 
-		printableTrees = append(printableTrees, *transformedInstallaltion)
+		printableTrees = append(printableTrees, *transformedInstallation)
 	}
 	return printableTrees, nil
 }
 
-func (t Transformer) transformInstallation(installationTree *InstallationTree) (*PrintableTreeNode, error) {
+func (t *Transformer) transformInstallation(installationTree *InstallationTree, check *outdatedCheck) (*PrintableTreeNode, error) {
 	printableNode := PrintableTreeNode{}
 	if installationTree == nil {
 		return &printableNode, nil
@@ -48,14 +57,17 @@ func (t Transformer) transformInstallation(installationTree *InstallationTree) (
 	installationTree.Installation.SetManagedFields(nil)
 
 	namespaceInfo := ""
-	if t.ShowNamespaces {
+	if t.showNamespaces {
 		namespaceInfo = fmt.Sprintf("%s/", installationTree.Installation.Namespace)
 	}
 
-	printableNode.Headline = fmt.Sprintf("[%s] Installation %s%s",
-		formatStatus(string(installationTree.Installation.Status.InstallationPhase)), namespaceInfo, installationTree.Installation.Name)
+	printableNode.Headline = fmt.Sprintf("[%s%s] Installation %s%s",
+		formatStatus(string(installationTree.Installation.Status.InstallationPhase)),
+		formatOutdated(check.isInstallationOutdated(installationTree.Installation)),
+		namespaceInfo,
+		installationTree.Installation.Name)
 
-	if t.WideMode {
+	if t.wideMode {
 		wide := strings.Builder{}
 		cd := "inline"
 		if installationTree.Installation.Spec.ComponentDescriptor.Reference != nil {
@@ -70,7 +82,7 @@ func (t Transformer) transformInstallation(installationTree *InstallationTree) (
 		printableNode.WideData = wide.String()
 	}
 
-	if t.DetailedMode {
+	if t.detailedMode {
 		marshaledInstallation, err := yaml.Marshal(installationTree.Installation)
 		if err != nil {
 			return nil, fmt.Errorf("failed marshaling installation %s: %w", installationTree.Installation.Name, err)
@@ -83,7 +95,7 @@ func (t Transformer) transformInstallation(installationTree *InstallationTree) (
 
 	if len(installationTree.SubInstallations) > 0 {
 		for _, inst := range installationTree.SubInstallations {
-			transformedInstalaltion, err := t.transformInstallation(inst)
+			transformedInstalaltion, err := t.transformInstallation(inst, check)
 			if err != nil {
 				return nil, fmt.Errorf("error in subinstallation %s: %w", installationTree.Installation.Name, err)
 			}
@@ -92,7 +104,7 @@ func (t Transformer) transformInstallation(installationTree *InstallationTree) (
 	}
 
 	if installationTree.Execution != nil {
-		transformedExecution, err := t.transformExecution(installationTree.Execution)
+		transformedExecution, err := t.transformExecution(installationTree.Execution, check)
 		if err != nil {
 			return nil, fmt.Errorf("error in installation %s: %w", installationTree.Installation.Name, err)
 		}
@@ -103,7 +115,7 @@ func (t Transformer) transformInstallation(installationTree *InstallationTree) (
 	return &printableNode, nil
 }
 
-func (t Transformer) transformExecution(executionTree *ExecutionTree) (*PrintableTreeNode, error) {
+func (t *Transformer) transformExecution(executionTree *ExecutionTree, check *outdatedCheck) (*PrintableTreeNode, error) {
 	printableNode := PrintableTreeNode{}
 	if executionTree == nil {
 		return &printableNode, nil
@@ -111,22 +123,24 @@ func (t Transformer) transformExecution(executionTree *ExecutionTree) (*Printabl
 
 	executionTree.Execution.SetManagedFields(nil)
 
-	if t.ShowExecutions || t.DetailedMode {
-		printableNode.Headline = fmt.Sprintf("[%s] Execution %s",
-			formatStatus(string(executionTree.Execution.Status.ExecutionPhase)), executionTree.Execution.Name)
-	}
+	printableNode.Headline = fmt.Sprintf("[%s%s] Execution %s",
+		formatStatus(string(executionTree.Execution.Status.ExecutionPhase)),
+		formatOutdated(check.isExecutionOutdated(executionTree.Execution)),
+		executionTree.Execution.Name)
 
-	if t.DetailedMode {
+	if t.detailedMode {
 		marshaledExecution, err := yaml.Marshal(executionTree.Execution)
 		if err != nil {
 			return nil, fmt.Errorf("failed marshaling Execution %s: %w", executionTree.Execution.Name, err)
 		}
 		printableNode.Description = string(marshaledExecution)
+	} else if executionTree.Execution.Status.LastError != nil {
+		printableNode.Description = fmt.Sprintf("Last error: %s", executionTree.Execution.Status.LastError.Message)
 	}
 
 	if len(executionTree.DeployItems) > 0 {
 		for _, depItem := range executionTree.DeployItems {
-			transformedDeployItem, err := t.transformDeployItem(depItem)
+			transformedDeployItem, err := t.transformDeployItem(depItem, check)
 			if err != nil {
 				return nil, fmt.Errorf("error in Execution %s: %w", executionTree.Execution.Name, err)
 			}
@@ -137,7 +151,7 @@ func (t Transformer) transformExecution(executionTree *ExecutionTree) (*Printabl
 	return &printableNode, nil
 }
 
-func (t Transformer) transformDeployItem(deployItem *DeployItemLeaf) (*PrintableTreeNode, error) {
+func (t *Transformer) transformDeployItem(deployItem *DeployItemLeaf, check *outdatedCheck) (*PrintableTreeNode, error) {
 	printableNode := PrintableTreeNode{}
 	if deployItem == nil {
 		return &printableNode, nil
@@ -145,10 +159,12 @@ func (t Transformer) transformDeployItem(deployItem *DeployItemLeaf) (*Printable
 
 	deployItem.DeployItem.SetManagedFields(nil)
 
-	printableNode.Headline = fmt.Sprintf("[%s] DeployItem %s",
-		formatStatus(string(deployItem.DeployItem.Status.Phase)), deployItem.DeployItem.Name)
+	printableNode.Headline = fmt.Sprintf("[%s%s] DeployItem %s",
+		formatStatus(string(deployItem.DeployItem.Status.Phase)),
+		formatOutdated(check.isDeployItemOutdated(deployItem.DeployItem)),
+		deployItem.DeployItem.Name)
 
-	if t.WideMode {
+	if t.wideMode {
 		wide := strings.Builder{}
 		diType := deployItem.DeployItem.Spec.Type
 		wide.WriteString(fmt.Sprintf("Type: %s", diType))
@@ -210,7 +226,7 @@ func (t Transformer) transformDeployItem(deployItem *DeployItemLeaf) (*Printable
 		printableNode.WideData = wide.String()
 	}
 
-	if t.DetailedMode {
+	if t.detailedMode {
 		marshaledExecution, err := yaml.Marshal(deployItem.DeployItem)
 		if err != nil {
 			return nil, fmt.Errorf("failed marshaling DeployItem %s: %w", deployItem.DeployItem.Name, err)
@@ -244,4 +260,27 @@ func formatStatus(status string) string {
 	default:
 		return status
 	}
+}
+
+func formatOutdated(outdated bool) string {
+	if outdated {
+		return " (outdated)"
+	}
+	return ""
+}
+
+type outdatedCheck struct {
+	rootJobID string
+}
+
+func (o *outdatedCheck) isInstallationOutdated(inst *lsv1alpha1.Installation) bool {
+	return inst.Status.JobID != o.rootJobID
+}
+
+func (o *outdatedCheck) isExecutionOutdated(exec *lsv1alpha1.Execution) bool {
+	return exec.Status.JobID != o.rootJobID
+}
+
+func (o *outdatedCheck) isDeployItemOutdated(di *lsv1alpha1.DeployItem) bool {
+	return di.Status.JobID != o.rootJobID
 }
