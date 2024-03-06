@@ -24,7 +24,6 @@ landscaper-cli installations inspect
   -w, --owide               output some additional information. Equivalent to '-o wide'.
   -y, --oyaml               output in yaml format. Equivalent to '-o yaml'.
   -d, --show-details        show detailed information about installations, executions and deployitems. Similar to kubectl describe installation installation-name.
-  -e, --show-executions     show the executions in the tree. By default, the executions are not shown.
   -f, --show-failed         show only items that are in phase 'Failed'. It also prints parent elements to the failed items.
 ```
 
