@@ -3,6 +3,7 @@ package quickstart
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"time"
 
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -80,4 +81,46 @@ func removeObject(ctx context.Context, k8sClient client.Client, object client.Ob
 	} else {
 		return fmt.Errorf("object could not be removed %s", client.ObjectKeyFromObject(object).String())
 	}
+}
+
+func removeObjectsPatiently(ctx context.Context, k8sClient client.Client, crd *extv1.CustomResourceDefinition) error {
+	for k := range crd.Spec.Versions {
+		gvk := schema.GroupVersionKind{
+			Group:   crd.Spec.Group,
+			Version: crd.Spec.Versions[k].Name,
+			Kind:    crd.Spec.Names.Kind,
+		}
+
+		fmt.Printf("Removing objects of type %s\n", gvk)
+
+		objectList := &unstructured.UnstructuredList{}
+		objectList.SetGroupVersionKind(gvk)
+		if err := k8sClient.List(ctx, objectList); err != nil {
+			return err
+		}
+
+		for i := range objectList.Items {
+			item := &objectList.Items[i]
+			if err := k8sClient.Delete(ctx, item); err != nil {
+				return err
+			}
+		}
+
+		err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 4*time.Minute, true, func(ctx context.Context) (done bool, err error) {
+			fmt.Println("waiting for deployer registrations removed")
+
+			remainingObjectList := &unstructured.UnstructuredList{}
+			objectList.SetGroupVersionKind(gvk)
+			if err := k8sClient.List(ctx, remainingObjectList); err != nil {
+				return false, err
+			}
+
+			return len(remainingObjectList.Items) == 0, nil
+		})
+		if err != nil {
+			return fmt.Errorf("error while waiting for deployer registrations being removed: %w", err)
+		}
+	}
+
+	return nil
 }

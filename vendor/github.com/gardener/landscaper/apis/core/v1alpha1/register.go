@@ -57,10 +57,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&LsHealthCheckList{},
 		&ComponentVersionOverwrites{},
 		&ComponentVersionOverwritesList{},
-		&Environment{},
-		&EnvironmentList{},
-		&DeployerRegistration{},
-		&DeployerRegistrationList{},
 		&SyncObject{},
 		&SyncObjectList{},
 		&TargetSync{},
@@ -76,9 +72,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 // ResourceDefinition defines the custom resources of this version.
 var ResourceDefinition = func() lsschema.CustomResourceDefinitions {
 	return lsschema.CustomResourceDefinitions{
-		Group:     SchemeGroupVersion.Group,
-		Version:   SchemeGroupVersion.Version,
-		OutputDir: "../pkg/landscaper/crdmanager/crdresources",
+		Group:   SchemeGroupVersion.Group,
+		Version: SchemeGroupVersion.Version,
 
 		Definitions: []lsschema.CustomResourceDefinition{
 			InstallationDefinition,
@@ -88,8 +83,6 @@ var ResourceDefinition = func() lsschema.CustomResourceDefinitions {
 			TargetDefinition,
 			ContextDefinition,
 			LsHealthCheckDefinition,
-			DeployerRegistrationDefinition,
-			EnvironmentDefinition,
 			ComponentVersionOverwritesDefinition,
 			SyncObjectDefinition,
 			TargetSyncDefinition,
