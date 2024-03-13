@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -17,7 +16,6 @@ import (
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -125,19 +123,9 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 		return err
 	}
 
-	if o.containsDeployerRegistration(crdList) {
-		deployerRegistrations := v1alpha1.DeployerRegistrationList{}
-		if err := k8sClient.List(ctx, &deployerRegistrations); err != nil {
-			return err
-		}
-
-		for _, registration := range deployerRegistrations.Items {
-			if err := k8sClient.Delete(ctx, &registration); err != nil {
-				return err
-			}
-		}
-
-		if err := waitForRegistrationsRemoved(ctx, k8sClient); err != nil {
+	deployerRegistrationCRD := o.getDeployerRegistrationCRD(crdList)
+	if deployerRegistrationCRD != nil {
+		if err := removeObjectsPatiently(ctx, k8sClient, deployerRegistrationCRD); err != nil {
 			return err
 		}
 	}
@@ -208,14 +196,14 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 	return nil
 }
 
-func (o *uninstallOptions) containsDeployerRegistration(crds *extv1.CustomResourceDefinitionList) bool {
+func (o *uninstallOptions) getDeployerRegistrationCRD(crds *extv1.CustomResourceDefinitionList) *extv1.CustomResourceDefinition {
 	for i := range crds.Items {
 		if crds.Items[i].Name == "deployerregistrations.landscaper.gardener.cloud" {
-			return true
+			return &crds.Items[i]
 		}
 	}
 
-	return false
+	return nil
 }
 
 func (o *uninstallOptions) deleteCrds(ctx context.Context, k8sClient client.Client, crds *extv1.CustomResourceDefinitionList) error {
@@ -272,27 +260,4 @@ func (o *uninstallOptions) deleteWebhook(ctx context.Context, k8sClient client.C
 	}
 
 	return fmt.Errorf("webhook could not be removed %s", webhookname)
-}
-
-func waitForRegistrationsRemoved(ctx context.Context, k8sClient client.Client) error {
-	err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 4*time.Minute, true, func(ctx context.Context) (done bool, err error) {
-		fmt.Println("waiting for deployer registrations removed")
-
-		deployerRegistrations := v1alpha1.DeployerRegistrationList{}
-		if err := k8sClient.List(ctx, &deployerRegistrations); err != nil {
-			return false, err
-		}
-
-		if len(deployerRegistrations.Items) == 0 {
-			return true, nil
-		}
-
-		return false, nil
-	})
-
-	if err != nil {
-		return fmt.Errorf("error while waiting for deployer registrations being removed: %w", err)
-	}
-
-	return nil
 }
