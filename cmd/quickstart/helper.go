@@ -3,8 +3,9 @@ package quickstart
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -110,7 +111,7 @@ func removeObjectsPatiently(ctx context.Context, k8sClient client.Client, crd *e
 			fmt.Println("waiting for deployer registrations removed")
 
 			remainingObjectList := &unstructured.UnstructuredList{}
-			objectList.SetGroupVersionKind(gvk)
+			remainingObjectList.SetGroupVersionKind(gvk)
 			if err := k8sClient.List(ctx, remainingObjectList); err != nil {
 				return false, err
 			}

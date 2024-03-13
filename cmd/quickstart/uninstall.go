@@ -125,7 +125,9 @@ func (o *uninstallOptions) uninstallLandscaper(ctx context.Context, k8sClient cl
 
 	deployerRegistrationCRD := o.getDeployerRegistrationCRD(crdList)
 	if deployerRegistrationCRD != nil {
-		removeObjectsPatiently(ctx, k8sClient, deployerRegistrationCRD)
+		if err := removeObjectsPatiently(ctx, k8sClient, deployerRegistrationCRD); err != nil {
+			return err
+		}
 	}
 
 	err := util.ExecCommandBlocking(fmt.Sprintf("helm delete --namespace %s helm-deployer --kubeconfig %s", o.namespace, o.kubeconfigPath))
