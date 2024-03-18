@@ -57,7 +57,9 @@ func CreateContext(ctx context.Context, k8sClient client.Client, externalRegistr
 	}
 
 	repoCtx := &cdv2.UnstructuredTypedObject{}
-	repoCtx.UnmarshalJSON([]byte(fmt.Sprintf(`{"type": "OCIRegistry", "baseUrl": "%s"}`, externalRegistryBaseURL)))
+	if err := repoCtx.UnmarshalJSON([]byte(fmt.Sprintf(`{"type": "OCIRegistry", "baseUrl": "%s"}`, externalRegistryBaseURL))); err != nil {
+		return err
+	}
 	lscontext := &lsv1alpha1.Context{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      contextName,
