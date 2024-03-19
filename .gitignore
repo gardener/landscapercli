@@ -41,3 +41,4 @@ __pycache__
 # others
 config/crd/bases/_.yaml
 integration-test/landscaper-values*
+components/

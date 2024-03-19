@@ -4,32 +4,33 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-set -o errexit
-set -o nounset
-set -o pipefail
+set -euo pipefail
 
-apk add --no-cache --no-progress make go
+PROJECT_ROOT="$(realpath $(dirname $0)/..)"
+source "$PROJECT_ROOT/.ci/ensure-go"
+"$PROJECT_ROOT/.ci/ensure-make"
 
 # Configure Go
 export GOROOT="/usr/lib/go"
 export GOPATH="/go"
 export PATH="/go/bin:$PATH"
 
-PROJECT_ROOT="$(dirname $0)/.."
-cd ${PROJECT_ROOT}
+(
+  cd "$PROJECT_ROOT"
 
-ccli_component_name="github.com/gardener/component-cli"
+  ccli_component_name="github.com/gardener/component-cli"
 
-if [[ "$DEPENDENCY_NAME" != "ccli_component_name" ]]; then
-  exit 0
-fi
+  if [[ "$DEPENDENCY_NAME" != "$ccli_component_name" ]]; then
+    exit 0
+  fi
 
-# get current version
-current_image_vector_component_version=$(go list -m -mod=mod all | grep "$image_vector_component_name" | awk '{ print $2 }')
+  # get current version
+  current_image_vector_component_version=$("$PROJECT_ROOT/hack/extract-module-version.sh" $ccli_component_name)
 
-if [[ "$image_vector_component_name" == "$DEPENDENCY_VERSION" ]]; then
-  exit 0
-fi
+  if [[ "$image_vector_component_name" == "$DEPENDENCY_VERSION" ]]; then
+    exit 0
+  fi
 
-go get "${image_vector_component_name}@${DEPENDENCY_VERSION}"
-make revendor
+  go get "${image_vector_component_name}@${DEPENDENCY_VERSION}"
+  make revendor
+)

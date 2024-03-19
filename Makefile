@@ -53,6 +53,17 @@ install-cli: ## Installs the CLI.
 cross-build: ## Builds the binary for linux/amd64, darwin/amd64, and darwin/arm64.
 	@EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) COMPONENT_CLI_VERSION=$(COMPONENT_CLI_VERSION) $(REPO_ROOT)/hack/cross-build.sh
 
+.PHONY: component
+component: component-build component-push ## Builds the components and pushes them into the registry. To overwrite existing versions, set the env var OVERWRITE_COMPONENTS to anything except 'false' or the empty string.
+
+.PHONY: component-build
+component-build: ocm ## Build the components.
+	OCM=$(OCM) CCLI_VERSION=$(COMPONENT_CLI_VERSION) $(REPO_ROOT)/hack/build-component.sh
+
+.PHONY: component-push
+component-push: ocm ## Upload the components into the registry. Must be called after 'make component-build'. To overwrite existing versions, set the env var OVERWRITE_COMPONENTS to anything except 'false' or the empty string.
+	OCM=$(OCM) $(REPO_ROOT)/hack/push-component.sh
+
 
 ##@ Build Dependencies
 
@@ -62,10 +73,12 @@ LOCALBIN ?= $(REPO_ROOT)/bin
 ## Tool Binaries
 FORMATTER ?= $(LOCALBIN)/goimports
 LINTER ?= $(LOCALBIN)/golangci-lint
+OCM ?= $(LOCALBIN)/ocm
 
 ## Tool Versions
 FORMATTER_VERSION ?= v0.16.0
 LINTER_VERSION ?= 1.55.2
+OCM_VERSION ?= 0.8.0
 
 .PHONY: localbin
 localbin: ## Creates the local bin folder, if it doesn't exist. Not meant to be called manually, used as requirement for the other tool commands.
@@ -83,3 +96,9 @@ golangci-lint: localbin ## Download golangci-lint locally if necessary. If wrong
 	@test -s $(LINTER) && $(LINTER) --version | grep -q $(LINTER_VERSION) || \
 	( echo "Installing golangci-lint $(LINTER_VERSION) ..."; \
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(LOCALBIN) v$(LINTER_VERSION) )
+
+.PHONY: ocm
+ocm: localbin ## Install OCM CLI if necessary.
+	@test -s $(OCM) && $(OCM) --version | grep -q $(OCM_VERSION) || \
+	( echo "Installing OCM tooling $(OCM_VERSION) ..."; \
+	curl -sSfL https://ocm.software/install.sh | OCM_VERSION=$(OCM_VERSION) bash -s $(LOCALBIN) )
