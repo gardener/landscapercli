@@ -10,7 +10,10 @@ PROJECT_ROOT="$(realpath $(dirname $0)/..)"
 
 ABS_OUT_PATH=$(realpath $OUT_PATH)
 
-make cross-build
+(
+  cd "$PROJECT_ROOT"
+  make cross-build
 
-mkdir -p $ABS_OUT_PATH
-cp ./dist/*.gz "$ABS_OUT_PATH"
+  mkdir -p $ABS_OUT_PATH
+  cp ./dist/*.gz "$ABS_OUT_PATH"
+)
