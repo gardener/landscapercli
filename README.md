@@ -1,5 +1,7 @@
 # Landscaper CLI
 
+[![REUSE status](https://api.reuse.software/badge/github.com/gardener/landscapercli)](https://api.reuse.software/info/github.com/gardener/landscapercli)
+
 The Landscaper CLI supports users to develop, maintain, and test components processed by the 
 [Landscaper](https://github.com/gardener/landscaper). This comprises the handling of objects like component descriptors, 
 blueprints, installations, etc. 
