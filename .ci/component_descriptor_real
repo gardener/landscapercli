@@ -4,79 +4,29 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-set -o errexit
-set -o nounset
-set -o pipefail
+set -euo pipefail
 
-echo "component-cli is required to generate the component descriptors"
-CLI_PATH="$(mktemp -d)"
-COMP_CLI=${CLI_PATH}/component-cli
-echo "Trying to installing component-cli to ${COMP_CLI}"
-OS="$(uname -o | awk '{print tolower($0)}')"
-ARCH="$(uname -m | awk '{print tolower($0)}')"
-
-if [[ ${OS} == *"linux"* ]]; then
-  OS="linux"
-fi
-if [[ ${OS} == *"darwin"* ]]; then
-  OS="darwin"
+PROJECT_ROOT="$(realpath $(dirname $0)/..)"
+if [[ -z ${LOCALBIN:-} ]]; then
+  LOCALBIN="$PROJECT_ROOT/bin"
 fi
 
-if [[ ${ARCH} == *"x86_64"* ]]; then
-  ARCH="amd64"
-fi
-if [[ ${ARCH} == *"arm64"* ]]; then
-  ARCH="arm64"
-fi
-if [[ ${ARCH} == *"aarch64"* ]]; then
-  ARCH="arm64"
-fi
+"$PROJECT_ROOT/.ci/ensure-make"
 
-curl -L https://github.com/gardener/component-cli/releases/download/v0.55.0/componentcli-${OS}-${ARCH}.gz | gzip -d > ${COMP_CLI}
-chmod +x ${COMP_CLI}
+mkdir -p "$HOME/.docker"
 
-SOURCE_PATH="$(dirname $0)/.."
-cd ${SOURCE_PATH}
-VERSION="$(${SOURCE_PATH}/hack/get-version.sh)"
-COMMIT_SHA="$(git --git-dir ${SOURCE_PATH}/.git rev-parse HEAD)"
+(
+  cd "${PROJECT_ROOT}"
 
-printf "> Building components with version ${VERSION} - ${COMMIT_SHA}\n"
+  echo "Run 'make component-build' ..."
+  make component-build
+  echo "Component successfully built."
 
-REPO_CTX="eu.gcr.io/sap-gcp-cp-k8s-stable-hub/landscaper"
-REPO_CTX_DEV="eu.gcr.io/gardener-project/development"
-CTF_PATH="$(mktemp -d)"
-CTF_PATH="${CTF_PATH}/ctf.tar"
-
-
-
-# add landscapercli component descriptor
-printf "> Create LandscaperCLI Component"
-LS_CA_PATH="$(mktemp -d)"
-${COMP_CLI}  ca create "${LS_CA_PATH}" \
-  --component-name=github.com/gardener/landscapercli \
-  --component-version=${VERSION} \
-  --repo-ctx=${REPO_CTX}
-
-# install go for getting ccli version
-apk add --no-cache --no-progress make go
-
-
-printf "> add component references\n"
-ccli_component_name="github.com/gardener/component-cli"
-ccli_component_version=$(go list -m -mod=mod all | grep "$ccli_component_name" | awk '{ print $2 }')
-
-cat <<EOF | ${COMP_CLI} ca component-references add "${LS_CA_PATH}" -
-name: component-cli
-componentName: ${ccli_component_name}
-version: ${ccli_component_version}
-EOF
-
-printf "> Add LandscaperCLI CA to ctf\n"
-${COMP_CLI} ctf add "${CTF_PATH}" -f "${LS_CA_PATH}"
-cat ${LS_CA_PATH}/component-descriptor.yaml
-
-printf "> Publish LandscaperCLI Components to ${REPO_CTX}\n"
-${COMP_CLI} ctf push --repo-ctx=${REPO_CTX} "${CTF_PATH}"
-
-printf "> Publish LandscaperCLI Components to ${REPO_CTX_DEV}\n"
-${COMP_CLI} ctf push --repo-ctx=${REPO_CTX_DEV} "${CTF_PATH}"
+  echo "Run 'make component-push' ..."
+  export OVERWRITE_COMPONENTS="true"
+  gardener-ci docker cfg --image-ref-prefixes "europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper" > $HOME/.docker/config.json
+  REGISTRY_PREFIX="europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper" make component-push
+  gardener-ci docker cfg --image-ref-prefixes "eu.gcr.io/gardener-project/development" > $HOME/.docker/config.json
+  REGISTRY_PREFIX="eu.gcr.io/gardener-project/development" make component-push
+  echo "Component successfully pushed."
+)

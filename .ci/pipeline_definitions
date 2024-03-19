@@ -34,6 +34,12 @@ landscaper-cli:
     head-update:
       traits:
         draft_release: ~
+      steps:
+        generate_docs:
+          publish_to:
+          - source
+          depends:
+          - verify
     pull-request:
       steps:
         run_integration_test:
@@ -70,6 +76,12 @@ landscaper-cli:
           - "dev_integration_test"
           - "--target-clustername=cli-re"
           output_dir: 'integration_test'
+        generate_docs:
+          publish_to:
+          - source
+          depends:
+          - verify
+          - run_integration_test
         update-release:
           execute: 'update_release.py'
           depends:

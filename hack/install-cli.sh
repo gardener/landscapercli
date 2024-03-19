@@ -4,12 +4,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-set -e
+set -euo pipefail
 
-CURRENT_DIR=$(dirname $0)
-PROJECT_ROOT="${CURRENT_DIR}"/..
+PROJECT_ROOT="$(realpath $(dirname $0)/..)"
 
-COMPONENT_CLI_VERSION=$(echo $COMPONENT_CLI_REF | awk '{print $2}')
 GITTREESTATE=`([ -z "$(git status --porcelain 2>/dev/null)" ] && echo clean || echo dirty)`
 
 

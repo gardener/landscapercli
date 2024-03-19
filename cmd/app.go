@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-//go:generate go run -mod=vendor ../hack/generate-docs ../docs/reference
-
 package cmd
 
 import (

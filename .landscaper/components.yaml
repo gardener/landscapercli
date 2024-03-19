@@ -1,0 +1,18 @@
+components:
+  - name: github.com/gardener/landscapercli
+    version: ${CDVERSION}
+    provider:
+      name: sap.com
+    sources:
+      - name: main
+        type: git
+        version: ${VERSION}
+        access:
+          type: github
+          commit: ${COMMIT_SHA}
+          ref: refs/tags/${VERSION}
+          repoUrl: github.com/gardener/landscapercli
+    componentReferences:
+      - name: component-cli
+        componentName: github.com/gardener/component-cli
+        version: ${CCLI_VERSION}
