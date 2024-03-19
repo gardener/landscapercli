@@ -22,5 +22,5 @@ fi
 echo "> Uploading Component Descriptors to $COMPONENT_REGISTRY ..."
 $OCM transfer componentversions "$PROJECT_ROOT/components" "$COMPONENT_REGISTRY" $overwrite
 
-echo "> Uploading Component Descriptors to $COMPONENT_REGISTRY ..."
+echo "> Uploading Component Descriptors to $COMPONENT_REGISTRY_DEV ..."
 $OCM transfer componentversions "$PROJECT_ROOT/components" "$COMPONENT_REGISTRY_DEV" $overwrite
