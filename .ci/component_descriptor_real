@@ -13,9 +13,7 @@ fi
 
 "$PROJECT_ROOT/.ci/ensure-make"
 
-# configure credentials
 mkdir -p "$HOME/.docker"
-gardener-ci docker cfg --image "europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper" > $HOME/.docker/config.json
 
 (
   cd "${PROJECT_ROOT}"
@@ -26,6 +24,9 @@ gardener-ci docker cfg --image "europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/
 
   echo "Run 'make component-push' ..."
   export OVERWRITE_COMPONENTS="true"
-  make component-push
+  gardener-ci docker cfg --image-ref-prefixes "europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper" > $HOME/.docker/config.json
+  REGISTRY_PREFIX="europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper" make component-push
+  gardener-ci docker cfg --image-ref-prefixes "eu.gcr.io/gardener-project/development" > $HOME/.docker/config.json
+  REGISTRY_PREFIX="eu.gcr.io/gardener-project/development" make component-push
   echo "Component successfully pushed."
 )

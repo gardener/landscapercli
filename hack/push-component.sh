@@ -4,7 +4,7 @@ set -euo pipefail
 PROJECT_ROOT="$(realpath $(dirname $0)/..)"
 
 VERSION=$("$PROJECT_ROOT/hack/get-version.sh")
-COMPONENT_REGISTRY="eu.gcr.io/sap-gcp-cp-k8s-stable-hub/landscaper"
+COMPONENT_REGISTRY="europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper"
 COMPONENT_REGISTRY_DEV="eu.gcr.io/gardener-project/development"
 
 if [[ -z ${LOCALBIN:-} ]]; then
@@ -19,8 +19,10 @@ if [[ -n ${OVERWRITE_COMPONENTS:-} ]] && [[ ${OVERWRITE_COMPONENTS} != "false" ]
   overwrite="--overwrite"
 fi
 
-echo "> Uploading Component Descriptors to $COMPONENT_REGISTRY ..."
-$OCM transfer componentversions "$PROJECT_ROOT/components" "$COMPONENT_REGISTRY" $overwrite
-
-echo "> Uploading Component Descriptors to $COMPONENT_REGISTRY_DEV ..."
-$OCM transfer componentversions "$PROJECT_ROOT/components" "$COMPONENT_REGISTRY_DEV" $overwrite
+for reg in "$COMPONENT_REGISTRY" "$COMPONENT_REGISTRY_DEV"; do
+  if [[ ${REGISTRY_PREFIX:-} ]] && [[ $reg != ${REGISTRY_PREFIX}* ]]; then
+    continue
+  fi
+  echo "> Uploading Component Descriptors to $reg ..."
+  $OCM transfer componentversions "$PROJECT_ROOT/components" "$reg" $overwrite
+done
