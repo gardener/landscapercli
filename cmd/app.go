@@ -9,17 +9,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/gardener/landscapercli/cmd/blueprints"
 	"github.com/gardener/landscapercli/cmd/completion"
-	"github.com/gardener/landscapercli/cmd/components"
 	"github.com/gardener/landscapercli/cmd/installations"
 	"github.com/gardener/landscapercli/cmd/quickstart"
 	"github.com/gardener/landscapercli/cmd/targets"
 	"github.com/gardener/landscapercli/cmd/version"
 	"github.com/gardener/landscapercli/pkg/logger"
-
-	componentcli "github.com/gardener/component-cli/cmd/component-cli/app"
-	"github.com/spf13/cobra"
 )
 
 func NewLandscaperCliCommand(ctx context.Context) *cobra.Command {
@@ -40,17 +38,11 @@ func NewLandscaperCliCommand(ctx context.Context) *cobra.Command {
 	logger.InitFlags(cmd.PersistentFlags())
 
 	cmd.AddCommand(version.NewVersionCommand())
-	cmd.AddCommand(components.NewComponentsCommand(ctx))
 	cmd.AddCommand(blueprints.NewBlueprintsCommand(ctx))
 	cmd.AddCommand(quickstart.NewQuickstartCommand(ctx))
 	cmd.AddCommand(installations.NewInstallationsCommand(ctx))
 	cmd.AddCommand(targets.NewTargetsCommand(ctx))
 	cmd.AddCommand(completion.NewCompletionCommand())
-
-	// Integrate commands of the component cli
-	componentsCliCommand := componentcli.NewComponentsCliCommand(ctx)
-	componentsCliCommand.Short = "commands of the components cli"
-	cmd.AddCommand(componentsCliCommand)
 
 	return cmd
 }

@@ -1,9 +1,0 @@
-apiVersion: landscaper.gardener.cloud/v1alpha1
-kind: Target
-metadata:
-  name: test-target
-spec:
-  type: landscaper.gardener.cloud/kubernetes-cluster
-  config:
-    kubeconfig: |
-      <content of the kubeconfig>

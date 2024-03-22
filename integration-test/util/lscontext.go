@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	cdv2 "github.com/gardener/component-spec/bindings-go/apis/v2"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 type DockerConfigJson struct {
@@ -56,25 +56,30 @@ func CreateContext(ctx context.Context, k8sClient client.Client, externalRegistr
 		return err
 	}
 
-	repoCtx := &cdv2.UnstructuredTypedObject{}
-	if err := repoCtx.UnmarshalJSON([]byte(fmt.Sprintf(`{"type": "OCIRegistry", "baseUrl": "%s"}`, externalRegistryBaseURL))); err != nil {
+	// The type of field repositoryContext (UnstructuredTypedObject) belongs to the component-spec. Avoid to import it.
+	contextConfigRaw := fmt.Sprintf(`
+registryPullSecrets:
+  - name: "%s"
+repositoryContext:
+  type: OCIRegistry
+  baseUrl: "%s"
+useOCM: true
+`, contextName, externalRegistryBaseURL)
+
+	contextConfig := lsv1alpha1.ContextConfiguration{}
+	if err := yaml.Unmarshal([]byte(contextConfigRaw), &contextConfig); err != nil {
 		return err
 	}
-	lscontext := &lsv1alpha1.Context{
+
+	lsContext := &lsv1alpha1.Context{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      contextName,
 			Namespace: contextNamespace,
 		},
-		ContextConfiguration: lsv1alpha1.ContextConfiguration{
-			RegistryPullSecrets: []corev1.LocalObjectReference{corev1.LocalObjectReference{
-				Name: contextName,
-			}},
-			RepositoryContext: repoCtx,
-			UseOCM:            true,
-		},
+		ContextConfiguration: contextConfig,
 	}
 
-	err = k8sClient.Create(ctx, lscontext)
+	err = k8sClient.Create(ctx, lsContext)
 	if err != nil {
 		return err
 	}
