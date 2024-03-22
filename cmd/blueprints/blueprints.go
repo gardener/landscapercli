@@ -18,8 +18,6 @@ func NewBlueprintsCommand(ctx context.Context) *cobra.Command {
 		Short:   "command to interact with blueprints stored in an oci registry",
 	}
 
-	cmd.AddCommand(NewPushCommand(ctx))
-	cmd.AddCommand(NewGetCommand(ctx))
 	cmd.AddCommand(NewValidationCommand(ctx))
 
 	return cmd

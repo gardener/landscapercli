@@ -10,7 +10,6 @@ import (
 	"text/template"
 	"time"
 
-	componentclilog "github.com/gardener/component-cli/pkg/logger"
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -42,17 +41,17 @@ func runTestSuite(k8sClient client.Client, config *inttestutil.Config, target *l
 		return fmt.Errorf("RunQuickstartInstallTest() failed: %w", err)
 	}
 
-	fmt.Println("========== RunComponentCreateTest() ==========")
-	err = tests.RunComponentCreateTest(k8sClient, target.DeepCopy(), config)
-	if err != nil {
-		return fmt.Errorf("RunComponentCreateTest() failed: %w", err)
-	}
-
 	// Plug new test cases in here:
 	// 1. Create new file in ./tests directory, which exports a single function for running your test.
 	//    Your test should perform a cleanup before and after running.
 	//    For an example, see ./tests/test_quickstart_install.go.
 	// 2. Call your new test from here.
+	//
+	// fmt.Println("========== Run......Test() ==========")
+	// err = tests.Run......Test(k8sClient, target.DeepCopy(), config)
+	// if err != nil {
+	//     return fmt.Errorf("Run......Test() failed: %w", err)
+	// }
 
 	return nil
 }
@@ -77,7 +76,6 @@ func run() error {
 		return fmt.Errorf("cannot create logger: %w", err)
 	}
 	logger.SetLogger(log)
-	componentclilog.SetLogger(log)
 
 	cfg, err := clientcmd.BuildConfigFromFlags("", config.Kubeconfig)
 	if err != nil {
