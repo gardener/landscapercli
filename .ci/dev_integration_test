@@ -56,7 +56,7 @@ then
 fi
 
 
-pyenvdir=$(mktemp -d -t pyenv)
+pyenvdir=$(mktemp -d)
 echo "Python creating virtual environment in directory ${pyenvdir}"
 python3 -m venv ${pyenvdir}
 . ${pyenvdir}/bin/activate
