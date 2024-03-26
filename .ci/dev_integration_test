@@ -59,7 +59,7 @@ fi
 pyenvdir=$(mktemp -d -t pyenv)
 echo "Python creating virtual environment in directory ${pyenvdir}"
 python3 -m venv ${pyenvdir}
-. ${pyenvdir} /bin/activate
+. ${pyenvdir}/bin/activate
 
 echo "Running pip3 install --upgrade pip --break-system-packages"
 pip3 install --upgrade pip
