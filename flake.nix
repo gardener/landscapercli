@@ -35,7 +35,6 @@ SPDX-License-Identifier: Apache-2.0
         inherit pname self;
         version-raw = lib.fileContents ./VERSION;
         version = lib.elemAt (builtins.match "^[v]*([0-9|\.]*)[\-]*(.*)$" version-raw) 0;
-        COMPONENT_CLI_VERSION = lib.elemAt (builtins.match ".*component-cli ([v|0-9|\.]*).*" (lib.fileContents ./go.mod)) 0;
         LANDSCAPER_VERSION = lib.elemAt (builtins.match ".*landscaper ([v|0-9|\.]*).*" (lib.fileContents ./go.mod)) 0;
 
         gitCommit = if (self ? rev) then
@@ -57,7 +56,6 @@ SPDX-License-Identifier: Apache-2.0
           "-s"
           "-w"
           "-X github.com/gardener/landscapercli/pkg/version.LandscaperCliVersion=${version-raw}"
-          "-X github.com/gardener/landscapercli/pkg/version.ComponentCliVersion=${COMPONENT_CLI_VERSION}"
           "-X github.com/gardener/landscapercli/pkg/version.gitTreeState=${state}"
           "-X github.com/gardener/landscapercli/pkg/version.gitCommit=${gitCommit}"
         ];
@@ -82,7 +80,6 @@ SPDX-License-Identifier: Apache-2.0
           longDescription = ''
             The landscape-cli supports users to develop, maintain, and test components processed by the [Gardener Landscaper](https://github.com/gardener/landscaper).
             This comprises the handling of objects like component descriptors, blueprints, installations, etc.
-            The cli integrates the commands of the [Components CLI](https://github.com/gardener/component-cli).
           '';
           homepage = "https://github.com/gardener/landscapercli";
           license = licenses.asl20;

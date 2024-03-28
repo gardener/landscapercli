@@ -45,8 +45,6 @@ func NewVersionCommand() *cobra.Command {
 			}
 
 			fmt.Printf("\nDefault Landscaper Version: %s", release)
-
-			fmt.Printf("\nCompatible and included Component-Cli Version: %s", version.ComponentCliVersion)
 			fmt.Printf("\n\n")
 		},
 	}

@@ -11,8 +11,6 @@ import (
 
 	lsv1alpha1 "github.com/gardener/landscaper/apis/core/v1alpha1"
 	"github.com/gardener/landscaper/apis/core/v1alpha1/targettypes"
-	"github.com/gardener/landscaper/apis/mediatype"
-	modeltypes "github.com/gardener/landscaper/pkg/components/model/types"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -318,25 +316,4 @@ func GetKubernetesClusterTargetContent(kubeconfigPath string) ([]byte, error) {
 	}
 
 	return marshalledConfig, nil
-}
-
-// GetBlueprintResourceName returns the name of the blueprint resource in the provided component descriptor,
-// provided the component descriptor contains exactly one blueprint resource.
-func GetBlueprintResourceName(cd *modeltypes.ComponentDescriptor) (string, error) {
-	var blueprintResourceNames []string
-
-	for _, resource := range cd.ComponentSpec.Resources {
-		if resource.IdentityObjectMeta.Type == mediatype.BlueprintType || resource.IdentityObjectMeta.Type == mediatype.OldBlueprintType {
-			blueprintResourceNames = append(blueprintResourceNames, resource.Name)
-		}
-	}
-
-	switch len(blueprintResourceNames) {
-	case 0:
-		return "", fmt.Errorf("no blueprint resources defined in the component descriptor")
-	case 1:
-		return blueprintResourceNames[0], nil
-	default:
-		return "", fmt.Errorf("the blueprint resource name must be defined since multiple blueprint resources exist in the component descriptor")
-	}
 }
