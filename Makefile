@@ -101,7 +101,7 @@ golangci-lint: localbin ## Download golangci-lint locally if necessary. If wrong
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(LOCALBIN) v$(LINTER_VERSION) )
 
 .PHONY: ocm
-ocm: localbin ## Install OCM CLI if necessary.
-	@test -s $(OCM) && $(OCM) --version | grep -q $(OCM_VERSION) || \
+ocm: localbin ## Install OCM CLI if necessary. If wrong version is installed, it will be overwritten.
+	@test -s $(OCM) && $(OCM) --version | grep -q $(subst v,,$(OCM_VERSION)) || \
 	( echo "Installing OCM tooling $(OCM_VERSION) ..."; \
-	curl -sSfL https://ocm.software/install.sh | OCM_VERSION=$(OCM_VERSION) bash -s $(LOCALBIN) )
+	curl -sSfL https://ocm.software/install.sh | OCM_VERSION=$(subst v,,$(OCM_VERSION)) bash -s $(LOCALBIN) )
