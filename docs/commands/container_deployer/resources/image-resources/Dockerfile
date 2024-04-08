@@ -1,4 +1,4 @@
-FROM alpine:3.3
+FROM alpine:3.19
 
 RUN apk update \
  && apk add jq \
