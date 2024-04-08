@@ -29,7 +29,7 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
-replace github.com/imdario/mergo => dario.cat/mergo v0.3.16
+replace github.com/imdario/mergo => dario.cat/mergo v1.0.0
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
