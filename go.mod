@@ -13,7 +13,7 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang/mock v1.6.0
 	github.com/mandelsoft/vfs v0.4.3
-	github.com/onsi/ginkgo/v2 v2.17.1
+	github.com/onsi/ginkgo v1.16.5
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
@@ -29,7 +29,7 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
-replace github.com/imdario/mergo => dario.cat/mergo v0.3.16
+exclude github.com/imdario/mergo v1.0.0
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
@@ -48,7 +48,6 @@ require (
 	github.com/docker/docker-credential-helpers v0.8.1 // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
-	github.com/docker/go-units v0.5.0 // indirect
 	github.com/drone/envsubst v1.0.3 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.0 // indirect
 	github.com/evanphx/json-patch v5.9.0+incompatible // indirect
@@ -78,7 +77,7 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/vault-client-go v0.4.3 // indirect
-	github.com/imdario/mergo v1.0.0 // indirect
+	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -96,6 +95,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
+	github.com/onsi/ginkgo/v2 v2.17.1 // indirect
 	github.com/open-component-model/ocm v0.8.0 // indirect
 	github.com/opencontainers/distribution-spec/specs-go v0.0.0-20240315192218-7ac9a4cdd778 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
