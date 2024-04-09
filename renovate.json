@@ -7,7 +7,8 @@
     "group:kubernetes",
     "group:goOpenapi",
     "security:openssf-scorecard",
-    ":dependencyDashboard"
+    ":dependencyDashboard",
+    ":rebaseStalePrs"
   ],
   "packageRules": [
     {
