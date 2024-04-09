@@ -8,7 +8,7 @@ require (
 	github.com/gardener/component-cli v0.55.0
 	github.com/gardener/component-spec/bindings-go v0.0.98
 	github.com/gardener/landscaper v0.100.0
-	github.com/gardener/landscaper/apis v0.100.0
+	github.com/gardener/landscaper/apis v0.103.0
 	github.com/go-logr/logr v1.4.1
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang/mock v1.6.0
