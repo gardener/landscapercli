@@ -1,6 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "configMigration": true,
+  "schedule": "after 05:30am and before 06:00pm every weekday",
   "extends": [
     "config:recommended",
     "group:kubernetes",
@@ -9,11 +10,32 @@
   ],
   "packageRules": [
     {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "matchPackagePatterns": [
+        "^github.com\/gardener\/landscaper"
+      ],
+      "groupName": "landscaper group",
+      "groupSlug": "landscaper"
+    },
+    {
+      "matchPackagePatterns": [
+        "^k8s.io\/api* | ^k8s.io\/client-go | ^k8s.io\/cli-runtime | ^k8s.io\/code-generator | ^k8s.io\/component-base | ^k8s.io\/kubectl"
+      ],
+      "groupName": "k8s.io group",
+      "groupSlug": "k8sio"
+    },
+    {
       "description": "Combine landscapercli updates in a single PR",
-      "matchManagers": ["gomod"],
-      "matchSourceUrls": ["https://github.com/gardener/landscapercli"]
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchSourceUrls": [
+        "https://github.com/gardener/landscapercli"
+      ]
     }
-
   ],
   "customManagers": [
     {
