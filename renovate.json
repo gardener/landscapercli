@@ -11,6 +11,11 @@
   ],
   "packageRules": [
     {
+      "description": "Combine landscapercli updates in a single PR",
+      "matchManagers": ["gomod"],
+      "matchSourceUrls": ["https://github.com/gardener/landscapercli"]
+    },
+    {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true
     },
