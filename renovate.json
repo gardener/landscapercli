@@ -15,7 +15,7 @@
     },
     {
       "matchPackagePatterns": [
-        "^github.com\/gardener\/landscaper"
+        "^github.com\/gardener\/landscaper | ^github.com\/gardener\/landscaper\/apis"
       ],
       "groupName": "landscaper group",
       "groupSlug": "landscaper"
