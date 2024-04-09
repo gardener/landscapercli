@@ -5,6 +5,7 @@
   "extends": [
     "config:recommended",
     "group:kubernetes",
+    "group:goOpenapi",
     "security:openssf-scorecard",
     ":dependencyDashboard"
   ],
@@ -14,26 +15,13 @@
       "automerge": true
     },
     {
-      "matchPackagePatterns": [
-        "^github.com\/gardener\/landscaper | ^github.com\/gardener\/landscaper\/apis"
-      ],
       "groupName": "landscaper group",
-      "groupSlug": "landscaper"
-    },
-    {
-      "matchPackagePatterns": [
-        "^k8s.io\/api* | ^k8s.io\/client-go | ^k8s.io\/cli-runtime | ^k8s.io\/code-generator | ^k8s.io\/component-base | ^k8s.io\/kubectl"
+      "groupSlug": "landscaper",
+      "matchDatasources": [
+        "go"
       ],
-      "groupName": "k8s.io group",
-      "groupSlug": "k8sio"
-    },
-    {
-      "description": "Combine landscapercli updates in a single PR",
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchSourceUrls": [
-        "https://github.com/gardener/landscapercli"
+      "matchPackagePrefixes": [
+        "github.com/gardener/landscaper"
       ]
     }
   ],
