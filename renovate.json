@@ -1,9 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "configMigration": true,
+  "schedule": "after 05:30am and before 06:00pm every weekday",
   "extends": [
     "config:recommended",
     "group:kubernetes",
+    "group:goOpenapi",
     "security:openssf-scorecard",
     ":dependencyDashboard"
   ],
@@ -12,8 +14,21 @@
       "description": "Combine landscapercli updates in a single PR",
       "matchManagers": ["gomod"],
       "matchSourceUrls": ["https://github.com/gardener/landscapercli"]
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "groupName": "landscaper group",
+      "groupSlug": "landscaper",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackagePrefixes": [
+        "github.com/gardener/landscaper"
+      ]
     }
-
   ],
   "customManagers": [
     {
