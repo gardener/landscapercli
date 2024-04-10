@@ -18,8 +18,6 @@ landscaper cli
 
 * [landscaper-cli blueprints](landscaper-cli_blueprints.md)	 - command to interact with blueprints stored in an oci registry
 * [landscaper-cli completion](landscaper-cli_completion.md)	 - Generate completion script
-* [landscaper-cli component-cli](landscaper-cli_component-cli.md)	 - commands of the components cli
-* [landscaper-cli components](landscaper-cli_components.md)	 - command to interact with components based on blueprints
 * [landscaper-cli installations](landscaper-cli_installations.md)	 - commands to interact with installations
 * [landscaper-cli quickstart](landscaper-cli_quickstart.md)	 - useful commands for getting quickly up and running with Landscaper
 * [landscaper-cli targets](landscaper-cli_targets.md)	 - commands for interacting with targets

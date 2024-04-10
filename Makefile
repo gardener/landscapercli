@@ -5,8 +5,6 @@
 REPO_ROOT         := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 EFFECTIVE_VERSION := $(shell $(REPO_ROOT)/hack/get-version.sh)
 
-COMPONENT_CLI_VERSION := $(shell $(REPO_ROOT)/hack/extract-module-version.sh github.com/gardener/component-cli)
-
 CODE_DIRS := $(REPO_ROOT)/cmd/... $(REPO_ROOT)/pkg/... $(REPO_ROOT)/landscaper-cli/... $(REPO_ROOT)/integration-test/...
 
 
@@ -47,18 +45,18 @@ test: ## Runs the tests.
 
 .PHONY: install-cli
 install-cli: ## Installs the CLI.
-	@EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) COMPONENT_CLI_VERSION=$(COMPONENT_CLI_VERSION) $(REPO_ROOT)/hack/install-cli.sh
+	@EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) $(REPO_ROOT)/hack/install-cli.sh
 
 .PHONY: cross-build
 cross-build: ## Builds the binary for linux/amd64, darwin/amd64, and darwin/arm64.
-	@EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) COMPONENT_CLI_VERSION=$(COMPONENT_CLI_VERSION) $(REPO_ROOT)/hack/cross-build.sh
+	@EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) $(REPO_ROOT)/hack/cross-build.sh
 
 .PHONY: component
 component: component-build component-push ## Builds the components and pushes them into the registry. To overwrite existing versions, set the env var OVERWRITE_COMPONENTS to anything except 'false' or the empty string.
 
 .PHONY: component-build
 component-build: ocm ## Build the components.
-	OCM=$(OCM) CCLI_VERSION=$(COMPONENT_CLI_VERSION) $(REPO_ROOT)/hack/build-component.sh
+	OCM=$(OCM) $(REPO_ROOT)/hack/build-component.sh
 
 .PHONY: component-push
 component-push: ocm ## Upload the components into the registry. Must be called after 'make component-build'. To overwrite existing versions, set the env var OVERWRITE_COMPONENTS to anything except 'false' or the empty string.

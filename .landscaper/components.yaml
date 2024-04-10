@@ -12,7 +12,4 @@ components:
           commit: ${COMMIT_SHA}
           ref: refs/tags/${VERSION}
           repoUrl: github.com/gardener/landscapercli
-    componentReferences:
-      - name: component-cli
-        componentName: github.com/gardener/component-cli
-        version: ${CCLI_VERSION}
+    componentReferences: []
