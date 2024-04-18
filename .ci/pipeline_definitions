@@ -23,9 +23,9 @@ landscaper-cli:
         ocm_repository: landscaper
     steps:
       verify:
-        image: 'golang:1.21'
+        image: 'golang:1.22'
       build:
-        image: 'golang:1.21'
+        image: 'golang:1.22'
         execute: 'build'
         output_dir: 'out'
         timeout: '5m'
