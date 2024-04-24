@@ -6,8 +6,8 @@ toolchain go1.22.2
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/gardener/landscaper v0.103.0
-	github.com/gardener/landscaper/apis v0.103.0
+	github.com/gardener/landscaper v0.104.0
+	github.com/gardener/landscaper/apis v0.104.0
 	github.com/go-logr/logr v1.4.1
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang/mock v1.6.0
@@ -53,7 +53,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gardener/component-cli v0.44.0 // indirect
 	github.com/gardener/component-spec/bindings-go v0.0.98 // indirect
-	github.com/gardener/landscaper/controller-utils v0.103.0 // indirect
+	github.com/gardener/landscaper/controller-utils v0.104.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
