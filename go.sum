@@ -242,10 +242,16 @@ github.com/gardener/component-spec/bindings-go v0.0.98 h1:noougWGxAQHr3ipqA2vbZ3
 github.com/gardener/component-spec/bindings-go v0.0.98/go.mod h1:qr7kADDXbXB0huul+ih/B43YkwyiMFYQepp/tqJ331c=
 github.com/gardener/landscaper v0.103.0 h1:a5hXRakGLUIDndq1nRdjOpqiKigV7NJerCze913mp14=
 github.com/gardener/landscaper v0.103.0/go.mod h1:1kI241LBEx44e9NGuF5WWqGyJXKwbfDDcrz+Zb56emM=
+github.com/gardener/landscaper v0.104.0 h1:bBoFJHQZ4qMV64lnksYD7sZd4KIGPIDsC5q9Y/L5vy0=
+github.com/gardener/landscaper v0.104.0/go.mod h1:aT8vCnMc2yX2srp1Da1ZyAFZYt8FbJ8pJk/o0x6wL6o=
 github.com/gardener/landscaper/apis v0.103.0 h1:lIVcjAYYHRuEeFCYWTUI92NHol983kkCwXtyqDQ54kY=
 github.com/gardener/landscaper/apis v0.103.0/go.mod h1:joMAj6AXihbi/X0reign4AnVkfOiA3wnlO9GTUb0Mio=
+github.com/gardener/landscaper/apis v0.104.0 h1:0VhwEYiCnT2AcgarmBV2dLERP2pmB9JztXGvBT1GY08=
+github.com/gardener/landscaper/apis v0.104.0/go.mod h1:2kwqUisJXZwuxIzCTexNrG4Mb4L7oA3waqBSHmTfGO4=
 github.com/gardener/landscaper/controller-utils v0.103.0 h1:2U8w16b+UUKG1dICttr39NmI8nVTA+niV7JdcR0UAdM=
 github.com/gardener/landscaper/controller-utils v0.103.0/go.mod h1:xpTvq5SLeG3wlb7sBjyWsi+vLB4+v3STzLwWSB9YlG8=
+github.com/gardener/landscaper/controller-utils v0.104.0 h1:b4atqPK3l2E/GR9g5BfCi0UcxjRLMTzGEHsuqHKUfjw=
+github.com/gardener/landscaper/controller-utils v0.104.0/go.mod h1:9jkh1HvH+fh/vG/NZgY3vSskGt604nBo9sSuwtSxNuE=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/go-chi/chi v4.1.2+incompatible h1:fGFk2Gmi/YKXk0OmGfBh0WgmN3XB8lVnEyNz34tQRec=
