@@ -2,7 +2,7 @@ module github.com/gardener/landscapercli
 
 go 1.22.0
 
-toolchain go1.22.3
+toolchain go1.22.4
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
