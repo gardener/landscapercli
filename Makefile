@@ -79,7 +79,7 @@ FORMATTER_VERSION ?= v0.22.0
 # renovate: datasource=github-releases depName=golangci/golangci-lint
 LINTER_VERSION ?= 1.59.1
 # renovate: datasource=github-releases depName=open-component-model/ocm
-OCM_VERSION ?= 0.8.0
+OCM_VERSION ?= 0.11.0
 
 .PHONY: localbin
 localbin: ## Creates the local bin folder, if it doesn't exist. Not meant to be called manually, used as requirement for the other tool commands.
