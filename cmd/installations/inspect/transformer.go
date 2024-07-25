@@ -70,7 +70,7 @@ func (t *Transformer) transformInstallation(installationTree *InstallationTree, 
 	if t.wideMode {
 		wide := strings.Builder{}
 		cd := "inline"
-		if installationTree.Installation.Spec.ComponentDescriptor.Reference != nil {
+		if installationTree.Installation.Spec.ComponentDescriptor != nil && installationTree.Installation.Spec.ComponentDescriptor.Reference != nil {
 			cd = fmt.Sprintf("%s:%s", installationTree.Installation.Spec.ComponentDescriptor.Reference.ComponentName, installationTree.Installation.Spec.ComponentDescriptor.Reference.Version)
 		}
 		wide.WriteString(fmt.Sprintf("Component Descriptor: %s\n", cd))
