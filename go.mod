@@ -11,7 +11,7 @@ require (
 	github.com/go-logr/logr v1.4.2
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang/mock v1.6.0
-	github.com/onsi/ginkgo/v2 v2.19.1
+	github.com/onsi/ginkgo v1.16.5
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
@@ -115,7 +115,7 @@ require (
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/cli v26.1.4+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
-	github.com/docker/docker v26.1.3+incompatible // indirect
+	github.com/docker/docker v26.1.4+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.1 // indirect
 	github.com/docker/go v1.5.1-1.0.20160303222718-d30aec9fd63c // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
@@ -128,7 +128,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fvbommel/sortorder v1.1.0 // indirect
-	github.com/gardener/component-cli v0.44.0 // indirect
 	github.com/gardener/component-spec/bindings-go v0.0.98 // indirect
 	github.com/gardener/landscaper/controller-utils v0.109.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
@@ -215,6 +214,8 @@ require (
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/oleiade/reflections v1.0.1 // indirect
+	github.com/onsi/ginkgo/v2 v2.19.1 // indirect
+	github.com/onsi/gomega v1.34.0 // indirect
 	github.com/open-component-model/ocm v0.11.0 // indirect
 	github.com/opencontainers/distribution-spec/specs-go v0.0.0-20240315192218-7ac9a4cdd778 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
@@ -309,7 +310,6 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gotest.tools/v3 v3.5.1 // indirect
 	helm.sh/helm/v3 v3.15.2 // indirect
 	k8s.io/cli-runtime v0.30.2 // indirect
 	k8s.io/gengo v0.0.0-20240310015720-9cff6334dab4 // indirect
