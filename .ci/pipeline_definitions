@@ -87,7 +87,7 @@ landscaper-cli:
           depends:
           - 'release'
           inputs:
-            OUT_PATH: 'out_path'
+            OUT_PATH: 'out'
       traits:
         scheduling:
           suppress_parallel_execution: true
