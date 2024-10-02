@@ -164,7 +164,7 @@ func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 	if o.instOCIRegistry && o.instRegistryIngress {
 		registryIngressHost := strings.Replace(cfg.Host, "https://api", "o.ingress", 1)
 		if len(registryIngressHost) > 64 {
-			return fmt.Errorf("no TLS certificate could be created because domain exceeds 64 characters: " + registryIngressHost)
+			return fmt.Errorf("no TLS certificate could be created because domain exceeds 64 characters: %s", registryIngressHost)
 		}
 		o.registryIngressHost = registryIngressHost
 	}
