@@ -77,7 +77,7 @@ OCM ?= $(LOCALBIN)/ocm
 # renovate: datasource=github-tags depName=golang/tools
 FORMATTER_VERSION ?= v0.25.0
 # renovate: datasource=github-releases depName=golangci/golangci-lint
-LINTER_VERSION ?= 1.59.1
+LINTER_VERSION ?= v1.61.0
 # renovate: datasource=github-releases depName=open-component-model/ocm
 OCM_VERSION ?= 0.14.0
 
@@ -96,7 +96,7 @@ goimports: localbin ## Download goimports locally if necessary. If wrong version
 golangci-lint: localbin ## Download golangci-lint locally if necessary. If wrong version is installed, it will be overwritten.
 	@test -s $(LINTER) && $(LINTER) --version | grep -q $(LINTER_VERSION) || \
 	( echo "Installing golangci-lint $(LINTER_VERSION) ..."; \
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(LOCALBIN) v$(LINTER_VERSION) )
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(LOCALBIN) $(LINTER_VERSION) )
 
 .PHONY: ocm
 ocm: localbin ## Install OCM CLI if necessary. If wrong version is installed, it will be overwritten.
