@@ -6,8 +6,8 @@ toolchain go1.23.2
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/gardener/landscaper v0.115.0
-	github.com/gardener/landscaper/apis v0.115.0
+	github.com/gardener/landscaper v0.117.0
+	github.com/gardener/landscaper/apis v0.117.0
 	github.com/go-logr/logr v1.4.2
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang/mock v1.6.0
