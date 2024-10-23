@@ -54,7 +54,7 @@ os=darwin # choose between darwin, linux
 arch=amd64 # choose between amd64
 
 # Get latest version, unzip, make executable
-curl -LO "curl -LO https://github.com/gardener/landscapercli/releases/latest/download/landscapercli-${os}-${arch}.gz"
+curl -LO "https://github.com/gardener/landscapercli/releases/latest/download/landscapercli-${os}-${arch}.gz"
 gunzip landscapercli-${os}-${arch}.gz
 chmod +x ./landscapercli-${os}-${arch}
 
