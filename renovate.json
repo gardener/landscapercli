@@ -11,6 +11,7 @@
   "timezone": "Europe/Berlin",
   "extends": [
     "config:best-practices",
+    "group:allNonMajor",
     "group:kubernetes",
     "group:goOpenapi",
     "security:openssf-scorecard",
