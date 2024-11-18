@@ -11,7 +11,6 @@
   "timezone": "Europe/Berlin",
   "extends": [
     "config:best-practices",
-    "group:allNonMajor",
     "group:kubernetes",
     "group:goOpenapi",
     "security:openssf-scorecard",
@@ -19,12 +18,25 @@
   ],
   "packageRules": [
     {
-      "description": "Combine landscapercli updates in a single PR",
-      "matchManagers": [
-        "gomod"
+      "description": "Combine landscaper updates in a single PR",
+      "groupName": "landscaper group",
+      "groupSlug": "landscaper",
+      "matchDatasources": [
+        "go"
       ],
-      "matchSourceUrls": [
-        "https://github.com/gardener/landscapercli"
+      "matchPackageNames": [
+        "github.com/gardener/landscaper{/,}**"
+      ]
+    },
+    {
+      "description": "Combine all patch updates in a single PR",
+      "groupName": "all patch dependencies",
+      "groupSlug": "all-patch",
+      "matchPackageNames": [
+        "*"
+      ],
+      "matchUpdateTypes": [
+        "patch"
       ]
     },
     {
@@ -35,16 +47,6 @@
         "digest"
       ],
       "rebaseWhen": "auto"
-    },
-    {
-      "groupName": "landscaper group",
-      "groupSlug": "landscaper",
-      "matchDatasources": [
-        "go"
-      ],
-      "matchPackageNames": [
-        "github.com/gardener/landscaper{/,}**"
-      ]
     }
   ],
   "customManagers": [
