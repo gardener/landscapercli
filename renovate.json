@@ -3,7 +3,7 @@
   "configMigration": true,
   "schedule": [
     "after 10:30am",
-    "before 03:30pm",
+    "before 07:15pm",
     "every weekday"
   ],
   "prHourlyLimit": 1,
