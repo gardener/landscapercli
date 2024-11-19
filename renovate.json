@@ -43,7 +43,8 @@
         "go"
       ],
       "matchUpdateTypes": [
-        "patch"
+        "patch",
+        "digest"
       ],
       "rebaseWhen": "auto",
       "automerge": true,
