@@ -27,10 +27,7 @@
       "matchPackageNames": [
         "github.com/gardener/landscaper{/,}**"
       ],
-      "rebaseWhen": "auto",
-      "automerge": true,
-      "automergeType": "pr-comment",
-      "automergeComment": "automerge landscaper updates"
+      "rebaseWhen": "auto"
     },
     {
       "description": "Combine all patch updates in GO in a single PR",
@@ -46,10 +43,7 @@
         "patch",
         "digest"
       ],
-      "rebaseWhen": "auto",
-      "automerge": true,
-      "automergeType": "pr-comment",
-      "automergeComment": "automerge all GO dependencies patch updates"
+      "rebaseWhen": "auto"
     },
     {
       "matchUpdateTypes": [
