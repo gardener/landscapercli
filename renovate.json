@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "configMigration": true,
   "schedule": [
-    "after 10:30am",
+    "after 06:30am",
     "before 07:15pm",
     "every weekday"
   ],
