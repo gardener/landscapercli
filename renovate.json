@@ -1,9 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "configMigration": true,
+  "stopUpdatingLabel": "take-a-break-renovate",
   "schedule": [
-    "after 10:30am",
-    "before 03:30pm",
+    "after 07:30am",
+    "before 07:15pm",
     "every weekday"
   ],
   "prHourlyLimit": 1,
@@ -26,7 +26,8 @@
       ],
       "matchPackageNames": [
         "github.com/gardener/landscaper{/,}**"
-      ]
+      ],
+      "rebaseWhen": "auto"
     },
     {
       "description": "Combine all patch updates in GO in a single PR",
@@ -39,7 +40,8 @@
         "go"
       ],
       "matchUpdateTypes": [
-        "patch"
+        "patch",
+        "digest"
       ],
       "rebaseWhen": "auto"
     },
