@@ -1,8 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "configMigration": true,
+  "stopUpdatingLabel": "take-a-break-renovate",
   "schedule": [
-    "after 06:30am",
+    "after 07:30am",
     "before 07:15pm",
     "every weekday"
   ],
