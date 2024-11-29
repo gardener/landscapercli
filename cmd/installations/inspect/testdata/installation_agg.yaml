@@ -3,7 +3,7 @@ kind: Installation
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"landscaper.gardener.cloud/v1alpha1","kind":"Installation","metadata":{"annotations":{},"name":"my-aggregation","namespace":"inttest"},"spec":{"blueprint":{"ref":{"resourceName":"simple-aggregated"}},"componentDescriptor":{"ref":{"componentName":"github.com/gardener/landscaper/simple-aggregated","repositoryContext":{"baseUrl":"eu.gcr.io/gardener-project/landscaper/tutorials/components","type":"ociRegistry"},"version":"v0.2.0"}},"exports":{"data":[{"dataRef":"myAggIngressClass","name":"aggIngressClass"}]},"imports":{"data":[{"configMapRef":{"key":"namespace","name":"my-imports"},"name":"aggNamespace"}],"targets":[{"name":"aggCluster","target":"#my-cluster"}]}}}
+      {"apiVersion":"landscaper.gardener.cloud/v1alpha1","kind":"Installation","metadata":{"annotations":{},"name":"my-aggregation","namespace":"inttest"},"spec":{"blueprint":{"ref":{"resourceName":"simple-aggregated"}},"componentDescriptor":{"ref":{"componentName":"github.com/gardener/landscaper/simple-aggregated","repositoryContext":{"baseUrl":"europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper-examples/tutorials/components","type":"ociRegistry"},"version":"v0.2.0"}},"exports":{"data":[{"dataRef":"myAggIngressClass","name":"aggIngressClass"}]},"imports":{"data":[{"configMapRef":{"key":"namespace","name":"my-imports"},"name":"aggNamespace"}],"targets":[{"name":"aggCluster","target":"#my-cluster"}]}}}
   creationTimestamp: "2021-03-11T14:09:38Z"
   finalizers:
   - finalizer.landscaper.gardener.cloud
@@ -21,7 +21,7 @@ spec:
     ref:
       componentName: github.com/gardener/landscaper/simple-aggregated
       repositoryContext:
-        baseUrl: eu.gcr.io/gardener-project/landscaper/tutorials/components
+        baseUrl: europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper-examples/tutorials/components
         type: ociRegistry
       version: v0.2.0
   exports:

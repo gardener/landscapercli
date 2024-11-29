@@ -18,7 +18,7 @@ spec:
     ref:
       componentName: github.com/gardener/landscaper/echo-server
       repositoryContext:
-        baseUrl: eu.gcr.io/gardener-project/landscaper/tutorials/components
+        baseUrl: europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper-examples/tutorials/components
         type: ociRegistry
       version: v0.2.0
   exports: {}
