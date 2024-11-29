@@ -22,7 +22,7 @@ spec:
   - config:
       apiVersion: helm.deployer.landscaper.gardener.cloud/v1alpha1
       chart:
-        ref: eu.gcr.io/gardener-project/landscaper/tutorials/charts/ingress-nginx:v0.1.0
+        ref: europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper-examples/tutorials/charts/ingress-nginx:v0.1.0
       exportsFromManifests:
       - jsonPath: .Values.controller.ingressClass
         key: ingressClass
