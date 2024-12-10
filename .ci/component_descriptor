@@ -12,7 +12,7 @@ echo "create dummy component descriptor BEGIN"
 
 SOURCE_PATH="$(dirname $0)/.."
 VERSION="$(${SOURCE_PATH}/hack/get-version.sh)"
-REPO_CTX="eu.gcr.io/gardener-project/development"
+REPO_CTX="europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/development"
 COMPONENT_DESCRIPTOR_DIR="${SOURCE_PATH}/../${COMPONENT_DESCRIPTOR_DIR}"
 
 VERSION="${VERSION}-dummy" REPO_CTX="${REPO_CTX}" COMPONENT_DESCRIPTOR_DIR="${COMPONENT_DESCRIPTOR_DIR}" python ${SOURCE_PATH}/hack/create-dummy-cd.py
