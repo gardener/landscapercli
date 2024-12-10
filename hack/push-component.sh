@@ -5,7 +5,7 @@ PROJECT_ROOT="$(realpath $(dirname $0)/..)"
 
 VERSION=$("$PROJECT_ROOT/hack/get-version.sh")
 COMPONENT_REGISTRY="europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper"
-COMPONENT_REGISTRY_DEV="eu.gcr.io/gardener-project/development"
+COMPONENT_REGISTRY_DEV="europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/development"
 
 if [[ -z ${LOCALBIN:-} ]]; then
   LOCALBIN="$PROJECT_ROOT/bin"
