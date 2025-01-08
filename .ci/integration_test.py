@@ -12,7 +12,7 @@ import shutil
 import utils
 import yaml
 
-from util import ctx
+from ci.util import ctx
 
 print("Starting integration test")
 print(f"INFO current environment: {os.environ}")
