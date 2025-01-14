@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 
 import pathlib
-import util
+from ci.util import (
+    check_env,
+    ctx,
+)
 
 from github.util import GitHubRepositoryHelper
 
 OUTPUT_FILE_NAME='build-result'
 VERSION_FILE_NAME='VERSION'
 
-repo_owner_and_name = util.check_env('SOURCE_GITHUB_REPO_OWNER_AND_NAME')
-repo_dir = util.check_env('MAIN_REPO_DIR')
-output_dir = util.check_env('OUT_PATH')
+repo_owner_and_name = check_env('SOURCE_GITHUB_REPO_OWNER_AND_NAME')
+repo_dir = check_env('MAIN_REPO_DIR')
+output_dir = check_env('OUT_PATH')
 
 repo_owner, repo_name = repo_owner_and_name.split('/')
 
@@ -19,7 +22,7 @@ version_file_path = repo_path / VERSION_FILE_NAME
 
 version_file_contents = version_file_path.read_text()
 
-cfg_factory = util.ctx().cfg_factory()
+cfg_factory = ctx().cfg_factory()
 github_cfg = cfg_factory.github('github_com')
 
 github_repo_helper = GitHubRepositoryHelper(
