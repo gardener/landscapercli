@@ -42,7 +42,8 @@ if ! command -v git &> /dev/null
 then
     echo "git could not be found"
     echo "Try installing it..."
-    apk add add --no-cache --no-progress git
+    apk add --no-cache --no-progress git
+    git --version
 fi
 
 if ! command -v helm &> /dev/null
