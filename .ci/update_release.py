@@ -5,6 +5,7 @@ from ci.util import (
     check_env,
     ctx,
 )
+import ccc.github
 
 from github.util import GitHubRepositoryHelper
 
@@ -24,11 +25,12 @@ version_file_contents = version_file_path.read_text()
 
 cfg_factory = ctx().cfg_factory()
 github_cfg = cfg_factory.github('github_com')
+github_api = ccc.github.github_api(github_cfg)
 
 github_repo_helper = GitHubRepositoryHelper(
     owner=repo_owner,
     name=repo_name,
-    github_cfg=github_cfg,
+    github_api=github_api,
 )
 
 gh_release = github_repo_helper.repository.release_from_tag(version_file_contents)
