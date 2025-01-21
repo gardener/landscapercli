@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 import base64
 import json
-import subprocess
-import tempfile
-import helm
-import kubectl
 import os
-from subprocess import Popen, PIPE, STDOUT, run
-import sys
 import shutil
+import subprocess
+import sys
+import tempfile
+from subprocess import PIPE, STDOUT, Popen, run
+
+import helm
 import utils
 import yaml
-
 from ci.util import ctx
 
 print("Starting integration test")
