@@ -48,6 +48,8 @@ landscaper-cli:
           - "dev_integration_test"
           - "--target-clustername=cli-pr"
           output_dir: 'integration_test'
+          depends:
+          - build
       traits:
         pull-request: ~
         draft_release: ~
