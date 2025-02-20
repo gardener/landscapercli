@@ -10,7 +10,7 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang/mock v1.6.0
 	github.com/onsi/ginkgo/v2 v2.22.2
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
@@ -106,7 +106,7 @@ require (
 	github.com/containers/ocicrypt v1.1.10 // indirect
 	github.com/containers/storage v1.54.0 // indirect
 	github.com/coreos/go-oidc/v3 v3.10.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20231217050601-ba74d44ecf5f // indirect
 	github.com/cyphar/filepath-securejoin v0.3.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
