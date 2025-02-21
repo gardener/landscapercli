@@ -193,7 +193,7 @@ func (o *installOptions) run(ctx context.Context, log logr.Logger) error {
 	if version == latestRelease {
 		version, err = version2.GetRelease()
 		if err != nil {
-			return fmt.Errorf("cannot get latest Landscaper release: %w", err)
+			return err
 		}
 	}
 

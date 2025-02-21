@@ -75,11 +75,11 @@ OCM ?= $(LOCALBIN)/ocm
 
 ## Tool Versions
 # renovate: datasource=github-tags depName=golang/tools
-FORMATTER_VERSION ?= v0.29.0
+FORMATTER_VERSION ?= v0.30.0
 # renovate: datasource=github-releases depName=golangci/golangci-lint
-LINTER_VERSION ?= v1.63.4
+LINTER_VERSION ?= v1.64.5
 # renovate: datasource=github-releases depName=open-component-model/ocm
-OCM_VERSION ?= 0.19.1
+OCM_VERSION ?= 0.20.1
 
 .PHONY: localbin
 localbin: ## Creates the local bin folder, if it doesn't exist. Not meant to be called manually, used as requirement for the other tool commands.
