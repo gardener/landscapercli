@@ -20,6 +20,9 @@
     ":dependencyDashboard",
     ":rebaseStalePrs"
   ],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
   "packageRules": [
     {
       "description": "Combine landscaper updates in a single PR",
