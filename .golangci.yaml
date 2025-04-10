@@ -1,6 +1,23 @@
+version: "2"
 run:
   concurrency: 4
-  deadline: 10m
-
-  skip-files:
-  - "zz_generated.*\\.go$"
+linters:
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - zz_generated.*\.go$
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
