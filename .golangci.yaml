@@ -2,8 +2,6 @@ version: "2"
 run:
   concurrency: 4
 linters:
-  disable:
-    - "st1005"
   exclusions:
     generated: lax
     presets:
@@ -16,6 +14,11 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      - linters:
+        - staticcheck
+        text: "ST1005:"
+
 formatters:
   exclusions:
     generated: lax
