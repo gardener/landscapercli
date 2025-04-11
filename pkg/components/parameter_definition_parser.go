@@ -84,6 +84,15 @@ func (p *ParameterDefinitionParser) ParseExportDefinition(paramDef string) (*v1a
 	}, nil
 }
 
+func isValidType(typ string) bool {
+	validTypes := map[string]bool{
+		"string":  true,
+		"boolean": true,
+		"integer": true,
+	}
+	return validTypes[typ]
+}
+
 func (p *ParameterDefinitionParser) ParseFieldValueDefinition(paramDef string) (*v1alpha1.FieldValueDefinition, error) {
 	a := strings.Index(paramDef, ":")
 
@@ -96,7 +105,7 @@ func (p *ParameterDefinitionParser) ParseFieldValueDefinition(paramDef string) (
 	name := paramDef[:a]
 	typ := paramDef[a+1:]
 
-	if !(typ == "string" || typ == "boolean" || typ == "integer") {
+	if !isValidType(typ) {
 		return nil, fmt.Errorf(
 			"parameter definition %s contains an unsupported type; the supported types are string, boolean, integer",
 			paramDef)
