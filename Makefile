@@ -27,7 +27,7 @@ format: goimports ## Runs the formatter.
 
 .PHONY: check
 check: golangci-lint goimports ## Runs linter, 'go vet', and checks if the formatter has been run.
-	@LINTER=$(LINTER) FORMATTER=$(FORMATTER) $(REPO_ROOT)/hack/check.sh --golangci-lint-config="$(REPO_ROOT)/.golangci.yaml" $(CODE_DIRS) --deadline=10m
+	@LINTER=$(LINTER) FORMATTER=$(FORMATTER) $(REPO_ROOT)/hack/check.sh --golangci-lint-config="$(REPO_ROOT)/.golangci.yaml" $(CODE_DIRS)
 
 .PHONY: verify
 verify: check ## Alias for 'make check'.
