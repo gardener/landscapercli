@@ -1,6 +1,28 @@
+version: "2"
 run:
   concurrency: 4
-  deadline: 10m
+linters:
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - zz_generated.*\.go$
+      - third_party$
+      - builtin$
+      - examples$
+    rules:
+      - linters:
+        - staticcheck
+        text: "ST1005:"
 
-  skip-files:
-  - "zz_generated.*\\.go$"
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
