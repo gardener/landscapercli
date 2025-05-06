@@ -25,5 +25,4 @@ fi
 echo "> Building component in version $CDVERSION"
 $OCM add componentversions --file "$PROJECT_ROOT/components" --version "$CDVERSION" --create --force "$PROJECT_ROOT/.landscaper/components.yaml" -- \
   CDVERSION="$CDVERSION" \
-  VERSION="$VERSION" \
-  COMMIT_SHA="$(git rev-parse HEAD)"
+  VERSION="$VERSION"
