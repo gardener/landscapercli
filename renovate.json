@@ -25,12 +25,11 @@
   ],
   "packageRules": [
     {
-      "description": "Combine landscaper updates in a single PR",
+      "description": "Create landscaper updates immediately",
       "groupName": "landscaper group",
       "groupSlug": "landscaper",
-      "matchDatasources": [
-        "go"
-      ],
+      "minimumReleaseAge": "0 days",
+      "enabled": true,
       "matchPackageNames": [
         "github.com/gardener/landscaper{/,}**"
       ],
