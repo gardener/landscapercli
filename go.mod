@@ -4,8 +4,8 @@ go 1.24.2
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/gardener/landscaper v0.134.0
-	github.com/gardener/landscaper/apis v0.134.0
+	github.com/gardener/landscaper v0.135.0
+	github.com/gardener/landscaper/apis v0.135.0
 	github.com/go-logr/logr v1.4.2
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang/mock v1.6.0
@@ -142,7 +142,7 @@ require (
 	github.com/fvbommel/sortorder v1.1.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/gardener/component-spec/bindings-go v0.0.98 // indirect
-	github.com/gardener/landscaper/controller-utils v0.134.0 // indirect
+	github.com/gardener/landscaper/controller-utils v0.135.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
@@ -361,7 +361,7 @@ require (
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	k8s.io/kubectl v0.32.2 // indirect
-	ocm.software/ocm v0.24.0 // indirect
+	ocm.software/ocm v0.24.1-rc.4 // indirect
 	oras.land/oras-go v1.2.6 // indirect
 	oras.land/oras-go/v2 v2.5.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
