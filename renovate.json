@@ -13,6 +13,7 @@
   "extends": [
     "config:recommended",
     "config:best-practices",
+    "docker:pinDigests",
     "group:kubernetes",
     "group:goOpenapi",
     "security:openssf-scorecard",
@@ -24,6 +25,34 @@
     "gomodTidy"
   ],
   "packageRules": [
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchDepNames": [
+        "go"
+      ],
+      "matchDepTypes": [
+        "golang"
+      ],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "Update golang version in pipelines",
+      "groupName": "Update golang version in pipelines",
+      "groupSlug": "golang-pipelines",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "golang"
+      ],
+      "matchFileNames": [
+        ".ci/pipeline_definitions"
+      ],
+      "extractVersion": "^image: 'golang:(?<version>\\d+\\.\\d+\\.\\d+)'$",
+      "versioning": "semver"
+    },
     {
       "description": "Create landscaper updates immediately",
       "groupName": "landscaper group",
