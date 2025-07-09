@@ -22,7 +22,10 @@ if [[ -z ${CDVERSION:-} ]]; then
   CDVERSION=$VERSION
 fi
 
+COMMIT_SHA=$(git rev-parse HEAD)
+
 echo "> Building component in version $CDVERSION"
 $OCM add componentversions --file "$PROJECT_ROOT/components" --version "$CDVERSION" --create --force "$PROJECT_ROOT/.landscaper/components.yaml" -- \
   CDVERSION="$CDVERSION" \
+  COMMIT_SHA="$COMMIT_SHA" \
   VERSION="$VERSION"

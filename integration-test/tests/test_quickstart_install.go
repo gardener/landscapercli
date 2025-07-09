@@ -56,9 +56,10 @@ type quickstartInstallTest struct {
 	externalRegistryBaseURL string
 }
 
+// run creates an installation to verify that the landscaper works, which was installed via quickstart.
 func (t *quickstartInstallTest) run() error {
 	const (
-		instName = "echo-server"
+		instName = "quickstart-install-test"
 	)
 
 	ctx := context.TODO()
@@ -183,7 +184,7 @@ func buildHelmInstallation(name string, target *lsv1alpha1.Target, helmChartRef,
 				},
 			},
 			ImportDataMappings: map[string]lsv1alpha1.AnyJSON{
-				"appname":      lsv1alpha1.AnyJSON{RawMessage: []byte(`"echo-server"`)},
+				"appname":      lsv1alpha1.AnyJSON{RawMessage: []byte(`"quickstart-install-test"`)},
 				"appnamespace": lsv1alpha1.AnyJSON{RawMessage: []byte(fmt.Sprintf(`"%s"`, appNamespace))},
 			},
 		},
