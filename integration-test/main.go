@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"text/template"
 	"time"
 
@@ -146,10 +147,10 @@ func run() error {
 	fmt.Println("Waiting 5s for port forward to start...")
 	time.Sleep(5 * time.Second)
 
-	fmt.Println("========== Uploading echo-server helm chart to OCI registry ==========")
-	helmChartRef, err := uploadEchoServerHelmChart(config.LandscaperNamespace, config.ExternalRegistryBaseURL)
+	fmt.Println("========== Uploading test helm chart to OCI registry ==========")
+	helmChartRef, err := uploadTestHelmChart(config.ExternalRegistryBaseURL)
 	if err != nil {
-		return fmt.Errorf("upload of echo-server helm chart failed: %w", err)
+		return fmt.Errorf("upload of test helm chart failed: %w", err)
 	}
 
 	target, _, err := util.BuildKubernetesClusterTarget("test-target", "", config.Kubeconfig, "")
@@ -227,46 +228,29 @@ func startOCIRegistryPortForward(k8sClient client.Client, namespace, kubeconfigP
 	return portforwardCmd, nil
 }
 
-func uploadEchoServerHelmChart(landscaperNamespace, externalRegistryBaseURL string) (string, error) {
-	tempDir1, err := os.MkdirTemp(".", "landscaper-chart-tmp1-*")
+func uploadTestHelmChart(externalRegistryBaseURL string) (string, error) {
+	chartDir := path.Join(".", "testdata", "01", "chart")
+
+	tempDir, err := os.MkdirTemp(".", "landscaper-chart-tmp2-*")
 	if err != nil {
 		return "", err
 	}
 	defer func() {
-		if err := os.RemoveAll(tempDir1); err != nil {
-			fmt.Printf("cannot remove temporary directory %s: %s", tempDir1, err.Error())
+		if err := os.RemoveAll(tempDir); err != nil {
+			fmt.Printf("cannot remove temporary directory %s: %s", tempDir, err.Error())
 		}
 	}()
 
-	if err := util.ExecCommandBlocking(fmt.Sprintf("helm pull https://storage.googleapis.com/sap-hub-test/echo-server-1.1.0.tgz --untar -d %s", tempDir1)); err != nil {
-		return "", fmt.Errorf("helm pull failed: %w", err)
-	}
-	defer func() {
-		if err := os.Remove("echo-server-1.1.0.tgz"); err != nil {
-			fmt.Printf("Cannot remove file echo-server-1.1.0.tgz: %s\n", err.Error())
-		}
-	}()
-
-	tempDir2, err := os.MkdirTemp(".", "landscaper-chart-tmp2-*")
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		if err := os.RemoveAll(tempDir2); err != nil {
-			fmt.Printf("cannot remove temporary directory %s: %s", tempDir2, err.Error())
-		}
-	}()
-
-	err = util.ExecCommandBlocking(fmt.Sprintf("helm package %s/echo-server -d %s", tempDir1, tempDir2))
+	err = util.ExecCommandBlocking(fmt.Sprintf("helm package %s -d %s", chartDir, tempDir))
 	if err != nil {
 		return "", fmt.Errorf("helm package failed: %w", err)
 	}
 
-	if err := util.ExecCommandBlocking(fmt.Sprintf("helm push %s/echo-server-1.1.0.tgz oci://localhost:5000", tempDir2)); err != nil {
+	if err := util.ExecCommandBlocking(fmt.Sprintf("helm push %s/test-chart-v0.1.0.tgz oci://localhost:5000", tempDir)); err != nil {
 		return "", fmt.Errorf("helm push failed: %w", err)
 	}
 
-	helmChartRef := externalRegistryBaseURL + "/echo-server:1.1.0"
+	helmChartRef := externalRegistryBaseURL + "/test-chart:v0.1.0"
 	return helmChartRef, nil
 }
 
