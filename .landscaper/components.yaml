@@ -10,6 +10,5 @@ components:
         access:
           type: github
           commit: ${COMMIT_SHA}
-          ref: refs/tags/${VERSION}
           repoUrl: github.com/gardener/landscapercli
     componentReferences: []
