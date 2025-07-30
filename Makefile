@@ -48,7 +48,7 @@ install-cli: ## Installs the CLI.
 	@EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) $(REPO_ROOT)/hack/install-cli.sh
 
 .PHONY: cross-build
-cross-build: ## Builds the binary for linux/amd64, darwin/amd64, and darwin/arm64.
+cross-build: ## Builds the binary for linux/amd64, linux/arm64, darwin/amd64, and darwin/arm64.
 	@EFFECTIVE_VERSION=$(EFFECTIVE_VERSION) $(REPO_ROOT)/hack/cross-build.sh
 
 .PHONY: component
