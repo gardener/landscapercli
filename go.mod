@@ -1,6 +1,6 @@
 module github.com/gardener/landscapercli
 
-go 1.24.5
+go 1.24.6
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang/mock v1.6.0
-	github.com/onsi/ginkgo/v2 v2.23.4
+	github.com/onsi/ginkgo v1.16.5
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.7
 	github.com/stretchr/testify v1.10.0
