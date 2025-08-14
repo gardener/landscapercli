@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang/mock v1.7.0-rc.1
-	github.com/onsi/ginkgo/v2 v2.23.4
+	github.com/onsi/ginkgo v1.16.5
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.7
 	github.com/stretchr/testify v1.10.0
@@ -269,6 +269,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/sassoftware/relic v7.2.1+incompatible // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.9.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
@@ -355,14 +356,14 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	helm.sh/helm/v3 v3.18.4 // indirect
-	k8s.io/cli-runtime v0.33.2 // indirect
+	helm.sh/helm/v3 v3.18.5 // indirect
+	k8s.io/cli-runtime v0.33.3 // indirect
 	k8s.io/component-base v0.33.3 // indirect
 	k8s.io/gengo v0.0.0-20240310015720-9cff6334dab4 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250701173324-9bd5c66d9911 // indirect
-	k8s.io/kubectl v0.33.2 // indirect
+	k8s.io/kubectl v0.33.3 // indirect
 	ocm.software/ocm v0.27.0 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
