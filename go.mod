@@ -11,8 +11,8 @@ require (
 	github.com/golang/mock v1.7.0-rc.1
 	github.com/onsi/ginkgo v1.16.5
 	github.com/spf13/cobra v1.10.1
-	github.com/spf13/pflag v1.0.9
-	github.com/stretchr/testify v1.11.0
+	github.com/spf13/pflag v1.0.10
+	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/lint v0.0.0-20241112194109-818c5a804067
 	gopkg.in/yaml.v3 v3.0.1
