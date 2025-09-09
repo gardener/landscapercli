@@ -23,9 +23,9 @@ landscaper-cli:
         ocm_repository: europe-docker.pkg.dev/sap-gcp-cp-k8s-stable-hub/landscaper
     steps:
       verify:
-        image: 'golang:1.24.6'
+        image: 'golang:1.25.1'
       build:
-        image: 'golang:1.24.6'
+        image: 'golang:1.25.1'
         execute: 'build'
         output_dir: 'out'
         timeout: '5m'
@@ -43,7 +43,7 @@ landscaper-cli:
     pull-request:
       steps:
         run_integration_test:
-          image: 'golang:1.24.6-alpine3.22'
+          image: 'golang:1.25.1-alpine3.22'
           execute:
           - "dev_integration_test"
           - "--target-clustername=cli-pr"
@@ -65,7 +65,7 @@ landscaper-cli:
     #       suppress_parallel_execution: true
     #   steps:
     #     run_integration_test:
-    #       image: 'golang:1.24.6-alpine3.22'
+    #       image: 'golang:1.25.1-alpine3.22'
     #       execute:
     #       - "dev_integration_test"
     #       - "--target-clustername=lndscprcli-cro"
@@ -73,7 +73,7 @@ landscaper-cli:
     release:
       steps:
         run_integration_test:
-          image: 'golang:1.24.6-alpine3.22'
+          image: 'golang:1.25.1-alpine3.22'
           execute:
           - "dev_integration_test"
           - "--target-clustername=cli-re"
