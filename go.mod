@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang/mock v1.7.0-rc.1
-	github.com/onsi/ginkgo/v2 v2.25.3
+	github.com/onsi/ginkgo v1.16.5
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
@@ -21,7 +21,7 @@ require (
 	k8s.io/apimachinery v0.34.0
 	k8s.io/client-go v0.34.0
 	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
-	sigs.k8s.io/controller-runtime v0.21.0
+	sigs.k8s.io/controller-runtime v0.22.1
 	sigs.k8s.io/yaml v1.6.0
 )
 
@@ -248,6 +248,8 @@ require (
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/oleiade/reflections v1.1.0 // indirect
+	github.com/onsi/ginkgo/v2 v2.25.3 // indirect
+	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opencontainers/runtime-spec v1.2.1 // indirect
