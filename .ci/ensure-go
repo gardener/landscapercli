@@ -1,6 +1,6 @@
 #!/bin/bash -eu
 
-go_version="1.25.3"
+go_version="1.25.4"
 
 if ! which go 1>/dev/null; then
   echo "> Installing go ..."
