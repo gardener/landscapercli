@@ -28,7 +28,7 @@ landscaper-cli:
         image: 'golang:1.25.4'
         execute: 'build'
         output_dir: 'out'
-        timeout: '5m'
+        timeout: '10m'
 
   jobs:
     head-update:
