@@ -1,5 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "git-submodules": {
+    "enabled": true
+  },
   "stopUpdatingLabel": "take-a-break-renovate",
   "schedule": [
     "after 07:30am",
@@ -13,11 +16,12 @@
   "extends": [
     "config:recommended",
     "config:best-practices",
+    "default:automergeDigest",
     "docker:pinDigests",
     "group:kubernetes",
     "group:goOpenapi",
+    "helpers:pinGitHubActionDigests",
     "security:openssf-scorecard",
-    "default:automergeDigest",
     ":dependencyDashboard",
     ":rebaseStalePrs"
   ],
