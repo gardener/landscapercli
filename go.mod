@@ -4,8 +4,8 @@ go 1.25.4
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/gardener/landscaper v0.151.0
-	github.com/gardener/landscaper/apis v0.151.0
+	github.com/gardener/landscaper v0.152.0
+	github.com/gardener/landscaper/apis v0.152.0
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang/mock v1.7.0-rc.1
@@ -154,8 +154,8 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fvbommel/sortorder v1.1.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
-	github.com/gardener/landscaper/controller-utils v0.151.0 // indirect
-	github.com/gardener/landscaper/legacy-component-spec/bindings-go v0.151.0 // indirect
+	github.com/gardener/landscaper/controller-utils v0.152.0 // indirect
+	github.com/gardener/landscaper/legacy-component-spec/bindings-go v0.152.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-chi/chi/v5 v5.2.3 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
