@@ -16,7 +16,9 @@ fi
   cd "$PROJECT_ROOT"
   mkdir -p dist
 
-  build_matrix=("linux,amd64" "linux,arm64" "darwin,amd64" "darwin,arm64", "windows,amd64")
+  build_matrix=("linux,amd64" "linux,arm64" "darwin,amd64" "darwin,arm64")
+  # , "windows,amd64"
+  # windows build currently not supported due to missing support of some dependencies (e.g. syscall)
 
   for i in "${build_matrix[@]}"; do
     IFS=',' read os arch <<< "${i}"
