@@ -77,7 +77,7 @@ OCM ?= $(LOCALBIN)/ocm
 # renovate: datasource=github-tags depName=golang/tools
 FORMATTER_VERSION ?= v0.39.0
 # renovate: datasource=github-releases depName=golangci/golangci-lint
-LINTER_VERSION ?= v2.7.0
+LINTER_VERSION ?= v2.7.2
 # renovate: datasource=github-releases depName=open-component-model/ocm
 OCM_VERSION ?= 0.34.1
 
